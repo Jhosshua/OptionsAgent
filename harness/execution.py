@@ -20,7 +20,7 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
-from harness.contracts import OptionQuote
+from harness.contracts import OptionQuote, SpreadLegs, StraddleLegs
 
 
 @dataclass(frozen=True)
@@ -41,6 +41,117 @@ def execute_csp(client, *, quote: OptionQuote, contracts: int, decision_id: str)
         decision_id=decision_id,
     )
     return ExecutionResult(True, "csp order submitted", [order])
+
+
+def execute_credit_spread(
+    client, *, legs: SpreadLegs, contracts: int, decision_id: str
+) -> ExecutionResult:
+    """Single mleg order — sell short leg, buy long leg. Net-credit limit
+    price is NEGATIVE per Alpaca's mleg convention."""
+    if contracts <= 0:
+        return ExecutionResult(False, "contracts must be > 0", [])
+    order = client.submit_mleg_order(
+        legs=[
+            {"symbol": legs.short.symbol, "side": "sell", "ratio_qty": 1},
+            {"symbol": legs.long.symbol, "side": "buy", "ratio_qty": 1},
+        ],
+        qty=contracts,
+        limit_price=-legs.net_credit,  # negative = net credit
+        decision_id=decision_id,
+    )
+    return ExecutionResult(True, "credit spread mleg submitted", [order])
+
+
+def execute_debit_spread(
+    client, *, legs: SpreadLegs, contracts: int, decision_id: str
+) -> ExecutionResult:
+    """Single mleg order — buy long leg, sell short leg. Net-debit limit is
+    positive."""
+    if contracts <= 0:
+        return ExecutionResult(False, "contracts must be > 0", [])
+    net_debit = legs.long.ask - legs.short.bid
+    if net_debit <= 0:
+        return ExecutionResult(False, f"debit spread has non-positive net debit {net_debit}", [])
+    order = client.submit_mleg_order(
+        legs=[
+            {"symbol": legs.long.symbol, "side": "buy", "ratio_qty": 1},
+            {"symbol": legs.short.symbol, "side": "sell", "ratio_qty": 1},
+        ],
+        qty=contracts,
+        limit_price=net_debit,
+        decision_id=decision_id,
+    )
+    return ExecutionResult(True, "debit spread mleg submitted", [order])
+
+
+def execute_long_option(
+    client, *, quote: OptionQuote, contracts: int, decision_id: str
+) -> ExecutionResult:
+    if contracts <= 0:
+        return ExecutionResult(False, "contracts must be > 0", [])
+    order = client.submit_single_leg_order(
+        option_symbol=quote.symbol,
+        side="buy",
+        qty=contracts,
+        limit_price=quote.ask,  # buy at ask: get filled
+        decision_id=decision_id,
+    )
+    return ExecutionResult(True, "long option submitted", [order])
+
+
+def execute_long_straddle(
+    client, *, legs: StraddleLegs, contracts: int, decision_id: str
+) -> ExecutionResult:
+    """Both legs LONG -> allowed in one mleg order (no short leg to cover)."""
+    if contracts <= 0:
+        return ExecutionResult(False, "contracts must be > 0", [])
+    order = client.submit_mleg_order(
+        legs=[
+            {"symbol": legs.call.symbol, "side": "buy", "ratio_qty": 1},
+            {"symbol": legs.put.symbol, "side": "buy", "ratio_qty": 1},
+        ],
+        qty=contracts,
+        limit_price=legs.total_debit,
+        decision_id=decision_id,
+    )
+    return ExecutionResult(True, "long straddle mleg submitted", [order])
+
+
+def execute_covered_straddle(
+    client, *, legs: StraddleLegs, contracts: int, decision_id: str
+) -> ExecutionResult:
+    """Covered straddle = short ATM call (covered by ALREADY-OWNED shares,
+    verified by the caller) + short ATM put (cash-secured; the rails already
+    required full cash backing). CANNOT be one mleg order: Alpaca requires
+    every short leg in an mleg order to be covered WITHIN that order, and
+    the covering shares can't be a leg — so this is two sequential
+    single-leg orders. If the second leg fails, the first is reported so the
+    caller/exit-sweep sees a partial structure rather than silence."""
+    if contracts <= 0:
+        return ExecutionResult(False, "contracts must be > 0", [])
+    call_order = client.submit_single_leg_order(
+        option_symbol=legs.call.symbol,
+        side="sell",
+        qty=contracts,
+        limit_price=legs.call.bid,
+        decision_id=decision_id,
+    )
+    try:
+        put_order = client.submit_single_leg_order(
+            option_symbol=legs.put.symbol,
+            side="sell",
+            qty=contracts,
+            limit_price=legs.put.bid,
+            decision_id=decision_id,
+        )
+    except Exception as e:
+        return ExecutionResult(
+            False,
+            f"covered straddle PARTIAL: call leg submitted but put leg failed ({e}) — "
+            f"structure is incomplete, manual attention or next sweep must reconcile",
+            [call_order],
+        )
+    return ExecutionResult(True, "covered straddle submitted (2 legs)", [call_order, put_order])
 
 
 def execute_covered_call_on_owned_shares(

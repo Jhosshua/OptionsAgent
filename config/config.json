@@ -2,13 +2,13 @@
   "_comment": "OptionsAgent config. Hard rails live in code (harness/risk_rails.py), NOT here, so they can't be loosened by editing JSON. This file holds tunables only.",
   "risk_profile": "medium",
   "equity_usd_fallback": 100000,
-  "phase": "wheel",
-  "_phase_comment": "Phased rollout per ARCHITECTURE.md: wheel -> spreads -> long_options -> straddles. Only strategy_types allowed for the active phase are proposed/executed.",
+  "phase": "all",
+  "_phase_comment": "Operator 2026-07-03: all strategies live from day one (overrides the original phased rollout in ARCHITECTURE.md). The phase machinery is kept so any strategy can be switched off by moving to a narrower phase.",
   "phase_strategies": {
     "wheel": ["csp", "covered_call"],
     "spreads": ["csp", "covered_call", "credit_spread", "debit_spread"],
     "long_options": ["csp", "covered_call", "credit_spread", "debit_spread", "long_call", "long_put"],
-    "straddles": ["csp", "covered_call", "credit_spread", "debit_spread", "long_call", "long_put", "long_straddle", "covered_straddle"]
+    "all": ["csp", "covered_call", "credit_spread", "debit_spread", "long_call", "long_put", "long_straddle", "covered_straddle"]
   },
   "screener": {
     "universe_file": "config/universe.txt"
@@ -36,6 +36,38 @@
     "profit_target_pct": 0.50,
     "dte_close": 21,
     "score_min": 0.0
+  },
+  "spreads": {
+    "_comment": "RESEARCH.md: short strike 15-30 delta, 30-45 DTE, 50% profit / 21 DTE exit (best-verified rule in the research). max_width_usd bounds defined risk per spread.",
+    "short_delta_min": 0.15,
+    "short_delta_max": 0.30,
+    "dte_min": 30,
+    "dte_max": 45,
+    "max_width_usd": 5.0,
+    "profit_target_pct": 0.50,
+    "stop_loss_pct": 1.00,
+    "_stop_comment": "stop_loss_pct is vs credit received: 1.00 = close if cost-to-close reaches 2x the credit (loss = 100% of credit). Research gave no verified stop for credit spreads; this is a starting knob.",
+    "dte_close": 21
+  },
+  "long_options": {
+    "_comment": "RESEARCH.md: no firm entry convention (thesis-driven); delta band 0.50-0.70 scaled by conviction, 30-45 DTE for theta runway. Exit = E*TRADE convention: +100% profit / -50% stop, 21 DTE force close.",
+    "delta_min": 0.50,
+    "delta_max": 0.70,
+    "dte_min": 30,
+    "dte_max": 45,
+    "profit_target_pct": 1.00,
+    "stop_loss_pct": 0.50,
+    "dte_close": 21
+  },
+  "straddles": {
+    "_comment": "RESEARCH.md: ATM both legs, ~45 DTE entry, close early (never hold to expiry). Long straddle exit as % of debit paid; covered straddle short legs follow the short-premium 50%/21DTE rules. Least-standardized strategies — these knobs are starting points.",
+    "dte_min": 30,
+    "dte_max": 60,
+    "dte_target": 45,
+    "long_profit_target_pct": 0.50,
+    "long_stop_loss_pct": 0.50,
+    "covered_profit_target_pct": 0.50,
+    "dte_close": 21
   },
   "self_learning": {
     "enabled": false,

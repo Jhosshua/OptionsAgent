@@ -1,21 +1,38 @@
 """Entry-proposal cycle. Run once/day (cron). For each underlying in the
 watchlist: LLM proposes -> rails evaluate -> contract selection -> execution
--> log -> Discord. NOT YET RUN against a live paper account — needs
-ALPACA_API_KEY/ALPACA_SECRET_KEY/ANTHROPIC_API_KEY/DISCORD_WEBHOOK_URL in
-.env first (see SETUP.md). The deterministic logic underneath (risk_rails,
-contracts, exits) is unit-tested; this orchestration script is the
-integration layer that still needs a real paper-account dry run.
+-> structure registry -> log -> Discord.
+
+All 8 strategies live (operator 2026-07-03). Every executed structure is
+recorded in data/structures.jsonl so the exit sweep knows what each flat
+Alpaca position actually is.
 """
 
 from __future__ import annotations
 
 import logging
+from datetime import date, timedelta
 
-from harness import decision_log, notify
+from harness import decision_log, notify, structures
 from harness.alpaca_glue import make_client
-from harness.contracts import select_covered_call, select_csp
+from harness.contracts import (
+    select_covered_call,
+    select_credit_spread,
+    select_csp,
+    select_debit_spread,
+    select_long_option,
+    select_straddle,
+)
 from harness.env import allowed_strategies, config, universe
-from harness.execution import execute_covered_call_on_owned_shares, execute_csp
+from harness.execution import (
+    execute_covered_call_on_owned_shares,
+    execute_covered_straddle,
+    execute_credit_spread,
+    execute_csp,
+    execute_debit_spread,
+    execute_long_option,
+    execute_long_straddle,
+)
+from harness.exits import LONG_TYPES
 from harness.positions import build_account_state
 from harness.proposer import propose
 from harness.risk_rails import active_rails, apply_opened_position, evaluate_proposal
@@ -24,21 +41,162 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("optionsagent.run_cycle")
 
 
+def _expiry_iso(dte: int) -> str:
+    return (date.today() + timedelta(days=dte)).isoformat()
+
+
+def _owned_share_lots(positions_raw: list[dict], underlying: str) -> tuple[int, float | None]:
+    """Returns (lots_of_100_owned, per_share_cost_basis or None)."""
+    pos = next(
+        (
+            p
+            for p in positions_raw
+            if p["symbol"] == underlying and p["asset_class"].lower() == "us_equity" and p["qty"] >= 100
+        ),
+        None,
+    )
+    if pos is None:
+        return 0, None
+    return int(pos["qty"]) // 100, pos["cost_basis"] / pos["qty"]
+
+
+def _select_and_price(proposal, chain, cfg, positions_raw, conviction_size_frac):
+    """Deterministic contract selection + per-contract capital requirement.
+    Returns (legs_for_registry, executor_kwargs, executor_fn, per_contract_usd,
+    entry_net, max_contracts_clamp, skip_reason). skip_reason is set when the
+    strategy can't be built (no contract match / prerequisites missing)."""
+    wheel = cfg["wheel"]
+    spreads = cfg["spreads"]
+    longs = cfg["long_options"]
+    strads = cfg["straddles"]
+    st = proposal.strategy_type
+
+    if st == "csp":
+        q = select_csp(
+            chain,
+            delta_min=wheel["csp_delta_min"],
+            delta_max=wheel["csp_delta_max"],
+            dte_min=wheel["csp_dte_min"],
+            dte_max=wheel["csp_dte_max"],
+            score_min=wheel["score_min"],
+        )
+        if q is None:
+            return None, None, None, 0, 0, None, "no_contract_matched_criteria"
+        legs = [structures.Leg(q.symbol, "short", "put", q.strike, _expiry_iso(q.dte))]
+        return legs, {"quote": q}, execute_csp, q.strike * 100, q.bid, None, None
+
+    if st == "covered_call":
+        lots, cost_basis = _owned_share_lots(positions_raw, proposal.underlying)
+        if lots < 1:
+            return None, None, None, 0, 0, None, "skipped_no_shares_owned"
+        q = select_covered_call(
+            chain,
+            cost_basis=cost_basis,
+            delta_min=wheel["covered_call_delta_min"],
+            delta_max=wheel["covered_call_delta_max"],
+            dte_min=wheel["covered_call_dte_min"],
+            dte_max=wheel["covered_call_dte_max"],
+            score_min=wheel["score_min"],
+        )
+        if q is None:
+            return None, None, None, 0, 0, None, "no_contract_matched_criteria"
+        legs = [structures.Leg(q.symbol, "short", "call", q.strike, _expiry_iso(q.dte))]
+        return legs, {"quote": q}, execute_covered_call_on_owned_shares, q.strike * 100, q.bid, lots, None
+
+    if st in ("credit_spread", "debit_spread"):
+        if proposal.direction not in ("bullish", "bearish"):
+            return None, None, None, 0, 0, None, f"direction {proposal.direction!r} unusable for a vertical spread"
+        select = select_credit_spread if st == "credit_spread" else select_debit_spread
+        pair = select(
+            chain,
+            direction=proposal.direction,
+            delta_min=spreads["short_delta_min"] if st == "credit_spread" else longs["delta_min"],
+            delta_max=spreads["short_delta_max"] if st == "credit_spread" else longs["delta_max"],
+            dte_min=spreads["dte_min"],
+            dte_max=spreads["dte_max"],
+            max_width=spreads["max_width_usd"],
+        )
+        if pair is None:
+            return None, None, None, 0, 0, None, "no_spread_matched_criteria"
+        legs = [
+            structures.Leg(pair.short.symbol, "short", pair.short.right, pair.short.strike, _expiry_iso(pair.short.dte)),
+            structures.Leg(pair.long.symbol, "long", pair.long.right, pair.long.strike, _expiry_iso(pair.long.dte)),
+        ]
+        if st == "credit_spread":
+            return legs, {"legs": pair}, execute_credit_spread, pair.width * 100, pair.net_credit, None, None
+        net_debit = pair.long.ask - pair.short.bid
+        return legs, {"legs": pair}, execute_debit_spread, net_debit * 100, net_debit, None, None
+
+    if st in ("long_call", "long_put"):
+        right = "call" if st == "long_call" else "put"
+        # conviction scales the delta target within the band: floor conviction
+        # -> delta_min (cheaper, more leverage needed to pay off), max
+        # conviction -> delta_max (more intrinsic, higher win odds)
+        target = longs["delta_min"] + (longs["delta_max"] - longs["delta_min"]) * conviction_size_frac
+        q = select_long_option(
+            chain,
+            right=right,
+            target_delta=target,
+            delta_min=longs["delta_min"],
+            delta_max=longs["delta_max"],
+            dte_min=longs["dte_min"],
+            dte_max=longs["dte_max"],
+        )
+        if q is None:
+            return None, None, None, 0, 0, None, "no_contract_matched_criteria"
+        legs = [structures.Leg(q.symbol, "long", right, q.strike, _expiry_iso(q.dte))]
+        return legs, {"quote": q}, execute_long_option, q.ask * 100, q.ask, None, None
+
+    if st == "long_straddle":
+        pair = select_straddle(
+            chain, dte_min=strads["dte_min"], dte_max=strads["dte_max"], dte_target=strads["dte_target"]
+        )
+        if pair is None:
+            return None, None, None, 0, 0, None, "no_straddle_matched_criteria"
+        legs = [
+            structures.Leg(pair.call.symbol, "long", "call", pair.call.strike, _expiry_iso(pair.call.dte)),
+            structures.Leg(pair.put.symbol, "long", "put", pair.put.strike, _expiry_iso(pair.put.dte)),
+        ]
+        return legs, {"legs": pair}, execute_long_straddle, pair.total_debit * 100, pair.total_debit, None, None
+
+    if st == "covered_straddle":
+        lots, _ = _owned_share_lots(positions_raw, proposal.underlying)
+        if lots < 1:
+            return None, None, None, 0, 0, None, "skipped_no_shares_owned"
+        pair = select_straddle(
+            chain, dte_min=strads["dte_min"], dte_max=strads["dte_max"], dte_target=strads["dte_target"]
+        )
+        if pair is None:
+            return None, None, None, 0, 0, None, "no_straddle_matched_criteria"
+        legs = [
+            structures.Leg(pair.call.symbol, "short", "call", pair.call.strike, _expiry_iso(pair.call.dte)),
+            structures.Leg(pair.put.symbol, "short", "put", pair.put.strike, _expiry_iso(pair.put.dte)),
+        ]
+        # capital = full cash backing for the short put (ARCHITECTURE.md:
+        # stricter than Alpaca's margin math, by decision). The short call is
+        # covered by the owned shares, already counted in exposure.
+        return legs, {"legs": pair}, execute_covered_straddle, pair.put.strike * 100, pair.total_credit, lots, None
+
+    return None, None, None, 0, 0, None, f"strategy_type {st!r} not implemented"
+
+
 def run() -> None:
     cfg = config()
-    phase = cfg.get("phase", "wheel")
+    phase = cfg.get("phase", "all")
     strategies = allowed_strategies()
-    wheel_cfg = cfg["wheel"]
-    # Config sanity guard, FIRST — before any broker/LLM construction, so a
-    # bad config fails immediately even with no credentials present. Entry
-    # DTE windows must sit ABOVE the mandatory close threshold, or the bot
-    # preferentially opens positions the exit sweep force-closes the same
-    # day (the scorer favors shortest DTE).
-    for key in ("csp_dte_min", "covered_call_dte_min"):
-        if wheel_cfg[key] <= wheel_cfg["dte_close"]:
+    # Config sanity guard, FIRST — before any broker/LLM construction. Entry
+    # DTE windows must sit ABOVE each family's mandatory close threshold.
+    for section, key in (
+        ("wheel", "csp_dte_min"),
+        ("wheel", "covered_call_dte_min"),
+        ("spreads", "dte_min"),
+        ("long_options", "dte_min"),
+        ("straddles", "dte_min"),
+    ):
+        if cfg[section][key] <= cfg[section]["dte_close"]:
             raise ValueError(
-                f"config error: {key} ({wheel_cfg[key]}) must be > dte_close "
-                f"({wheel_cfg['dte_close']}) — see config.json comment"
+                f"config error: {section}.{key} ({cfg[section][key]}) must be > "
+                f"{section}.dte_close ({cfg[section]['dte_close']})"
             )
 
     cycle_id = decision_log.record_cycle_start(phase)
@@ -80,68 +238,27 @@ def run() -> None:
             continue
 
         chain = client.option_chain(proposal.underlying)
-        max_covered_contracts = None  # covered_call only: owned-share lot ceiling
-
-        if proposal.strategy_type == "csp":
-            quote = select_csp(
-                chain,
-                delta_min=wheel_cfg["csp_delta_min"],
-                delta_max=wheel_cfg["csp_delta_max"],
-                dte_min=wheel_cfg["csp_dte_min"],
-                dte_max=wheel_cfg["csp_dte_max"],
-                score_min=wheel_cfg["score_min"],
-            )
-        elif proposal.strategy_type == "covered_call":
-            shares_position = next(
-                (
-                    p
-                    for p in positions_raw
-                    if p["symbol"] == proposal.underlying and p["asset_class"].lower() == "us_equity"
-                ),
-                None,
-            )
-            if shares_position is None or shares_position["qty"] < 100:
-                record["outcome"] = "skipped_no_shares_owned"
-                decision_log.record(record)
-                continue
-            cost_basis = shares_position["cost_basis"] / shares_position["qty"]
-            max_covered_contracts = int(shares_position["qty"]) // 100
-            quote = select_covered_call(
-                chain,
-                cost_basis=cost_basis,
-                delta_min=wheel_cfg["covered_call_delta_min"],
-                delta_max=wheel_cfg["covered_call_delta_max"],
-                dte_min=wheel_cfg["covered_call_dte_min"],
-                dte_max=wheel_cfg["covered_call_dte_max"],
-                score_min=wheel_cfg["score_min"],
-            )
-        else:
-            record["outcome"] = f"strategy_type {proposal.strategy_type} not yet implemented (phase 1 = wheel only)"
-            decision_log.record(record)
-            continue
-
-        if quote is None:
-            record["outcome"] = "no_contract_matched_criteria"
+        legs, exec_kwargs, executor, per_contract_usd, entry_net, lots_clamp, skip = _select_and_price(
+            proposal, chain, cfg, positions_raw, decision.size_frac
+        )
+        if skip is not None:
+            record["outcome"] = skip
             decision_log.record(record)
             notify.trade_vetoed(
-                underlying=proposal.underlying,
-                strategy_type=proposal.strategy_type,
-                reason="no contract in the chain matched the delta/DTE criteria",
+                underlying=proposal.underlying, strategy_type=proposal.strategy_type, reason=skip
             )
             continue
 
-        # Sizing: NO minimum of 1. If the rail-computed dollar cap can't
-        # afford one contract's collateral, the trade is SKIPPED — forcing a
-        # single contract would silently override the per-position cap
-        # (sibling-bot convention: LiveSwing skips clips < 1 share).
-        collateral_per_contract = quote.strike * 100
-        contracts = int(decision.position_cap_usd / collateral_per_contract)
-        if max_covered_contracts is not None:
-            # never sell more calls than there are owned 100-share lots to
-            # cover them — the excess would be naked calls
-            contracts = min(contracts, max_covered_contracts)
-        record["contract"] = quote.__dict__
+        if per_contract_usd <= 0:
+            record["outcome"] = "skipped_nonpositive_per_contract_capital"
+            decision_log.record(record)
+            continue
+        contracts = int(decision.position_cap_usd / per_contract_usd)
+        if lots_clamp is not None:
+            contracts = min(contracts, lots_clamp)  # never short more calls than owned lots
+        record["legs"] = [leg.__dict__ for leg in legs]
         record["contracts"] = contracts
+        record["per_contract_usd"] = per_contract_usd
         if contracts < 1:
             record["outcome"] = "skipped_cap_below_one_contract"
             decision_log.record(record)
@@ -149,36 +266,39 @@ def run() -> None:
                 underlying=proposal.underlying,
                 strategy_type=proposal.strategy_type,
                 reason=f"position cap ${decision.position_cap_usd:,.0f} is below one "
-                f"contract's collateral ${collateral_per_contract:,.0f} — skipped",
+                f"contract's requirement ${per_contract_usd:,.0f} — skipped",
             )
             continue
 
-        if proposal.strategy_type == "csp":
-            result = execute_csp(
-                client, quote=quote, contracts=contracts, decision_id=decision_id
-            )
-        else:  # covered_call — ownership of contracts*100 shares verified above
-            result = execute_covered_call_on_owned_shares(
-                client, quote=quote, contracts=contracts, decision_id=decision_id
-            )
+        result = executor(client, contracts=contracts, decision_id=decision_id, **exec_kwargs)
 
         record["orders"] = result.orders
         if result.success:
             record["outcome"] = "executed"
-            # Update the account snapshot so the NEXT proposal in this same
-            # cycle is evaluated against real exposure, not the stale
-            # beginning-of-cycle state.
+            structures.record_opened(
+                structures.Structure(
+                    structure_id=decision_id,
+                    underlying=proposal.underlying,
+                    strategy_type=proposal.strategy_type,
+                    contracts=contracts,
+                    entry_net=abs(entry_net),
+                    legs=legs,
+                    opened_ts=decision_log.now_iso(),
+                )
+            )
             account = apply_opened_position(
                 account,
                 underlying=proposal.underlying,
-                collateral_usd=contracts * collateral_per_contract,
+                collateral_usd=contracts * per_contract_usd,
             )
             notify.trade_opened(
                 underlying=proposal.underlying,
                 strategy_type=proposal.strategy_type,
-                strike=quote.strike,
-                dte=quote.dte,
-                credit_or_debit=quote.bid,
+                strike=legs[0].strike,
+                dte=(date.fromisoformat(legs[0].expiry) - date.today()).days,
+                # notify prints Credit for >= 0, Debit for < 0: long
+                # structures pay a debit, short premium collects a credit
+                credit_or_debit=(-entry_net if proposal.strategy_type in LONG_TYPES else entry_net),
                 thesis=proposal.thesis,
             )
         else:

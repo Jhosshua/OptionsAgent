@@ -68,6 +68,36 @@ Watchlist (config/universe.txt) + market context   ─┐
 A separate, LLM-free exit sweep (`run_exits.py`, `harness/exits.py`) runs on its own schedule
 purely to check DTE-close, profit-target, and dividend-assignment triggers on open positions.
 
+## ⭐ UPDATE 2026-07-03 (later): ALL STRATEGIES LIVE AT ONCE + RAILWAY — supersedes the phased rollout below
+
+Operator decision: build all 4 strategy phases immediately and deploy straight to Railway (no local
+`.env` validation step). The phased-rollout machinery is KEPT (config.json `phase` key) so any
+strategy family can be switched off by moving to a narrower phase, but `phase` is now `"all"`.
+
+What was added on top of the wheel build:
+- `harness/contracts.py`: `select_credit_spread` / `select_debit_spread` (vertical spreads, defined
+  width ≤ `spreads.max_width_usd`), `select_long_option` (conviction-scaled delta target within
+  0.50-0.70), `select_straddle` (ATM pair, used by both long and covered straddles).
+- `harness/execution.py`: mleg executors (credit/debit spread, long straddle — one combo order,
+  never sequential legs), `execute_long_option`, `execute_covered_straddle` (two sequential
+  single-leg orders BY NECESSITY: Alpaca requires short legs covered within an mleg order and
+  shares can't be a leg; a partial fill is reported loudly, never silent).
+- `harness/structures.py`: open-structure registry (`data/structures.jsonl`, append-only
+  opened/closed events) — the exit sweep's source of truth for what each flat position IS.
+  `reconcile()` detects vanished legs (assignment/expiry/manual) and alerts, never silently drops.
+- `harness/exits.py`: generalized to two families — short premium (profit % of credit, optional
+  stop, 21 DTE, dividend check on short calls) and long (profit/stop % of debit, 21 DTE).
+- `harness/dividends.py`: yfinance ex-dividend lookup, FAIL-OPEN (missing feed = no early warning,
+  never a crash). Note: quarterly amount approximated as dividendRate/4 when calendar lacks it.
+- `run_exits.py`: fully wired (was a stub) — load registry → reconcile → quotes → evaluate →
+  unwind orders (mleg reverse for combos) → estimated P&L → Discord.
+- Railway: `Dockerfile` + `entrypoint.sh` + `cron/` (entry 10:15-10:27 ET once/day, exit sweep
+  every 20 min market hours, both broker-clock-gated fail-closed) + `railway.json`, mirroring the
+  DeterministicAgent-Railway pattern. Railway project `OptionsAgent`
+  (e312c619-5ac9-4edb-9d57-6ec4d1252ddd), volume at `/Users/mo/OptionsAgent/data`.
+  ⚠️ entrypoint.sh `secret_keys` allowlist = the fleet's known 3-touch-point gotcha; a new key
+  must be added to code, Railway vars, AND that list.
+
 ## Current build status (2026-07-03, post code-review fixes)
 
 **Phase 1 (wheel) scaffolded, 10 code-review findings fixed, 36 passing unit tests, NOT yet run

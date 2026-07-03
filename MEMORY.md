@@ -1,5 +1,34 @@
 # MEMORY.md — OptionsAgent
 
+## 2026-07-03 (latest) — All strategies built at once + straight to Railway (operator override)
+
+**What was decided:** operator explicitly overrode the logged phased-rollout plan: "i want to build
+everything all phases and it needs to go right into railway." All 8 strategy types are now
+implemented and enabled (`config.json` phase `"all"`), and deployment goes directly to Railway with
+keys in Railway env vars (no local .env validation step first).
+
+**Why:** operator's call after the phase-1 build + code review were done. The phase machinery is
+kept so strategies can be switched off by narrowing `phase`.
+
+**What was rejected:** the original validate-each-phase-in-paper-first rollout (ARCHITECTURE.md).
+Risk accepted by the operator: all strategies' first live contact happens at once, debugging
+through Railway logs.
+
+**Build:** spreads/long-options/straddle selectors + mleg execution + structure registry
+(data/structures.jsonl) + fully-wired exit sweep + dividends lookup (yfinance, fail-open).
+55 tests passing. Covered straddle = two sequential single-leg orders BY NECESSITY (Alpaca: short
+legs must be covered within an mleg order; shares can't be a leg).
+
+**Railway:** project `OptionsAgent` (e312c619-5ac9-4edb-9d57-6ec4d1252ddd), service from GitHub
+`Jhosshua/OptionsAgent` main, volume `optionsagent-volume` at `/Users/mo/OptionsAgent/data`.
+First deploy failed (expected: railpack ran before Dockerfile/railway.json were pushed).
+Cron: entry 10:15-10:27 ET (staggered after DA's 10:00), exits every 20 min market hours; both
+gated by the broker clock, fail-closed.
+
+**Still needs operator input:** Alpaca PAPER keys for THIS bot (a NEW paper account — sharing
+DA's would tangle both bots' exposure math; independence is a fleet rule) and a Discord
+webhook for the new channel. ANTHROPIC_API_KEY can be shared from the fleet per existing policy.
+
 ## 2026-07-03 (later) — Code review found 10 confirmed bugs in the initial commit; all fixed
 
 **What happened:** operator asked for a bug check right after the initial commit. A high-effort

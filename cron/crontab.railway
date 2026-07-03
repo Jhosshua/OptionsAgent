@@ -1,0 +1,16 @@
+# OptionsAgent — Railway cron schedule (/etc/cron.d format: has the `root` user field).
+# Container system timezone is America/New_York (see Dockerfile) so fields fire at
+# Eastern clock times, DST handled by the tz database. Every script ALSO self-gates
+# internally (ET window + broker market clock), so timing is doubly safe.
+#
+# Output tees to /proc/1/fd/1 (container stdout) so Railway's log viewer shows cron
+# activity in addition to each run's own output.
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+TZ=America/New_York
+
+# Daily entry cycle — self-gates to the 10:15-10:27 ET window, once/day (atomic volume lock).
+*/5 10 * * 1-5 root /Users/mo/OptionsAgent/cron/entry.sh >> /proc/1/fd/1 2>&1
+# Exit sweep — every 20 min on weekdays; self-gates to market hours via the broker clock.
+*/20 9-16 * * 1-5 root /Users/mo/OptionsAgent/cron/exits.sh >> /proc/1/fd/1 2>&1
+# NOTE: a /etc/cron.d file MUST end with a trailing newline (below) or the last line is ignored.

@@ -171,9 +171,67 @@ class PaperClient:
         order = self._trading_client().submit_order(req)
         return {"id": str(order.id), "client_order_id": client_order_id, "status": _status_str(order.status)}
 
+    def submit_mleg_order(
+        self,
+        *,
+        legs: list[dict[str, Any]],  # [{"symbol": str, "side": "buy"|"sell", "ratio_qty": int}]
+        qty: int,
+        limit_price: float,
+        decision_id: str,
+    ) -> dict[str, Any]:
+        """Multi-leg combo order (spreads, long straddles). Always LIMIT —
+        research: sequential single legs lose midpoint pricing and eat
+        slippage between fills. Alpaca's mleg net-price convention: positive
+        limit_price = net debit, negative = net credit."""
+        from alpaca.trading.enums import OrderClass, OrderSide, TimeInForce
+        from alpaca.trading.requests import LimitOrderRequest, OptionLegRequest
+
+        if not legs or len(legs) < 2:
+            raise ValueError("mleg order needs at least 2 legs")
+        leg_requests = [
+            OptionLegRequest(
+                symbol=leg["symbol"],
+                side=OrderSide.BUY if leg["side"] == "buy" else OrderSide.SELL,
+                ratio_qty=leg["ratio_qty"],
+            )
+            for leg in legs
+        ]
+        client_order_id = f"{ORDER_PREFIX}{decision_id}-{uuid.uuid4().hex[:8]}"
+        req = LimitOrderRequest(
+            qty=qty,
+            order_class=OrderClass.MLEG,
+            legs=leg_requests,
+            time_in_force=TimeInForce.DAY,
+            limit_price=round(limit_price, 2),
+            client_order_id=client_order_id,
+        )
+        order = self._trading_client().submit_order(req)
+        return {"id": str(order.id), "client_order_id": client_order_id, "status": _status_str(order.status)}
+
+    def option_quotes(self, option_symbols: list[str]) -> dict[str, dict[str, float]]:
+        """Latest bid/ask per OCC symbol — the exit sweep's mark source."""
+        from alpaca.data.requests import OptionLatestQuoteRequest
+
+        if not option_symbols:
+            return {}
+        client = self._option_historical_client()
+        req = OptionLatestQuoteRequest(symbol_or_symbols=option_symbols)
+        quotes = client.get_option_latest_quote(req)
+        return {
+            sym: {"bid": float(q.bid_price or 0.0), "ask": float(q.ask_price or 0.0)}
+            for sym, q in quotes.items()
+        }
+
     def get_order(self, order_id: str) -> dict[str, Any]:
         order = self._trading_client().get_order_by_id(order_id)
         return {"id": str(order.id), "status": _status_str(order.status), "filled_qty": float(order.filled_qty or 0)}
+
+    def market_is_open(self) -> bool:
+        """Broker market clock — the cron scripts' holiday/weekend guard.
+        The cron time windows only know the ET wall clock, not the NYSE
+        calendar; this is the authoritative check."""
+        clock = self._trading_client().get_clock()
+        return bool(clock.is_open)
 
 
 def make_client() -> PaperClient:
