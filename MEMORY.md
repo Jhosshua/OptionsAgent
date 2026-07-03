@@ -1,5 +1,25 @@
 # MEMORY.md — OptionsAgent
 
+## 2026-07-03 (latest) — Sizing rework: FULL-DEPLOY (no percentage caps) + real keys live
+
+**What was decided:** operator, after seeing the new paper account's $5,000 balance made the
+15%-per-position cap ($750) block nearly everything: "we need to change sizing math, i want to use
+all the cash i have in the account, it doesnt have to be all at once, but there should be no cap."
+Implemented: position budget = conviction-scaled fraction of AVAILABLE options buying power
+(0.60 floor → 30%, 0.85+ → 100%, may take everything). Removed: per-position/per-underlying/
+gross-exposure/margin-utilization percentage caps. Kept: 0.60 conviction floor, 6 max positions,
+21 DTE close, skip-below-1-contract, covered-call share clamp, broker BP rejection.
+`apply_opened_position` now shrinks the next proposal's base within a cycle (this is what makes
+"not necessarily all at once" mechanically true). Kill knob added: `OA_MAX_POSITION_USD` env.
+
+**Flagged to operator before implementing:** this supersedes the logged medium-risk profile, and a
+max-conviction trade can take the entire account's buying power in one position. Operator's call.
+
+**Also this session:** Alpaca paper keys (2nd account, $5k) set via the clipboard flow (secrets
+never entered the conversation), container verified authenticating from inside Railway
+(equity $5,000 / options BP $5,000). First account supplied had $0 equity and was replaced.
+Market closed 2026-07-03 (July 4 observed) — first live entry window is Monday 2026-07-06 10:15 ET.
+
 ## 2026-07-03 (latest) — All strategies built at once + straight to Railway (operator override)
 
 **What was decided:** operator explicitly overrode the logged phased-rollout plan: "i want to build

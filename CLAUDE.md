@@ -32,11 +32,16 @@ Full design rationale: `RESEARCH.md` (3 research passes, verified findings + exp
 2. **Rails live in code, not config.** `harness/risk_rails.py` hard floors are never widened by a
    proposal, by config JSON, or by the model. `config/config.json`'s `OA_*` env overrides may only
    *tighten* a floor (see `active_rails()`), never loosen one.
-3. **Risk profile: MEDIUM risk, HIGH conviction** (finalized 2026-07-03, operator delegated the
-   calibration after 3 research passes). Concretely: a hard 0.60 conviction floor gates entry
-   entirely (below it: no trade, not just a smaller one); 6 max concurrent positions; 15% per-
-   position / 20% per-underlying / 60% gross-exposure caps; 60% margin-utilization buffer; 21 DTE
-   mandatory close on all short-premium legs. Full rationale in `ARCHITECTURE.md`.
+3. **Risk profile: FULL-DEPLOY, HIGH conviction** (operator 2026-07-03, SUPERSEDES the earlier
+   medium-risk percentage caps — "use all the cash, not necessarily all at once, no cap").
+   Position budget = conviction-scaled fraction of AVAILABLE options buying power: 0.60 conviction
+   (the hard entry floor, unchanged) → 30% of what's available, 0.85+ → 100% (a max-conviction
+   trade MAY take all remaining buying power; that is deliberate policy). No per-position,
+   per-underlying, gross-exposure, or margin-utilization percentage caps. Still in force: the
+   0.60 floor, 6 max concurrent positions, 21 DTE close, skip-below-1-contract, covered-call
+   share clamp, Alpaca's own buying-power rejection as broker-side backstop. Kill knob:
+   `OA_MAX_POSITION_USD` env (absolute per-position ceiling, tighten-only). The original
+   medium-risk rationale in `ARCHITECTURE.md` is historical.
 4. **The LLM never picks a strike, delta, or DTE.** It proposes
    `{underlying, strategy_type, direction, conviction, thesis}` only — `harness/proposer.py`'s
    schema enforces this at the type level.

@@ -1,7 +1,8 @@
 {
   "_comment": "OptionsAgent config. Hard rails live in code (harness/risk_rails.py), NOT here, so they can't be loosened by editing JSON. This file holds tunables only.",
-  "risk_profile": "medium",
-  "equity_usd_fallback": 100000,
+  "risk_profile": "full_deploy_high_conviction",
+  "_risk_comment": "Operator 2026-07-03: no percentage caps. Position budget = conviction-scaled fraction of AVAILABLE options buying power (floor conviction -> 30%, max conviction -> 100%, may take everything). Kill knob: OA_MAX_POSITION_USD env (absolute ceiling, tighten-only).",
+  "equity_usd_fallback": 5000,
   "phase": "all",
   "_phase_comment": "Operator 2026-07-03: all strategies live from day one (overrides the original phased rollout in ARCHITECTURE.md). The phase machinery is kept so any strategy can be switched off by moving to a narrower phase.",
   "phase_strategies": {

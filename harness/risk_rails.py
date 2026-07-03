@@ -1,17 +1,24 @@
 """Hard risk rails — the DETERMINISTIC decision layer.
 
 Same governing rule as DeterministicAgent: the LLM proposes, this code
-disposes. Same proposal + same account/position state always yields the same
-accept/veto/size. No LLM ever runs in here. All functions are PURE (no IO) so
-they are trivially testable and replayable.
+disposes. Same proposal + same account state always yields the same
+accept/veto/size. No LLM ever runs in here. All functions are PURE (no IO).
 
-MEDIUM-RISK, HIGH-CONVICTION PROFILE (see ARCHITECTURE.md "Risk profile"):
-fewer, more selective trades, each sized meaningfully once taken. A hard
-conviction floor gates entry entirely (not just a smaller size below it), and
-the portfolio-level caps stay tighter than a high-risk directional stock bot's
-would, because options are already leveraged instruments.
+FULL-DEPLOY / HIGH-CONVICTION PROFILE (operator 2026-07-03, supersedes the
+original medium-risk percentage caps): position size is a CONVICTION-SCALED
+FRACTION OF AVAILABLE OPTIONS BUYING POWER, with no per-position, per-
+underlying, or gross-exposure percentage caps. "Use all the cash, not
+necessarily all at once": a floor-conviction idea takes min_size_frac of
+what's available, a max-conviction idea may take all of it. Alpaca's own
+buying-power rejection is the hard broker-side backstop.
 
-These floors are never widened by a proposal, by config JSON, or by the model.
+What still gates every trade (these are NOT sizing caps and never left):
+  - the 0.60 conviction floor (below it: no trade at all)
+  - max 6 concurrent positions
+  - rollout-phase strategy allowlist
+  - available buying power must actually cover the position
+The env override OA_MAX_POSITION_USD may only TIGHTEN (an absolute dollar
+ceiling per position, same pattern as DA's DA_MAX_ORDER_USD kill knob).
 """
 
 from __future__ import annotations
@@ -22,51 +29,29 @@ import os
 
 @dataclass(frozen=True)
 class Rails:
-    """Hard caps for the medium-risk/high-conviction profile. Config may only
-    tighten these via the env overrides below, never loosen them."""
-
-    conviction_floor: float = 0.60        # below this: pass, no trade at all
-    conviction_max: float = 0.85          # size scaling saturates at/above this
-    min_size_frac: float = 0.30           # size fraction AT the conviction floor (not zero —
-                                           # clearing the floor means "take a minimum position",
-                                           # never a zero-size no-op trade)
-    max_position_frac: float = 0.15       # per-position collateral/notional <= 15% of equity
-    max_underlying_frac: float = 0.20     # all positions on one underlying <= 20% of equity
-    max_gross_exposure_frac: float = 0.60 # total notional/collateral across ALL positions <= 60%
-    max_margin_utilization: float = 0.60  # never use more than 60% of available options buying power
+    conviction_floor: float = 0.60   # below this: pass, no trade at all
+    conviction_max: float = 0.85     # size scaling saturates at/above this
+    min_size_frac: float = 0.30      # fraction of available BP AT the floor
     max_concurrent_positions: int = 6
-    dte_mandatory_close: int = 21         # every short-premium leg force-closes at this DTE
-    expiration_day_freeze: bool = True    # no new position expiring same-day it's opened
-    spread_width_max_pct_of_mid: float = 0.10  # placeholder — untuned, see ARCHITECTURE.md caveat
-
-    # Covered straddle gets a tighter cap than the portfolio default (least-
-    # standardized strategy, "surprise capital call" risk on the short put).
-    covered_straddle_max_position_frac: float = 0.10
+    dte_mandatory_close: int = 21    # short-premium force-close backstop
+    expiration_day_freeze: bool = True
+    spread_width_max_pct_of_mid: float = 0.10  # placeholder — untuned
+    max_position_abs_usd: float | None = None  # optional absolute ceiling (env, tighten-only)
 
 
 def active_rails() -> Rails:
-    """Resolve the rail set. OA_MAX_POSITION_FRAC / OA_MAX_GROSS_EXPOSURE_FRAC
-    env vars may only TIGHTEN the corresponding floor, matching the sibling
-    bots' convention — never loosen it."""
+    """OA_MAX_POSITION_USD (if set, > 0) becomes an absolute per-position
+    dollar ceiling — a tighten-only operator kill knob."""
     base = Rails()
-    tighten_map = {
-        "OA_MAX_POSITION_FRAC": "max_position_frac",
-        "OA_MAX_GROSS_EXPOSURE_FRAC": "max_gross_exposure_frac",
-        "OA_MAX_MARGIN_UTILIZATION": "max_margin_utilization",
-    }
-    updates = {}
-    for env_key, field in tighten_map.items():
-        raw = os.environ.get(env_key)
-        if not raw:
-            continue
+    raw = os.environ.get("OA_MAX_POSITION_USD")
+    if raw:
         try:
-            val = float(raw)
+            cap = float(raw)
+            if cap > 0:
+                base = replace(base, max_position_abs_usd=cap)
         except ValueError:
-            continue
-        current = getattr(base, field)
-        if 0 < val < current:
-            updates[field] = val
-    return replace(base, **updates) if updates else base
+            pass
+    return base
 
 
 @dataclass(frozen=True)
@@ -75,46 +60,38 @@ class Proposal:
     contract selection is deterministic rail territory (harness/contracts.py)."""
 
     underlying: str
-    strategy_type: str  # csp | covered_call | credit_spread | debit_spread |
-                         # long_call | long_put | long_straddle | covered_straddle
-    direction: str       # bullish | bearish | neutral | vol_long | vol_short
-    conviction: float    # 0-1
+    strategy_type: str
+    direction: str
+    conviction: float
     thesis: str
 
 
 @dataclass(frozen=True)
 class AccountState:
-    """Alpaca reports only the AVAILABLE options buying power, not a
-    used/total pair, so margin utilization is computed against equity:
-    utilization = 1 - available/equity (clamped to [0, 1]). A margin account
-    whose available BP exceeds equity clamps to 0 (fine — the gross-exposure
-    cap is the binding rail there); a missing/zero BP reads as fully
-    utilized, which fails SAFE (vetoes everything)."""
+    """available_options_buying_power_usd comes straight from the broker and
+    is the sizing base. equity/exposure fields are kept for logging and the
+    reconcile/report paths, not for percentage-cap vetoes (removed by the
+    2026-07-03 full-deploy decision)."""
 
     equity_usd: float
     available_options_buying_power_usd: float
     open_positions_count: int
-    underlying_exposure_usd: dict  # {symbol: collateral already deployed}
+    underlying_exposure_usd: dict
     gross_exposure_usd: float
-
-    def margin_utilization(self) -> float:
-        if self.equity_usd <= 0:
-            return 1.0
-        return max(0.0, min(1.0, 1.0 - self.available_options_buying_power_usd / self.equity_usd))
 
 
 @dataclass(frozen=True)
 class RailDecision:
     approved: bool
     reason: str
-    size_frac: float = 0.0        # fraction of max_position_frac to actually use
-    position_cap_usd: float = 0.0  # dollar ceiling for this specific position
+    size_frac: float = 0.0
+    position_cap_usd: float = 0.0  # this position's budget (fraction of available BP)
 
 
 def conviction_to_size_frac(conviction: float, rails: Rails) -> float:
-    """Linear scale: conviction_floor -> min_size_frac (clearing the floor
-    means a minimum position, never zero), conviction_max+ -> 1.0. Below the
-    floor this is never reached because evaluate_proposal() vetoes first."""
+    """Linear scale: conviction_floor -> min_size_frac of available BP,
+    conviction_max+ -> 1.0 (may take ALL remaining buying power — that is
+    the operator-chosen policy, not an accident)."""
     if conviction >= rails.conviction_max:
         return 1.0
     span = rails.conviction_max - rails.conviction_floor
@@ -157,45 +134,16 @@ def evaluate_proposal(
             reason=f"already at max_concurrent_positions ({rails.max_concurrent_positions})",
         )
 
-    utilization = account.margin_utilization()
-    if utilization >= rails.max_margin_utilization:
-        return RailDecision(
-            approved=False,
-            reason=f"margin utilization {utilization:.0%} already at/above "
-            f"{rails.max_margin_utilization:.0%} buffer cap",
-        )
+    if account.available_options_buying_power_usd <= 0:
+        return RailDecision(approved=False, reason="no options buying power available")
 
-    if account.gross_exposure_usd >= rails.max_gross_exposure_frac * account.equity_usd:
-        return RailDecision(
-            approved=False,
-            reason=f"gross exposure already at/above {rails.max_gross_exposure_frac:.0%} of equity",
-        )
-
-    existing_underlying_usd = account.underlying_exposure_usd.get(proposal.underlying, 0.0)
-    underlying_cap_usd = rails.max_underlying_frac * account.equity_usd
-    if existing_underlying_usd >= underlying_cap_usd:
-        return RailDecision(
-            approved=False,
-            reason=f"{proposal.underlying} already at/above per-underlying cap "
-            f"({rails.max_underlying_frac:.0%} of equity)",
-        )
-
-    position_frac_cap = (
-        rails.covered_straddle_max_position_frac
-        if proposal.strategy_type == "covered_straddle"
-        else rails.max_position_frac
-    )
     size_frac = conviction_to_size_frac(proposal.conviction, rails)
-    position_cap_usd = position_frac_cap * account.equity_usd * size_frac
-
-    # Don't let a sized-down position exceed remaining headroom on this
-    # underlying or the remaining gross-exposure budget.
-    underlying_headroom = underlying_cap_usd - existing_underlying_usd
-    gross_headroom = rails.max_gross_exposure_frac * account.equity_usd - account.gross_exposure_usd
-    position_cap_usd = max(0.0, min(position_cap_usd, underlying_headroom, gross_headroom))
+    position_cap_usd = account.available_options_buying_power_usd * size_frac
+    if rails.max_position_abs_usd is not None:
+        position_cap_usd = min(position_cap_usd, rails.max_position_abs_usd)
 
     if position_cap_usd <= 0:
-        return RailDecision(approved=False, reason="no headroom left after cap intersection")
+        return RailDecision(approved=False, reason="position budget computed to zero")
 
     return RailDecision(
         approved=True,
@@ -209,10 +157,10 @@ def apply_opened_position(
     account: AccountState, *, underlying: str, collateral_usd: float
 ) -> AccountState:
     """Returns the account state AFTER a position opens, so multiple
-    proposals within one cycle are each evaluated against up-to-date
-    exposure — evaluating all of them against the beginning-of-cycle
-    snapshot lets a single cycle jointly breach every cap (e.g. six 15%
-    positions = 90% gross against a 60% cap)."""
+    proposals within one cycle are each sized against the REMAINING buying
+    power, not the beginning-of-cycle snapshot. This is what makes
+    "use all the cash, not necessarily all at once" true across a cycle:
+    each fill shrinks the base the next proposal is sized from."""
     exposure = dict(account.underlying_exposure_usd)
     exposure[underlying] = exposure.get(underlying, 0.0) + collateral_usd
     return replace(
