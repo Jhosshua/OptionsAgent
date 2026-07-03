@@ -103,7 +103,32 @@ What was added on top of the wheel build:
   ⚠️ entrypoint.sh `secret_keys` allowlist = the fleet's known 3-touch-point gotcha; a new key
   must be added to code, Railway vars, AND that list.
 
-## Current build status (2026-07-03, post code-review fixes)
+## ⭐ CURRENT STATUS (2026-07-03 end of day) — DEPLOYED, ARMED FOR MONDAY — supersedes everything below
+
+- **LIVE on Railway**: project `OptionsAgent` (e312c619-5ac9-4edb-9d57-6ec4d1252ddd), container
+  Online, volume at `/Users/mo/OptionsAgent/data`, verified from INSIDE the container (auth +
+  account reads + current code). Deploys auto-trigger on push to `main`.
+- **Alpaca paper keys set** (2nd account the operator created; the 1st had $0 equity): equity
+  $5,000 / options BP $5,000, verified. Keys went clipboard→Railway via `pbpaste`, never through
+  the conversation. `ALPACA_PAPER=true`; `make_client()` refuses non-paper regardless.
+- **Sizing = FULL-DEPLOY** (see constraint 3, rewritten): conviction-scaled fraction of available
+  BP, no percentage caps, `OA_MAX_POSITION_USD` env = tighten-only brake.
+- **Watchlist = 13 liquid sub-$50 names** (F, T, PFE, VZ, CMCSA, KVUE, SOFI, CCL, AAL, WBD, MARA,
+  EWZ, KWEB — prices verified live 2026-07-03) so CSPs are affordable on $5k. Old big-cap list
+  (AAPL/MSFT/SPY/...) couldn't host a single CSP at this equity.
+- **Discord `#options-agent`** (channel 1522587333822513253, StockBot guild) + webhook — created
+  via the fleet bot token, zero operator action. Deploy announcements, trades, passes, closes,
+  errors all post there.
+- **Cron**: entry 10:15-10:27 ET once/day (staggered after DA's 10:00), exit sweep every 20 min
+  9-16h ET — both self-gate on the broker market clock, fail-closed.
+- **First live cycle: Monday 2026-07-06 10:15 ET** (2026-07-03 was the observed July-4th holiday).
+  ⚠️ The integration layer has NEVER touched the live API (operator chose straight-to-Railway) —
+  watch the first cycles' Railway logs + #options-agent for first-contact bugs; fix loudly.
+- Operator-facing explainer PDF: `~/Desktop/OptionsAgent-Explained.pdf` (regen source lives in the
+  session scratchpad; rebuild via headless Chrome if it needs updating).
+- Tests: 52 passing (pure deterministic core; the integration layer is what Monday shakes out).
+
+## Current build status (2026-07-03, post code-review fixes — HISTORICAL, see banner above)
 
 **Phase 1 (wheel) scaffolded, 10 code-review findings fixed, 36 passing unit tests, NOT yet run
 against a live paper account.** A high-effort multi-agent code review of the initial commit found

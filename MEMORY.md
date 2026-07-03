@@ -1,5 +1,32 @@
 # MEMORY.md — OptionsAgent
 
+## 2026-07-03 (session end) — Fully deployed and armed; docs refreshed
+
+**Worked on:** end-to-end deployment day. Research (3 passes) → architecture → build (all 8
+strategies) → code review (10 findings fixed) → Railway deploy → keys → sizing rework → watchlist
+swap → operator explainer PDF → full docs refresh.
+
+**Completed:**
+- Alpaca paper keys live (2nd account, $5k; 1st had $0 equity and was replaced). Clipboard→Railway
+  flow, secrets never in the conversation. Auth verified from inside the container.
+- Sizing reworked to FULL-DEPLOY (see dedicated entry below).
+- Watchlist swapped to 13 liquid sub-$50 names (prices verified live via yfinance the same hour:
+  INTC $120, GM $76, UBER $74 were all disqualified): F, T, PFE, VZ, CMCSA, KVUE, SOFI, CCL, AAL,
+  WBD, MARA, EWZ, KWEB. Rationale: on $5k the old big-cap list couldn't host a single CSP.
+- Operator explainer PDF at `~/Desktop/OptionsAgent-Explained.pdf` (6 pages, zero-knowledge intro
+  to options + every step badged CODE vs AI; rendered via headless Chrome from scratchpad HTML).
+- Docs: README/CLAUDE/ARCHITECTURE(banner)/ERRORS updated, SETUP.md created (deployment runbook).
+
+**In progress / next session priorities:**
+1. **Monday 2026-07-06 10:15 ET = first live cycle.** Watch railway logs + #options-agent.
+   Expected first-contact bug shapes are listed in SETUP.md ("First-cycle watch").
+2. After the first week: review decisions.jsonl for proposer quality (conviction distribution,
+   veto reasons) and exit-sweep behavior on any opened structures.
+3. Deferred by design: self-learning/postmortem loops (wait for a track record).
+
+**Decisions made today:** see the three dated entries below (all-phases+Railway override,
+full-deploy sizing, plus the original research/architecture decisions).
+
 ## 2026-07-03 (latest) — Sizing rework: FULL-DEPLOY (no percentage caps) + real keys live
 
 **What was decided:** operator, after seeing the new paper account's $5,000 balance made the

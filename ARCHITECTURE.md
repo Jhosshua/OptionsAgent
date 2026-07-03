@@ -1,6 +1,16 @@
-# ARCHITECTURE.md — OptionsAgent (proposal, not yet built)
+# ARCHITECTURE.md — OptionsAgent (original design, 2026-07-03)
 
-Status: **Design proposal, awaiting operator sign-off before any code is written.**
+> ⚠️ **PARTIALLY SUPERSEDED — read CLAUDE.md for current truth.** This document is the original
+> design and its rationale; it's kept because every threshold number traces back to RESEARCH.md
+> through it. Two sections were overridden by operator decisions later the same day:
+> 1. **The phased rollout is dead** — all 8 strategies went live at once ("build everything, all
+>    phases"). The phase machinery survives in config.json as an off-switch only.
+> 2. **The medium-risk percentage caps are dead** — sizing is now a conviction-scaled fraction of
+>    available buying power with NO percentage caps ("use all the cash… no cap"). The conviction
+>    floor (0.60), max 6 positions, 21 DTE close, and execution-safety rules all survive.
+> Everything else here (pipeline shape, per-strategy delta/DTE conventions, execution mechanics,
+> covered-straddle cash-backing) is implemented as designed.
+
 Research backing this doc: `RESEARCH.md` (3 passes, verified findings + explicit gaps).
 
 ## What this is
