@@ -1,13 +1,18 @@
-# Starter wheel-strategy watchlist: liquid, optionable, willing-to-own names.
-# One symbol per line. Comments start with #. Edit freely — this is a tunable,
-# not a rail.
-AAPL
-MSFT
-AMD
-AVGO
-SPY
-QQQ
-XLE
-JPM
-DIS
-COST
+# Watchlist: liquid, optionable, sub-$50 names (verified live 2026-07-03) so
+# every strategy — including cash-secured puts — is affordable on the current
+# ~$5k paper account (a CSP needs strike x 100 in cash: a $20 stock = ~$2k).
+# Mix: stable wheel names, higher-IV premium generators, two liquid ETFs.
+# One symbol per line. Comments start with #. Tunable, not a rail.
+F
+T
+PFE
+VZ
+CMCSA
+KVUE
+SOFI
+CCL
+AAL
+WBD
+MARA
+EWZ
+KWEB
