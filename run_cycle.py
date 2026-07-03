@@ -15,9 +15,10 @@ from harness import decision_log, notify
 from harness.alpaca_glue import make_client
 from harness.contracts import select_covered_call, select_csp
 from harness.env import allowed_strategies, config, universe
+from harness.execution import execute_covered_call_on_owned_shares, execute_csp
 from harness.positions import build_account_state
 from harness.proposer import propose
-from harness.risk_rails import active_rails, evaluate_proposal
+from harness.risk_rails import active_rails, apply_opened_position, evaluate_proposal
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("optionsagent.run_cycle")
@@ -27,6 +28,19 @@ def run() -> None:
     cfg = config()
     phase = cfg.get("phase", "wheel")
     strategies = allowed_strategies()
+    wheel_cfg = cfg["wheel"]
+    # Config sanity guard, FIRST — before any broker/LLM construction, so a
+    # bad config fails immediately even with no credentials present. Entry
+    # DTE windows must sit ABOVE the mandatory close threshold, or the bot
+    # preferentially opens positions the exit sweep force-closes the same
+    # day (the scorer favors shortest DTE).
+    for key in ("csp_dte_min", "covered_call_dte_min"):
+        if wheel_cfg[key] <= wheel_cfg["dte_close"]:
+            raise ValueError(
+                f"config error: {key} ({wheel_cfg[key]}) must be > dte_close "
+                f"({wheel_cfg['dte_close']}) — see config.json comment"
+            )
+
     cycle_id = decision_log.record_cycle_start(phase)
     log.info("cycle %s starting, phase=%s, strategies=%s", cycle_id, phase, strategies)
 
@@ -44,7 +58,6 @@ def run() -> None:
     log.info("cycle %s: %d proposal(s) from proposer", cycle_id, len(proposals))
 
     rails = active_rails()
-    wheel_cfg = cfg["wheel"]
 
     for proposal in proposals:
         decision_id = decision_log.new_decision_id()
@@ -67,6 +80,7 @@ def run() -> None:
             continue
 
         chain = client.option_chain(proposal.underlying)
+        max_covered_contracts = None  # covered_call only: owned-share lot ceiling
 
         if proposal.strategy_type == "csp":
             quote = select_csp(
@@ -91,6 +105,7 @@ def run() -> None:
                 decision_log.record(record)
                 continue
             cost_basis = shares_position["cost_basis"] / shares_position["qty"]
+            max_covered_contracts = int(shares_position["qty"]) // 100
             quote = select_covered_call(
                 chain,
                 cost_basis=cost_basis,
@@ -115,19 +130,63 @@ def run() -> None:
             )
             continue
 
-        contracts = max(1, int(decision.position_cap_usd / (quote.strike * 100)))
+        # Sizing: NO minimum of 1. If the rail-computed dollar cap can't
+        # afford one contract's collateral, the trade is SKIPPED — forcing a
+        # single contract would silently override the per-position cap
+        # (sibling-bot convention: LiveSwing skips clips < 1 share).
+        collateral_per_contract = quote.strike * 100
+        contracts = int(decision.position_cap_usd / collateral_per_contract)
+        if max_covered_contracts is not None:
+            # never sell more calls than there are owned 100-share lots to
+            # cover them — the excess would be naked calls
+            contracts = min(contracts, max_covered_contracts)
         record["contract"] = quote.__dict__
         record["contracts"] = contracts
-        record["outcome"] = "executed"
+        if contracts < 1:
+            record["outcome"] = "skipped_cap_below_one_contract"
+            decision_log.record(record)
+            notify.trade_vetoed(
+                underlying=proposal.underlying,
+                strategy_type=proposal.strategy_type,
+                reason=f"position cap ${decision.position_cap_usd:,.0f} is below one "
+                f"contract's collateral ${collateral_per_contract:,.0f} — skipped",
+            )
+            continue
+
+        if proposal.strategy_type == "csp":
+            result = execute_csp(
+                client, quote=quote, contracts=contracts, decision_id=decision_id
+            )
+        else:  # covered_call — ownership of contracts*100 shares verified above
+            result = execute_covered_call_on_owned_shares(
+                client, quote=quote, contracts=contracts, decision_id=decision_id
+            )
+
+        record["orders"] = result.orders
+        if result.success:
+            record["outcome"] = "executed"
+            # Update the account snapshot so the NEXT proposal in this same
+            # cycle is evaluated against real exposure, not the stale
+            # beginning-of-cycle state.
+            account = apply_opened_position(
+                account,
+                underlying=proposal.underlying,
+                collateral_usd=contracts * collateral_per_contract,
+            )
+            notify.trade_opened(
+                underlying=proposal.underlying,
+                strategy_type=proposal.strategy_type,
+                strike=quote.strike,
+                dte=quote.dte,
+                credit_or_debit=quote.bid,
+                thesis=proposal.thesis,
+            )
+        else:
+            record["outcome"] = f"execution_failed: {result.reason}"
+            notify.error(
+                f"{proposal.underlying} {proposal.strategy_type} execution failed: {result.reason}"
+            )
         decision_log.record(record)
-        notify.trade_opened(
-            underlying=proposal.underlying,
-            strategy_type=proposal.strategy_type,
-            strike=quote.strike,
-            dte=quote.dte,
-            credit_or_debit=quote.bid,
-            thesis=proposal.thesis,
-        )
 
     log.info("cycle %s complete", cycle_id)
 

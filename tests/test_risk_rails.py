@@ -8,6 +8,7 @@ from harness.risk_rails import (
     Proposal,
     Rails,
     active_rails,
+    apply_opened_position,
     conviction_to_size_frac,
     evaluate_proposal,
 )
@@ -16,7 +17,6 @@ from harness.risk_rails import (
 def make_account(**overrides):
     base = dict(
         equity_usd=100_000.0,
-        options_buying_power_usd=100_000.0,
         available_options_buying_power_usd=100_000.0,
         open_positions_count=0,
         underlying_exposure_usd={},
@@ -79,12 +79,60 @@ def test_max_concurrent_positions_is_vetoed():
 
 def test_margin_utilization_buffer_is_vetoed():
     account = make_account(
-        options_buying_power_usd=100_000.0,
-        available_options_buying_power_usd=39_000.0,  # 61% used > 60% cap
+        available_options_buying_power_usd=39_000.0,  # 1 - 39k/100k = 61% used > 60% cap
     )
     decision = evaluate_proposal(make_proposal(), account, allowed_strategies=["csp"])
     assert not decision.approved
     assert "margin utilization" in decision.reason
+
+
+def test_margin_utilization_fails_safe_on_zero_buying_power():
+    # A None/0 buying-power read from the broker must veto, never trade blind.
+    account = make_account(available_options_buying_power_usd=0.0)
+    decision = evaluate_proposal(make_proposal(), account, allowed_strategies=["csp"])
+    assert not decision.approved
+    assert "margin utilization" in decision.reason
+
+
+def test_margin_utilization_clamps_when_bp_exceeds_equity():
+    # Margin accounts can report BP > equity; utilization clamps to 0, no veto here.
+    account = make_account(available_options_buying_power_usd=180_000.0)
+    assert account.margin_utilization() == 0.0
+
+
+def test_apply_opened_position_updates_all_caps_inputs():
+    account = make_account()
+    updated = apply_opened_position(account, underlying="AAPL", collateral_usd=15_000.0)
+    assert updated.open_positions_count == 1
+    assert updated.underlying_exposure_usd["AAPL"] == 15_000.0
+    assert updated.gross_exposure_usd == 15_000.0
+    assert updated.available_options_buying_power_usd == 85_000.0
+    # original snapshot untouched (frozen semantics)
+    assert account.open_positions_count == 0
+
+
+def test_sequential_fills_within_one_cycle_hit_the_gross_cap():
+    # Six 15% positions against a 60% gross cap: with per-fill state updates
+    # the 5th proposal must be vetoed (4 x 15% = 60% already deployed).
+    account = make_account()
+    approved = 0
+    for i in range(6):
+        symbol = f"SYM{i}"  # one distinct symbol per iteration, used for BOTH
+        # the proposal and the fill — attributing the fill to a different
+        # symbol than was proposed lets the per-underlying cap shrink later
+        # fills and masks the gross-cap behavior under test
+        decision = evaluate_proposal(
+            make_proposal(underlying=symbol, conviction=0.85),
+            account,
+            allowed_strategies=["csp"],
+        )
+        if not decision.approved:
+            break
+        approved += 1
+        account = apply_opened_position(
+            account, underlying=symbol, collateral_usd=decision.position_cap_usd
+        )
+    assert approved == 4  # 4 x 15% = 60% gross -> 5th vetoed
 
 
 def test_gross_exposure_cap_is_vetoed():

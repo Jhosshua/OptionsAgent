@@ -26,8 +26,9 @@
   "wheel": {
     "csp_delta_min": 0.20,
     "csp_delta_max": 0.30,
-    "csp_dte_min": 21,
+    "csp_dte_min": 28,
     "csp_dte_max": 45,
+    "_csp_dte_min_comment": "Must stay comfortably ABOVE dte_close (21): the scoring formula favors the shortest DTE in range, so a dte_min equal to dte_close would preferentially open positions the exit sweep force-closes the same day (guaranteed round-trip spread loss).",
     "covered_call_delta_min": 0.30,
     "covered_call_delta_max": 0.50,
     "covered_call_dte_min": 30,

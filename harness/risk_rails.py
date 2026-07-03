@@ -84,12 +84,23 @@ class Proposal:
 
 @dataclass(frozen=True)
 class AccountState:
+    """Alpaca reports only the AVAILABLE options buying power, not a
+    used/total pair, so margin utilization is computed against equity:
+    utilization = 1 - available/equity (clamped to [0, 1]). A margin account
+    whose available BP exceeds equity clamps to 0 (fine — the gross-exposure
+    cap is the binding rail there); a missing/zero BP reads as fully
+    utilized, which fails SAFE (vetoes everything)."""
+
     equity_usd: float
-    options_buying_power_usd: float
     available_options_buying_power_usd: float
     open_positions_count: int
-    underlying_exposure_usd: dict  # {symbol: notional/collateral already deployed}
+    underlying_exposure_usd: dict  # {symbol: collateral already deployed}
     gross_exposure_usd: float
+
+    def margin_utilization(self) -> float:
+        if self.equity_usd <= 0:
+            return 1.0
+        return max(0.0, min(1.0, 1.0 - self.available_options_buying_power_usd / self.equity_usd))
 
 
 @dataclass(frozen=True)
@@ -146,10 +157,7 @@ def evaluate_proposal(
             reason=f"already at max_concurrent_positions ({rails.max_concurrent_positions})",
         )
 
-    utilization = 0.0
-    if account.options_buying_power_usd > 0:
-        used = account.options_buying_power_usd - account.available_options_buying_power_usd
-        utilization = used / account.options_buying_power_usd
+    utilization = account.margin_utilization()
     if utilization >= rails.max_margin_utilization:
         return RailDecision(
             approved=False,
@@ -194,4 +202,25 @@ def evaluate_proposal(
         reason="approved",
         size_frac=size_frac,
         position_cap_usd=position_cap_usd,
+    )
+
+
+def apply_opened_position(
+    account: AccountState, *, underlying: str, collateral_usd: float
+) -> AccountState:
+    """Returns the account state AFTER a position opens, so multiple
+    proposals within one cycle are each evaluated against up-to-date
+    exposure — evaluating all of them against the beginning-of-cycle
+    snapshot lets a single cycle jointly breach every cap (e.g. six 15%
+    positions = 90% gross against a 60% cap)."""
+    exposure = dict(account.underlying_exposure_usd)
+    exposure[underlying] = exposure.get(underlying, 0.0) + collateral_usd
+    return replace(
+        account,
+        open_positions_count=account.open_positions_count + 1,
+        underlying_exposure_usd=exposure,
+        gross_exposure_usd=account.gross_exposure_usd + collateral_usd,
+        available_options_buying_power_usd=max(
+            0.0, account.available_options_buying_power_usd - collateral_usd
+        ),
     )

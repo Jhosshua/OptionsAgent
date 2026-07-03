@@ -1,5 +1,49 @@
 # MEMORY.md — OptionsAgent
 
+## 2026-07-03 (later) — Code review found 10 confirmed bugs in the initial commit; all fixed
+
+**What happened:** operator asked for a bug check right after the initial commit. A high-effort
+multi-agent code review (with adversarial verification) confirmed 10 findings. All 10 fixed the
+same day; test count went 25 → 36.
+
+**The findings and fixes (worth remembering the patterns):**
+1. `run_cycle.py` never called the execution module but logged `outcome: "executed"` and posted
+   "Opened ..." to Discord — a phantom track record. Fixed: execution wired
+   (`execute_csp`/`execute_covered_call_on_owned_shares`), outcome only says `executed` after a
+   successful submit. Same bug class as LiveSwingAgent's 2026-06-29 recap bug (reporting decisions
+   as fills) — check for this in any new bot.
+2. `option_chain()` read `snap.strike_price/.type/.expiration_date` — none exist on alpaca-py
+   0.43.4's OptionsSnapshot (only symbol/quotes/trade/IV/greeks). Fixed: new `harness/occ.py`
+   parses strike/expiry/right from the OCC symbol (from the END, digit-safe roots).
+3. `float(None)` crash on `options_buying_power` (field exists but is Optional — getattr default
+   never fires). Fixed with explicit None handling; missing BP now reads as 0 → rails veto (safe).
+4. `max(1, ...)` contract sizing forced 1 contract even when the cap couldn't afford one —
+   silently overriding the 15% position cap. Fixed: skip below 1 contract (LiveSwing convention).
+5. Covered-call count wasn't clamped to owned share lots → naked calls. Fixed: `min(cap_count,
+   owned_shares // 100)`.
+6. Short-option exposure measured at premium (`cost_basis`) instead of strike collateral —
+   understated CSP exposure ~100x, disabling the portfolio caps for the exact strategy phase 1
+   trades. Fixed in `positions.py`: short options = strike×100×|qty|, long = cost basis.
+7. Account snapshot went stale within a cycle (6 proposals could jointly deploy 90% against the
+   60% cap). Fixed: `apply_opened_position()` updates state after each successful fill.
+8. Fill-status compare against `"filled"` vs alpaca-py's `str(OrderStatus.FILLED)` ==
+   `'OrderStatus.FILLED'` — confirm loop could never succeed, would strand unhedged shares.
+   Fixed: `_status_str()` normalizes to lowercase `.value` at the single point statuses enter.
+9. `csp_dte_min` (21) == `dte_close` (21), and the scorer favors shortest DTE → bot would
+   preferentially open positions the exit sweep closes the same day. Fixed: 28 in config + a
+   code-level guard at the top of `run()` that fires before any credentials are needed.
+10. Margin-utilization rail was a no-op (available hardcoded == total). Fixed: utilization is now
+    `1 - available_obp/equity` (clamped), computed from the real Alpaca field; fails safe.
+
+**Test-bug note:** one new test (sequential fills vs gross cap) initially failed due to a bug in
+the TEST itself (fill attributed to a different symbol than proposed, off-by-one on an index).
+Diagnosed by reproducing the exact test body standalone. The production rails were correct.
+
+**Lesson recorded:** the unit-tested pure core was fine; all 10 bugs lived in the untested
+integration layer. Next bot: integration-shaped bugs (wrong API field names, enum-str mismatches,
+unwired modules) need either a live smoke test or API-shape assertions early, not just pure-logic
+tests.
+
 ## 2026-07-03 — Research complete, architecture finalized, phase 1 scaffolded
 
 **What was decided:**

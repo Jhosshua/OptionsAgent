@@ -68,23 +68,38 @@ Watchlist (config/universe.txt) + market context   ─┐
 A separate, LLM-free exit sweep (`run_exits.py`, `harness/exits.py`) runs on its own schedule
 purely to check DTE-close, profit-target, and dividend-assignment triggers on open positions.
 
-## Current build status (2026-07-03)
+## Current build status (2026-07-03, post code-review fixes)
 
-**Phase 1 (wheel) scaffolded, deterministic core unit-tested, NOT yet run against a live paper
-account.** What's done and tested (25 passing tests, no network access needed):
-- `harness/risk_rails.py` — conviction floor/scaling, all portfolio caps, phase gating.
+**Phase 1 (wheel) scaffolded, 10 code-review findings fixed, 36 passing unit tests, NOT yet run
+against a live paper account.** A high-effort multi-agent code review of the initial commit found
+10 confirmed bugs (all fixed same day, see MEMORY.md for the list): the worst were run_cycle never
+calling the execution module while logging trades as "executed", the option-chain adapter reading
+snapshot fields that don't exist in alpaca-py 0.43.4, a forced 1-contract minimum that overrode the
+position cap, and short-put exposure measured at premium instead of collateral (~100x understated).
+
+Done and unit-tested (36 tests, no network/keys needed):
+- `harness/risk_rails.py` — conviction floor/scaling, all portfolio caps, phase gating,
+  equity-based margin utilization (fails safe on missing buying power), `apply_opened_position`
+  for intra-cycle state updates so one cycle can't jointly breach the caps.
 - `harness/contracts.py` — CSP/covered-call delta/DTE selection + scoring, roll-cap rule.
 - `harness/exits.py` — DTE close, profit target, dividend-assignment check.
-- `harness/positions.py` — Alpaca position aggregation into rail-ready account state.
+- `harness/positions.py` — exposure = strike collateral for short options (never premium),
+  cost basis for long; conservative by construction.
+- `harness/occ.py` — OCC symbol parser (parse from the END, roots with digits are safe); the
+  chain adapter and positions both depend on it because alpaca-py snapshots expose no
+  strike/expiry/right fields.
 
-What's written but **not yet integration-tested against a live paper account** (needs
+Written but **not yet integration-tested against a live paper account** (needs
 `ALPACA_API_KEY`/`ALPACA_SECRET_KEY`/`ANTHROPIC_API_KEY`/`DISCORD_WEBHOOK_URL` in `.env`):
 - `harness/alpaca_glue.py`, `harness/proposer.py`, `harness/execution.py`, `harness/notify.py`.
-- `run_cycle.py` (entry cycle) — end-to-end wiring is written, unverified live.
-- `run_exits.py` (exit sweep) — **the open-positions builder is a documented TODO stub**, the
-  sweep loop is a no-op until that's wired (needs mark-price + same-strike-opposite-side quotes +
+- `run_cycle.py` — execution IS now wired (CSP + covered-call-on-owned-shares), sizing skips
+  below one contract, covered calls clamp to owned share lots, outcomes are truthful
+  (`executed` only after a successful submit; `execution_failed: ...` otherwise). A config
+  guard at the top of `run()` rejects any entry-DTE window that doesn't clear `dte_close`.
+- `run_exits.py` — **the open-positions builder is still a documented TODO stub**, the sweep
+  loop is a no-op until that's wired (needs mark-price + same-strike-opposite-side quotes +
   a dividend-calendar lookup per open position).
 
-Not started: credit/debit spreads, long calls/puts, straddles (phases 2-4), self-learning/
-postmortem loops (deferred per ARCHITECTURE.md until a paper track record exists), Railway
-deployment, Discord channel creation, cron schedule.
+Not started (BY DESIGN, per operator 2026-07-03 — do not build these yet): credit/debit spreads,
+long calls/puts, straddles (phases 2-4), self-learning/postmortem loops (deferred until a paper
+track record exists), Railway deployment, Discord channel creation, cron schedule.

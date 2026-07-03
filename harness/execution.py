@@ -7,6 +7,11 @@ leg (RESEARCH.md Pass 1), so this is two separate orders — buy the shares,
 CONFIRM the fill, then sell the call. The confirm step is not optional: if
 the share order fails or only partially fills, the call leg must never be
 submitted, or the bot ends up with an accidental naked call.
+
+Status-string contract: this module compares against plain lowercase values
+("filled", "canceled", ...) — alpaca_glue._status_str() normalizes the
+alpaca-py enums (str(OrderStatus.FILLED) == 'OrderStatus.FILLED', .value ==
+'filled') at the source, so every status that reaches here is already plain.
 """
 
 from __future__ import annotations
@@ -36,6 +41,25 @@ def execute_csp(client, *, quote: OptionQuote, contracts: int, decision_id: str)
         decision_id=decision_id,
     )
     return ExecutionResult(True, "csp order submitted", [order])
+
+
+def execute_covered_call_on_owned_shares(
+    client, *, quote: OptionQuote, contracts: int, decision_id: str
+) -> ExecutionResult:
+    """Sells calls against shares the account ALREADY owns — the caller is
+    responsible for having verified ownership of contracts*100 shares (the
+    wheel's normal covered-call path: shares came from a CSP assignment).
+    For a from-scratch buy-write, use execute_covered_call instead."""
+    if contracts <= 0:
+        return ExecutionResult(False, "contracts must be > 0", [])
+    order = client.submit_single_leg_order(
+        option_symbol=quote.symbol,
+        side="sell",
+        qty=contracts,
+        limit_price=quote.bid,
+        decision_id=decision_id,
+    )
+    return ExecutionResult(True, "covered call (owned shares) submitted", [order])
 
 
 def execute_covered_call(

@@ -17,8 +17,16 @@ from typing import Any
 
 from harness.contracts import OptionQuote
 from harness.env import env
+from harness.occ import parse_occ_symbol
 
 ORDER_PREFIX = "oa-"
+
+
+def _status_str(status: Any) -> str:
+    """alpaca-py order statuses are enums whose str() is 'OrderStatus.FILLED';
+    callers must compare against the plain lowercase value ('filled'), so
+    normalize at the single point every status passes through."""
+    return str(getattr(status, "value", status)).lower()
 
 
 @dataclass(frozen=True)
@@ -51,9 +59,17 @@ class PaperClient:
 
     def account_state(self) -> dict[str, Any]:
         acct = self._trading_client().get_account()
+        # options_buying_power exists on TradeAccount but is Optional and can
+        # come back None (e.g. options level not enabled) — a getattr default
+        # never fires for that, so handle None explicitly. Fail SAFE: treating
+        # missing buying power as 0 makes the margin rail veto everything
+        # rather than trade blind.
+        raw_obp = getattr(acct, "options_buying_power", None)
+        if raw_obp is None:
+            raw_obp = acct.buying_power
         return {
             "equity_usd": float(acct.equity),
-            "options_buying_power_usd": float(getattr(acct, "options_buying_power", acct.buying_power)),
+            "available_options_buying_power_usd": float(raw_obp) if raw_obp is not None else 0.0,
         }
 
     def list_positions(self) -> list[dict[str, Any]]:
@@ -76,25 +92,36 @@ class PaperClient:
     def option_chain(self, underlying: str) -> list[OptionQuote]:
         """Fetch a chain snapshot and adapt it into OptionQuote rows. Kept as
         a thin adapter so harness/contracts.py stays broker-agnostic and
-        testable without network access."""
+        testable without network access.
+
+        alpaca-py's OptionsSnapshot carries NO strike/expiry/right fields
+        (verified on 0.43.4: only symbol/latest_trade/latest_quote/IV/greeks)
+        — all three must be parsed from the OCC symbol via harness/occ.py."""
+        from datetime import date
+
         from alpaca.data.requests import OptionChainRequest
 
         client = self._option_historical_client()
         req = OptionChainRequest(underlying_symbol=underlying)
         chain = client.get_option_chain(req)
         quotes: list[OptionQuote] = []
+        today = date.today()
         for symbol, snap in chain.items():
             greeks = getattr(snap, "greeks", None)
             quote = getattr(snap, "latest_quote", None)
-            if greeks is None or quote is None or snap.strike_price is None:
+            if greeks is None or quote is None or greeks.delta is None:
                 continue
+            try:
+                parts = parse_occ_symbol(symbol)
+            except ValueError:
+                continue  # malformed/non-OCC symbol -> skip, never guess
             quotes.append(
                 OptionQuote(
                     symbol=symbol,
                     underlying=underlying,
-                    right="call" if snap.type.lower() == "call" else "put",
-                    strike=float(snap.strike_price),
-                    dte=(snap.expiration_date - snap.expiration_date.today()).days,
+                    right=parts.right,
+                    strike=parts.strike,
+                    dte=(parts.expiry - today).days,
                     delta=float(greeks.delta),
                     bid=float(quote.bid_price or 0.0),
                     ask=float(quote.ask_price or 0.0),
@@ -122,7 +149,7 @@ class PaperClient:
             client_order_id=client_order_id,
         )
         order = self._trading_client().submit_order(req)
-        return {"id": str(order.id), "client_order_id": client_order_id, "status": str(order.status)}
+        return {"id": str(order.id), "client_order_id": client_order_id, "status": _status_str(order.status)}
 
     def submit_equity_order(
         self, *, symbol: str, side: str, qty: int, decision_id: str
@@ -142,11 +169,11 @@ class PaperClient:
             client_order_id=client_order_id,
         )
         order = self._trading_client().submit_order(req)
-        return {"id": str(order.id), "client_order_id": client_order_id, "status": str(order.status)}
+        return {"id": str(order.id), "client_order_id": client_order_id, "status": _status_str(order.status)}
 
     def get_order(self, order_id: str) -> dict[str, Any]:
         order = self._trading_client().get_order_by_id(order_id)
-        return {"id": str(order.id), "status": str(order.status), "filled_qty": float(order.filled_qty or 0)}
+        return {"id": str(order.id), "status": _status_str(order.status), "filled_qty": float(order.filled_qty or 0)}
 
 
 def make_client() -> PaperClient:
