@@ -25,9 +25,19 @@ First deploy failed (expected: railpack ran before Dockerfile/railway.json were 
 Cron: entry 10:15-10:27 ET (staggered after DA's 10:00), exits every 20 min market hours; both
 gated by the broker clock, fail-closed.
 
-**Still needs operator input:** Alpaca PAPER keys for THIS bot (a NEW paper account — sharing
-DA's would tangle both bots' exposure math; independence is a fleet rule) and a Discord
-webhook for the new channel. ANTHROPIC_API_KEY can be shared from the fleet per existing policy.
+**Deployment completed same day:** container ONLINE on Railway (volume mounted, cron running,
+secrets injected). Discord fully wired WITHOUT operator action: created `#options-agent`
+(channel id 1522587333822513253) in the StockBot guild via the fleet bot token + a webhook,
+set as `DISCORD_WEBHOOK_URL` on Railway, test message posted. ANTHROPIC_API_KEY shared from
+the fleet per existing policy; `OA_ANTHROPIC_MODEL=claude-fable-5`.
+
+**ONLY remaining blocker: Alpaca PAPER keys.** Needs a NEW paper account (Alpaca dashboard →
+create additional paper account) — sharing DA's or DayTrading's accounts would tangle exposure
+math (this bot's rails count ALL account positions; independence is a fleet rule). Checked for
+idle fleet accounts: none exist (EarningsVol borrows DayTradingAgent's live account). Until the
+keys land, the entry cron fires at 10:15 ET and fails fast at make_client() — no trading, logs
+only. When keys arrive: `railway variables --service OptionsAgent --set "ALPACA_API_KEY=..."
+--set "ALPACA_SECRET_KEY=..."` then redeploy.
 
 ## 2026-07-03 (later) — Code review found 10 confirmed bugs in the initial commit; all fixed
 
