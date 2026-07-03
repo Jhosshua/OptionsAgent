@@ -1,0 +1,13 @@
+# Starter wheel-strategy watchlist: liquid, optionable, willing-to-own names.
+# One symbol per line. Comments start with #. Edit freely — this is a tunable,
+# not a rail.
+AAPL
+MSFT
+AMD
+AVGO
+SPY
+QQQ
+XLE
+JPM
+DIS
+COST
