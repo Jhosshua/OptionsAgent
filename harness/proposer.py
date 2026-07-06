@@ -6,10 +6,11 @@ strike, delta, or expiration (harness/contracts.py owns that, deterministically)
 never sizes the position in dollars (harness/risk_rails.py owns that), and
 never places an order. Mirrors DeterministicAgent's proposer.py posture.
 
-Determinism, honestly stated: temperature is 0 to reduce output variance, but
-that does not guarantee a bit-identical proposal — the rails are what's
-actually deterministic (same proposal + same account state -> same outcome).
-Every proposal is logged with full provenance so decisions are replayable.
+Determinism, honestly stated: sampling params like temperature are NOT set —
+claude-fable-5 (the default model) removed them and 400s if they're sent. Even
+on models that accept temperature=0, output isn't bit-identical. The rails are
+what's actually deterministic (same proposal + same account state -> same
+outcome). Every proposal is logged with full provenance so decisions are replayable.
 
 Offline / no-key path: propose() returns an empty list so the whole cycle
 still runs and is testable without the LLM. This is intentionally
@@ -19,11 +20,14 @@ conservative (no trade), not a guess.
 from __future__ import annotations
 
 import json
+import logging
 import os
 from typing import Any
 
 from harness.env import env
 from harness.risk_rails import Proposal
+
+log = logging.getLogger("optionsagent.proposer")
 
 VALID_STRATEGY_TYPES = (
     "csp",
@@ -124,11 +128,15 @@ def propose(bundle: dict[str, Any]) -> list[Proposal]:
     {"underlying": str, "context": {...}}, ...]}"""
     api_key = env("ANTHROPIC_API_KEY")
     if not api_key:
+        # On Railway the key is always injected; a miss here is a config bug,
+        # not the intended offline path, so make it visible.
+        log.warning("ANTHROPIC_API_KEY not set — proposer degrading to no trade")
         return stub_proposals()
 
     try:
         import anthropic
     except ImportError:
+        log.warning("anthropic package not installed — proposer degrading to no trade")
         return stub_proposals()
 
     model = env("OA_ANTHROPIC_MODEL", "claude-fable-5")
@@ -136,10 +144,13 @@ def propose(bundle: dict[str, Any]) -> list[Proposal]:
     user_content = json.dumps(bundle, default=str)
 
     try:
+        # NOTE: no `temperature` param — claude-fable-5 (the default model) removed
+        # temperature/top_p/top_k and 400s if any is sent. Thinking is always-on
+        # on Fable 5 too, so there is nothing to configure there. Determinism is
+        # enforced by the rails, not by sampling params (see module docstring).
         resp = client.messages.create(
             model=model,
             max_tokens=_max_tokens(),
-            temperature=0,
             system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": user_content}],
             tools=[{"type": "custom", "name": "proposal", "input_schema": _OUTPUT_SCHEMA}],
@@ -149,4 +160,7 @@ def propose(bundle: dict[str, Any]) -> list[Proposal]:
         return _validate(tool_use.input)
     except Exception:
         # Fail-closed: any API/parse error degrades to no trade, never a guess.
+        # Log it (with traceback) so a broken LLM call is distinguishable in the
+        # Railway logs from a genuine "model proposed nothing".
+        log.exception("proposer LLM call failed — degrading to no trade")
         return stub_proposals()

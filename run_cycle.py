@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 from datetime import date, timedelta
 
-from harness import decision_log, notify, structures
+from harness import decision_log, market_context, notify, structures
 from harness.alpaca_glue import make_client
 from harness.contracts import (
     select_covered_call,
@@ -207,10 +207,16 @@ def run() -> None:
     positions_raw = client.list_positions()
     account = build_account_state(account_raw=account_raw, positions_raw=positions_raw)
 
+    syms = universe()
+    context_by_symbol = market_context.build_context(client, syms)
+    n_with_data = sum(1 for c in context_by_symbol.values() if market_context.has_data(c))
+    log.info(
+        "cycle %s: market context built for %d/%d underlyings", cycle_id, n_with_data, len(syms)
+    )
     bundle = {
         "phase": phase,
         "allowed_strategies": strategies,
-        "watchlist": [{"underlying": sym, "context": {}} for sym in universe()],
+        "watchlist": [{"underlying": sym, "context": context_by_symbol.get(sym, {})} for sym in syms],
     }
     proposals = propose(bundle)
     log.info("cycle %s: %d proposal(s) from proposer", cycle_id, len(proposals))

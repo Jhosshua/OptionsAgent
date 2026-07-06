@@ -1,5 +1,35 @@
 # MEMORY.md — OptionsAgent
 
+## 2026-07-06 — First live day: bot ran clean but proposed nothing; TWO bugs found + fixed
+
+**Trigger:** operator asked why the bot "didn't do anything today." Railway logs showed the entry
+cycle fired on schedule at 10:15 ET (`cycle all_20260706_141502 … 0 proposal(s) from proposer …
+complete`) and all exit sweeps ran fine. Not a crash, not a cron miss, not a Railway problem — the
+LLM proposer returned zero proposals. Two independent root causes, both fixed and verified LIVE
+(via `railway run` against the real paper account + Fable 5 key; propose-only, no orders placed):
+
+1. **Empty market context (structural — it would have proposed nothing EVERY day).** `run_cycle.py`
+   built the proposer bundle with `"context": {}` for every ticker — the LLM got 13 bare symbols
+   and nothing else, plus a prompt that says "it is normal to propose nothing," so a conservative
+   model proposed nothing. There was no context-builder module at all. FIX: new
+   `harness/market_context.py` builds per-ticker context from the Alpaca stock data we already pay
+   for (last price, 1/5/20-day % change, 20-day high/low + position in range, volume vs 20-day
+   avg), via a new `PaperClient.stock_daily_bars()` (IEX feed, fail-open per ticker). Wired into
+   `run_cycle.py`; logs `context built for N/13 underlyings` each cycle. Operator picked
+   "Alpaca-only, no new API." Verified live: 13/13 tickers get real data.
+2. **`temperature=0` 400'd on claude-fable-5 — hidden by a silent `except`.** `proposer.py`'s
+   `client.messages.create(..., temperature=0, ...)` returned HTTP 400 (`temperature is deprecated
+   for this model`) EVERY call — Fable 5 removed temperature/top_p/top_k. The `except Exception:
+   return stub_proposals()` swallowed it, logging identically to a genuine no-trade. FIX: removed
+   the `temperature` param (rails enforce determinism, not sampling); added `log.exception` /
+   `log.warning` in the proposer's fallback paths so a broken call is now distinguishable from a
+   real no-trade in the logs. Operator approved the error-logging change. See ERRORS.md.
+   Verified live post-fix: proposer returned 4 grounded proposals (T/PFE CSPs at 20-day lows, AAL
+   covered call after +34%, SOFI bear credit spread at range highs on weak volume).
+
+**Result:** 60 tests pass (52 + 8 new for market_context). Next scheduled entry cycle is Tuesday
+2026-07-07 10:15 ET — that's the real end-to-end proof (context → LLM → rails → paper orders).
+
 ## 2026-07-03 (session end) — Fully deployed and armed; docs refreshed
 
 **Worked on:** end-to-end deployment day. Research (3 passes) → architecture → build (all 8

@@ -226,6 +226,47 @@ class PaperClient:
         order = self._trading_client().get_order_by_id(order_id)
         return {"id": str(order.id), "status": _status_str(order.status), "filled_qty": float(order.filled_qty or 0)}
 
+    # -- underlying stock data (proposer market context) -------------------
+
+    def stock_daily_bars(
+        self, symbols: list[str], *, lookback_days: int = 40
+    ) -> dict[str, list[dict[str, float]]]:
+        """Recent daily bars per symbol, for the proposer's market context.
+
+        Uses the free IEX feed explicitly so a paper account with no
+        market-data subscription doesn't 403 on recent SIP data. Returns
+        {symbol: [{"c": close, "v": volume}, ...]} oldest-first; a symbol with
+        no data is simply absent from the dict (the caller fails open per
+        ticker). IEX volume is a fraction of consolidated volume, so treat the
+        volume figure as relative-only, never as true share count."""
+        from datetime import datetime, timedelta, timezone
+
+        from alpaca.data.enums import DataFeed
+        from alpaca.data.historical.stock import StockHistoricalDataClient
+        from alpaca.data.requests import StockBarsRequest
+        from alpaca.data.timeframe import TimeFrame
+
+        if not symbols:
+            return {}
+        client = StockHistoricalDataClient(self.key_id, self.secret_key)
+        start = datetime.now(timezone.utc) - timedelta(days=lookback_days)
+        req = StockBarsRequest(
+            symbol_or_symbols=symbols,
+            timeframe=TimeFrame.Day,
+            start=start,
+            feed=DataFeed.IEX,
+        )
+        bars = client.get_stock_bars(req)
+        data = getattr(bars, "data", {}) or {}
+        out: dict[str, list[dict[str, float]]] = {}
+        for sym, blist in data.items():
+            out[sym] = [
+                {"c": float(b.close), "v": float(b.volume or 0.0)}
+                for b in blist
+                if b.close is not None
+            ]
+        return out
+
     def market_is_open(self) -> bool:
         """Broker market clock — the cron scripts' holiday/weekend guard.
         The cron time windows only know the ET wall clock, not the NYSE

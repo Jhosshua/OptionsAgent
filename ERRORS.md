@@ -1,5 +1,38 @@
 # ERRORS.md — OptionsAgent
 
+## Proposer silently returned 0 proposals: `temperature=0` 400s on claude-fable-5
+
+**What did not work:** `proposer.py` called `client.messages.create(..., temperature=0, ...)`. On
+`claude-fable-5` (the default model) that returns HTTP 400 `temperature is deprecated for this
+model` — Fable 5 removed `temperature`/`top_p`/`top_k` entirely. Worse, the call was wrapped in
+`except Exception: return stub_proposals()`, so every failed call logged identically to a genuine
+"model proposed nothing." The bot looked healthy and simply never traded.
+
+**What worked instead:** delete the `temperature` param (the rails enforce determinism, not
+sampling params — see the proposer docstring). Also added `log.exception`/`log.warning` in the
+fallback paths so a broken LLM call is now distinguishable from a real no-trade in Railway logs.
+
+**Note for next time:** Fable 5 / Opus 4.8 / 4.7 / Sonnet 5 all reject `temperature`, `top_p`,
+`top_k` (400) and `thinking:{type:"enabled",budget_tokens}`; Fable 5 also 400s on an explicit
+`thinking:{type:"disabled"}` — omit `thinking` entirely. When pointing ANY fleet bot at a Fable/
+Opus-4.7+ model, grep its LLM call site for these params first. And never let an LLM call's
+`except` swallow the error without logging — a silent fail-closed hides config bugs for days.
+
+## Proposer got empty context, so it (correctly) proposed nothing every cycle
+
+**What did not work:** `run_cycle.py` built the LLM bundle with `"context": {}` per ticker — no
+prices, no news, nothing. The proposer's own prompt says "it is normal to propose nothing," so with
+zero data a conservative model proposed nothing on every cycle. There was no context-builder module
+at all; the empty dict had shipped since day one and would never have traded.
+
+**What worked instead:** `harness/market_context.py` derives per-ticker context (price, %-moves,
+20-day range position, relative volume) from Alpaca daily bars (`PaperClient.stock_daily_bars`,
+IEX feed, fail-open per ticker). Wired into `run_cycle.py` with a `context built for N/13` log line.
+
+**Note for next time:** an LLM "propose nothing" result is only trustworthy if the model was
+actually given something to reason on. When a proposer/analyst agent is quiet, check what context
+it's being fed BEFORE assuming the model is just being conservative.
+
 ## Railway: first deploy ran railpack, not the Dockerfile
 
 **What did not work:** creating the Railway service from the GitHub repo BEFORE the
