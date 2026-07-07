@@ -1,5 +1,33 @@
 # MEMORY.md — OptionsAgent
 
+## 2026-07-07 — Third 0-trades root cause found + fixed; FIRST TRADE EXECUTED
+
+**What was decided:** add `anthropic==0.104.1` to `requirements.txt`. The package was never in the
+container image, so `proposer.py`'s `import anthropic` failed and the bot degraded to no-trade on
+every cycle — including today's 10:15 ET cycle, AFTER both 07-06 fixes. The 07-06 verification used
+`railway run`, which runs on the Mac (where anthropic is installed globally), so it could not catch
+a container-only dependency miss. See ERRORS.md for the full lesson.
+
+**Why:** operator reported "still not seeing anything" for the second day. `railway logs` showed
+the smoking gun directly: `anthropic package not installed — proposer degrading to no trade`
+(the loud fallback logging added on 07-06 did its job).
+
+**Result (all verified inside the container via `railway ssh`):**
+- `import anthropic` OK (0.104.1), proposer smoke call returned HTTP 200.
+- Manual `python3 run_cycle.py` (operator-visible catch-up for today, since the 10:15 cron slot had
+  already burned on the broken image): 3 proposals → rails filtered 2
+  (`no_contract_matched_criteria`, `skipped_no_shares_owned` for a covered call) → 1 executed.
+- **FIRST-EVER TRADE: 8x MARA 2026-08-07 $13.00 puts (long_put) @ $2.18 net debit (~$1,744).**
+  Confirmed as a real Alpaca position (equity $4,591.84, options BP $3,255.84 after fill).
+- Watch item: position marked ~$1,336 right after the $1,744 fill — wide bid/ask on MARA puts means
+  the mark sits well below the ask we paid. Not a bug, but if fills consistently land at the ask on
+  wide-spread contracts, the contract-selection liquidity criteria may need a spread cap.
+- 60 tests still pass. Exit sweeps (every 20 min) now have a real structure to monitor.
+
+**What was rejected and why:** waiting for tomorrow's 10:15 cron as the first post-fix proof —
+CLAUDE.md says to watch the first live cycles for first-contact bugs, so running one supervised
+manual cycle today was safer than an unattended first run tomorrow.
+
 ## 2026-07-06 — First live day: bot ran clean but proposed nothing; TWO bugs found + fixed
 
 **Trigger:** operator asked why the bot "didn't do anything today." Railway logs showed the entry

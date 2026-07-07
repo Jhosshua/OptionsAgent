@@ -1,5 +1,26 @@
 # ERRORS.md — OptionsAgent
 
+## Proposer STILL returned 0 proposals after the 07-06 fixes: `anthropic` was never in requirements.txt
+
+**What did not work:** the 2026-07-06 fixes were verified with `railway run`, which executes on
+the MAC with Railway env vars — the Mac has the `anthropic` package installed globally, so the
+proposer worked in that test. The container never had it: `requirements.txt` listed alpaca-py,
+requests, python-dotenv, yfinance, pytest — no `anthropic`. Inside the container the proposer hit
+its `except ImportError` path and degraded to no-trade on every cycle, logging
+`anthropic package not installed — proposer degrading to no trade` (visible in `railway logs`,
+2026-07-07 10:15 ET cycle).
+
+**What worked instead:** added `anthropic==0.104.1` to `requirements.txt` (same pin as the sibling
+bots), pushed, redeploy rebuilt the image. Verified INSIDE the container via `railway ssh`: import
+OK, live proposer smoke call returned 200. Then ran a manual `python3 run_cycle.py` in the
+container: 3 proposals, rails filtered 2 (no matching contract / no shares for covered call),
+1 executed — first-ever trade, 8x MARA 2026-08-07 $13 puts @ $2.18.
+
+**Note for next time:** `railway run` proves nothing about the container — it runs on the Mac.
+Container-truth checks go through `railway ssh`. After ANY dependency-related fix, verify with
+`railway ssh "python3 -c 'import <pkg>'"`. Fleet-wide: every runtime import in a bot must appear
+in its requirements.txt; the Mac's global site-packages hides these misses locally.
+
 ## Proposer silently returned 0 proposals: `temperature=0` 400s on claude-fable-5
 
 **What did not work:** `proposer.py` called `client.messages.create(..., temperature=0, ...)`. On
