@@ -1,5 +1,40 @@
 # MEMORY.md — OptionsAgent
 
+## 2026-07-07 (later) — Exit sweep falsely closed the MARA put 11 minutes after the first fill
+
+**Trigger:** Discord error at 14:40 UTC: "MARA long_put: leg(s) no longer in the account
+(assignment, expiry, or manual close). Marked closed; check the account." The position was NOT
+gone — 8x MARA 2026-08-07 $13 puts were sitting in the account the whole time (filled 14:29:30,
+same second as submission).
+
+**Root cause:** `alpaca_glue.list_positions()` serialized the asset class with `str(p.asset_class)`,
+producing `"AssetClass.US_OPTION"`. All three consumers compare against the plain value:
+`run_exits.py` (reconcile filter, `"us_option"`), `run_cycle.py` (covered-call owned-shares check,
+`"us_equity"`), `harness/positions.py` (exposure calc for the risk rails). The reconcile filter
+therefore built an EMPTY live-options set, so the first sweep after the first-ever fill marked the
+structure vanished. Side effects until fixed: the put was unmonitored (no profit target / stop /
+DTE close), covered calls could never see owned shares, and the rails understated existing exposure.
+
+**What was decided:** route `asset_class` through the existing `_status_str` helper (it was written
+for exactly this enum-vs-value problem, the field just never used it). One-line fix + regression
+test (`tests/test_alpaca_glue.py`). 62 tests pass. Deployed, verified inside the container:
+`list_positions()` now returns `us_option`.
+
+**State repair:** appended a fresh `opened` event for structure `8c74b8ab...` to
+`data/structures.jsonl` on the volume (replay of the original event, new ts) AFTER the redeploy,
+then ran a manual `run_exits.py` in the container: reconcile kept it intact, no exit triggered,
+no false alert. The bogus `closed` event stays in the log (append-only convention).
+
+**What was rejected and why:** hand-editing the jsonl to delete the bogus closed event — the file
+is append-only by design; a replayed opened event supersedes it in `load_open()`.
+
+**Known gap flagged (NOT built):** structures are recorded as opened on order SUBMISSION, not fill
+(`execute_long_option` returns success right after `submit_order`). A limit order that never fills
+would trigger the same false "vanished" alert on the next sweep. Today's fill was instant so this
+was not the cause, but it is a real race. Needs an operator decision on the fix shape (e.g. sweep
+checks order status before declaring legs vanished).
+
+
 ## 2026-07-07 — Third 0-trades root cause found + fixed; FIRST TRADE EXECUTED
 
 **What was decided:** add `anthropic==0.104.1` to `requirements.txt`. The package was never in the

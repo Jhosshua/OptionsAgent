@@ -1,5 +1,25 @@
 # ERRORS.md — OptionsAgent
 
+## Exit sweep saw ZERO option positions: enum leaked through the adapter as "AssetClass.US_OPTION"
+
+**What did not work:** `str(enum_member)` on alpaca-py's `AssetClass` gives `"AssetClass.US_OPTION"`,
+not `"us_option"`. `list_positions()` used `str()` while every consumer compared lowercase plain
+values, so membership checks silently failed (no crash, no log — reconcile just saw an empty set
+and declared the MARA structure vanished 11 minutes after its first fill). The 62-test suite never
+caught it because fixtures hand-write `"asset_class": "us_option"` — the tests validated the
+consumers, never the adapter's output shape.
+
+**What worked instead:** `_status_str(p.asset_class)` (the existing normalizer built for order
+statuses, which unwraps `.value` first). Regression test added that feeds a real `str`-Enum through
+the helper.
+
+**Note for next time:** every enum-ish field crossing the alpaca_glue boundary must go through
+`_status_str`. When a broker adapter returns dicts consumed by string comparison, test the ADAPTER's
+output values against the consumers' expected literals, not just consumers against hand-written
+fixtures. Fleet-wide: grep sibling bots for `str(p.asset_class)` / raw enum serialization when
+touching their Alpaca glue.
+
+
 ## Proposer STILL returned 0 proposals after the 07-06 fixes: `anthropic` was never in requirements.txt
 
 **What did not work:** the 2026-07-06 fixes were verified with `railway run`, which executes on
