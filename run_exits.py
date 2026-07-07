@@ -141,9 +141,43 @@ def run() -> None:
     intact, vanished = structures.reconcile(open_structures, live_option_symbols)
 
     for s in vanished:
-        # assignment / expiry / manual close happened outside the bot — this
+        # Legs missing from the account is NOT automatically an assignment:
+        # structures are recorded on order SUBMISSION, so an unfilled limit
+        # order looks identical to a vanished position (2026-07-07 incident).
+        # Ask the broker what the opening orders actually did.
+        order_states = []
+        for oid in s.order_ids:
+            try:
+                order_states.append(client.get_order(oid))
+            except Exception as e:
+                log.warning("%s: could not fetch opening order %s (%s)", s.underlying, oid, e)
+        verdict = structures.classify_vanished(order_states)
+
+        if verdict == "pending":
+            log.info(
+                "%s %s: opening order still working, not filled yet — leaving open",
+                s.underlying, s.strategy_type,
+            )
+            continue
+
+        if verdict == "never_filled":
+            structures.record_closed(s.structure_id, reason="opening_order_never_filled", pnl_usd=0.0)
+            notify.post(
+                f"ℹ️ {s.underlying} {s.strategy_type}: the opening order never filled "
+                f"(canceled or expired), so no position was ever taken. Removed from tracking; "
+                f"no money moved."
+            )
+            decision_log.record(
+                {"kind": "exit", "ts": decision_log.now_iso(), "structure_id": s.structure_id,
+                 "underlying": s.underlying, "strategy_type": s.strategy_type,
+                 "reason": "opening_order_never_filled"}
+            )
+            continue
+
+        # verdict == "gone": something filled and the position is missing —
+        # assignment / expiry / manual close happened outside the bot. This
         # must be an ALERT, not a silent drop (RESEARCH.md: OCC assignment is
-        # random and can land overnight)
+        # random and can land overnight).
         structures.record_closed(s.structure_id, reason="legs_vanished_assignment_or_manual", pnl_usd=None)
         notify.error(
             f"{s.underlying} {s.strategy_type}: leg(s) no longer in the account "

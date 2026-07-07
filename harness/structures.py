@@ -38,6 +38,7 @@ class Structure:
     entry_net: float   # per-share: credit received (short premium) or debit paid (long)
     legs: list[Leg] = field(default_factory=list)
     opened_ts: str = ""
+    order_ids: list[str] = field(default_factory=list)  # broker ids of the OPENING order(s)
 
 
 def _append(event: dict[str, Any], path: str | None = None) -> None:
@@ -78,6 +79,7 @@ def load_open(path: str | None = None) -> list[Structure]:
                     entry_net=float(event["entry_net"]),
                     legs=[Leg(**leg) for leg in event.get("legs", [])],
                     opened_ts=event.get("opened_ts") or event.get("ts", ""),
+                    order_ids=list(event.get("order_ids", [])),
                 )
             elif event["event"] == "closed":
                 opened.pop(event["structure_id"], None)
@@ -98,6 +100,33 @@ def reconcile(
         else:
             vanished.append(s)
     return intact, vanished
+
+
+# Alpaca order statuses that mean the order is still working and may yet fill.
+_WORKING_STATUSES = frozenset(
+    {"new", "accepted", "pending_new", "accepted_for_bidding", "partially_filled", "held"}
+)
+
+
+def classify_vanished(order_states: list[dict[str, Any]]) -> str:
+    """A structure's legs are missing from the broker's positions. Decide why,
+    from the OPENING orders' current states ({"status", "filled_qty"} dicts):
+
+    - "pending":      an opening order is still working — the position simply
+                      hasn't filled yet. Not an exit event; keep waiting.
+    - "never_filled": every opening order is dead with zero fills (canceled /
+                      expired / rejected day order) — the position never
+                      existed. Close the structure quietly.
+    - "gone":         something actually filled (or we have no order info,
+                      e.g. a pre-upgrade structure) and the position is
+                      missing anyway — assignment / expiry / manual close.
+                      The loud-alert path. No info stays LOUD, never silent.
+    """
+    if any(st["status"] in _WORKING_STATUSES for st in order_states):
+        return "pending"
+    if order_states and all(float(st.get("filled_qty") or 0) == 0 for st in order_states):
+        return "never_filled"
+    return "gone"
 
 
 def _now() -> str:

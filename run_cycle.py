@@ -290,6 +290,7 @@ def run() -> None:
                     entry_net=abs(entry_net),
                     legs=legs,
                     opened_ts=decision_log.now_iso(),
+                    order_ids=[o["id"] for o in result.orders if isinstance(o, dict) and o.get("id")],
                 )
             )
             account = apply_opened_position(
