@@ -1,5 +1,33 @@
 # MEMORY.md — OptionsAgent
 
+## 2026-07-07 (later still) — Closed the submit-vs-fill gap: sweep now checks opening-order status
+
+**What was decided:** before the exit sweep declares a structure's legs "vanished", it now asks the
+broker what the OPENING order(s) actually did. New `Structure.order_ids` field (recorded by
+run_cycle from the execution result; pre-upgrade events load as an empty list), new pure
+`structures.classify_vanished(order_states)`:
+- `pending` — an opening order is still working (new/accepted/partially_filled/held/...) → the
+  position just hasn't filled; leave the structure open, no alert.
+- `never_filled` — every opening order is dead with zero fills (canceled/expired/rejected day
+  order) → close quietly with reason `opening_order_never_filled` and a calm info message
+  ("no money moved"), NOT an error alert.
+- `gone` — something filled (or there is no order info at all) and the position is missing →
+  the original loud assignment/manual-close alert, unchanged. No-info stays LOUD by design.
+
+**Why:** structures are recorded on order SUBMISSION, so an unfilled limit order was
+indistinguishable from a real assignment — the second way to fire the same false alarm as the
+asset_class incident. Flagged in that postmortem; operator said fix and ship.
+
+**Verified:** 66 tests pass (4 new, including the exact 07-07 shape, covered-straddle
+one-leg-filled, partial-fill-then-cancel). Deployed; in-container checks: MARA structure loads
+(legacy empty order_ids), classifier returns pending/never_filled/gone correctly, full manual
+`run_exits.py` sweep ran clean with the MARA put intact.
+
+**What was rejected and why:** polling for fills inside run_cycle (blocking the entry cycle for
+minutes, and a fill can land any time before the day order expires) — checking at sweep time is
+simpler and self-heals every 20 minutes.
+
+
 ## 2026-07-07 (later) — Exit sweep falsely closed the MARA put 11 minutes after the first fill
 
 **Trigger:** Discord error at 14:40 UTC: "MARA long_put: leg(s) no longer in the account
