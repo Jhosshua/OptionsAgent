@@ -80,7 +80,7 @@ class PaperClient:
             {
                 "symbol": p.symbol,
                 "qty": float(p.qty),
-                "asset_class": str(p.asset_class),
+                "asset_class": _status_str(p.asset_class),
                 "cost_basis": float(p.cost_basis),
                 "market_value": float(p.market_value),
             }
