@@ -45,10 +45,9 @@ Full design rationale: `RESEARCH.md` (3 research passes, verified findings + exp
 4. **The LLM never picks a strike, delta, or DTE.** It proposes
    `{underlying, strategy_type, direction, conviction, thesis}` only — `harness/proposer.py`'s
    schema enforces this at the type level.
-5. **Phased strategy rollout** (`config/config.json`'s `phase` key): wheel (CSP + covered call) →
-   spreads → long calls/puts → straddles, each validated in paper trading before the next phase
-   turns on. Currently on phase 1 (`wheel`). `harness/risk_rails.py`'s `allowed_strategies` check
-   vetoes any strategy_type outside the active phase.
+5. **The `phase` key gates the strategy menu** (`config/config.json`). Currently
+   `credit_spreads_only` (operator 2026-07-08, see banner above). `harness/risk_rails.py`'s
+   `allowed_strategies` check vetoes any strategy_type outside the active phase.
 6. **Covered straddle's short put requires full internal cash-backing**, stricter than Alpaca's own
    margin math — the one strategy in scope with a real "surprise capital call" failure mode
    (RESEARCH.md Pass 3). Gets a tighter 10% per-position cap too.
@@ -72,6 +71,29 @@ Watchlist (config/universe.txt) + market context   ─┐
 
 A separate, LLM-free exit sweep (`run_exits.py`, `harness/exits.py`) runs on its own schedule
 purely to check DTE-close, profit-target, and dividend-assignment triggers on open positions.
+
+## ⭐ UPDATE 2026-07-08: CREDIT-SPREADS-ONLY PIVOT — supersedes "all strategies" below
+
+Operator decision after BotResearch run 20260708-0015 (triggered by the day-1 MARA long-put loss,
+-37.6% of premium in one session, account -13.1%): the bot flips from premium BUYER to defined-risk
+premium SELLER. Shipped straight to live paper (operator: no experiment flag, no shadow arm).
+
+- `config.json`: `phase: "credit_spreads_only"` (new phase, menu = `credit_spread` only) and
+  `spreads.max_width_usd: 2.0` (was 5.0) — the skeptic-bot survival condition on $5k: max loss per
+  spread ~$200 minus credit (~4% of account). Flip back = one config key.
+- `harness/proposer.py` SYSTEM_PROMPT now carries the seller posture: bullish → put credit spread,
+  bearish → call credit spread (never neutral for spreads), and an anti-chase rule — never buy
+  options after an extended move (the day-1 mistake).
+- **Chain-snapshot capture is LIVE and always-on** (`harness/chain_capture.py` +
+  `alpaca_glue.option_chain_raw`): every entry cycle persists each watchlist name's full chain
+  (quotes+sizes, last trade, IV, all greeks) to `data/chain_snapshots/YYYY-MM-DD/<SYM>.jsonl.gz`
+  on the Railway volume, fail-open. This is the prerequisite for ever building a backtester or an
+  IV-rank signal; do not remove it.
+- 30-day review gates are logged in MEMORY.md (2026-07-08 entry) — score them around 2026-08-19,
+  and `tests/test_pivot_credit_spreads.py` cements the pivot (a phase/width revert fails tests
+  until consciously changed).
+- Exits for credit spreads were already live (short-premium family: 50% profit target, 2x-credit
+  stop, 21 DTE close) — unchanged.
 
 ## ⭐ UPDATE 2026-07-03 (later): ALL STRATEGIES LIVE AT ONCE + RAILWAY — supersedes the phased rollout below
 

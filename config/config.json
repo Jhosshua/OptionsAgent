@@ -3,12 +3,13 @@
   "risk_profile": "full_deploy_high_conviction",
   "_risk_comment": "Operator 2026-07-03: no percentage caps. Position budget = conviction-scaled fraction of AVAILABLE options buying power (floor conviction -> 30%, max conviction -> 100%, may take everything). Kill knob: OA_MAX_POSITION_USD env (absolute ceiling, tighten-only).",
   "equity_usd_fallback": 5000,
-  "phase": "all",
-  "_phase_comment": "Operator 2026-07-03: all strategies live from day one (overrides the original phased rollout in ARCHITECTURE.md). The phase machinery is kept so any strategy can be switched off by moving to a narrower phase.",
+  "phase": "credit_spreads_only",
+  "_phase_comment": "Operator 2026-07-08 (BotResearch run 20260708-0015): pivot from premium BUYER to defined-risk premium SELLER after the day-1 MARA long-put loss. Credit spreads only — sell the volatility risk premium with capped worst case. Previous phase was 'all' (operator 2026-07-03); flip back by changing this one key.",
   "phase_strategies": {
     "wheel": ["csp", "covered_call"],
     "spreads": ["csp", "covered_call", "credit_spread", "debit_spread"],
     "long_options": ["csp", "covered_call", "credit_spread", "debit_spread", "long_call", "long_put"],
+    "credit_spreads_only": ["credit_spread"],
     "all": ["csp", "covered_call", "credit_spread", "debit_spread", "long_call", "long_put", "long_straddle", "covered_straddle"]
   },
   "screener": {
@@ -40,11 +41,12 @@
   },
   "spreads": {
     "_comment": "RESEARCH.md: short strike 15-30 delta, 30-45 DTE, 50% profit / 21 DTE exit (best-verified rule in the research). max_width_usd bounds defined risk per spread.",
+    "_width_comment": "2.0 since 2026-07-08 (was 5.0): GLM-skeptic survival condition on a $5k account — max loss per spread ~$200 minus credit (~4% of account) instead of ~$500 (~10%), so one overnight gap through several spreads stays survivable.",
     "short_delta_min": 0.15,
     "short_delta_max": 0.30,
     "dte_min": 30,
     "dte_max": 45,
-    "max_width_usd": 5.0,
+    "max_width_usd": 2.0,
     "profit_target_pct": 0.50,
     "stop_loss_pct": 1.00,
     "_stop_comment": "stop_loss_pct is vs credit received: 1.00 = close if cost-to-close reaches 2x the credit (loss = 100% of credit). Research gave no verified stop for credit spreads; this is a starting knob.",

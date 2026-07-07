@@ -64,8 +64,10 @@ echo "[entrypoint] cron schedule installed; handing off to cron (foreground)."
 # Announce the deploy in Discord if the webhook is configured. Never fatal.
 if [ -n "${DISCORD_WEBHOOK_URL:-}" ]; then
   python3 -c "
+from harness.env import active_phase, allowed_strategies
 from harness.notify import post
-post('🚂 OptionsAgent is live on Railway (' + __import__('subprocess').run(['date', '+%H:%M ET'], capture_output=True, text=True, env={'TZ': 'America/New_York'}).stdout.strip() + '). All 8 strategies enabled, Alpaca PAPER.')
+ts = __import__('subprocess').run(['date', '+%H:%M ET'], capture_output=True, text=True, env={'TZ': 'America/New_York'}).stdout.strip()
+post(f'🚂 OptionsAgent is live on Railway ({ts}). Mode: {active_phase()} ({\", \".join(allowed_strategies())}), Alpaca PAPER.')
 " || true
 fi
 

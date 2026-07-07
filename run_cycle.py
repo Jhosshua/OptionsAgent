@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 from datetime import date, timedelta
 
-from harness import decision_log, market_context, notify, structures
+from harness import chain_capture, decision_log, market_context, notify, structures
 from harness.alpaca_glue import make_client
 from harness.contracts import (
     select_covered_call,
@@ -208,6 +208,18 @@ def run() -> None:
     account = build_account_state(account_raw=account_raw, positions_raw=positions_raw)
 
     syms = universe()
+
+    # Backtesting prerequisite (always on, fail-open): persist today's full
+    # chain snapshots (quotes+IV+greeks) before anything else can crash.
+    try:
+        counts = chain_capture.capture_universe(client, syms)
+        failed = [s for s, n in counts.items() if n < 0]
+        log.info("chain snapshots captured: %s", counts)
+        if failed:
+            notify.error(f"chain snapshot capture failed for {', '.join(failed)} (cycle continues)")
+    except Exception:
+        log.exception("chain snapshot capture failed entirely (fail-open, cycle continues)")
+
     context_by_symbol = market_context.build_context(client, syms)
     n_with_data = sum(1 for c in context_by_symbol.values() if market_context.has_data(c))
     log.info(

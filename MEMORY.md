@@ -1,5 +1,51 @@
 # MEMORY.md — OptionsAgent
 
+## 2026-07-08 — STRATEGY PIVOT: premium buyer → defined-risk premium seller (credit spreads only)
+
+**What was decided:** after the day-1 result (8x MARA Aug-07 $13 long puts at $2.18 lost 37.6% of
+premium in one session; account $4,343.84 vs $5,000 start, -13.1%), the operator ran the
+BotResearch pipeline on this bot (run `BotResearch/runs/optionsagent/20260708-0015`, read artifacts
+02/03/04/05 for the full reasoning) and approved its selected change, shipped DIRECTLY to live
+paper (operator explicitly rejected the flag-gated shadow-A/B version mid-build: "not behind an
+experiment flag, we are shipping it in live paper money"). The change:
+1. `config.json` `phase: "credit_spreads_only"` — strategy menu is `credit_spread` only.
+2. `spreads.max_width_usd` 5.0 → 2.0 (GLM-skeptic survival condition on $5k: worst case per
+   spread ≈ $200 minus credit ≈ 4% of account; three simultaneous gapped spreads ≈ 12%, not 30%).
+3. Proposer SYSTEM_PROMPT: seller posture (bullish → put credit spread, bearish → call credit
+   spread, never neutral for spreads) + anti-chase rule (never buy options after an extended move).
+4. Always-on chain-snapshot capture (`harness/chain_capture.py`, `option_chain_raw` in
+   alpaca_glue): full chain (quotes+sizes, trade, IV, greeks) per name per entry cycle →
+   `data/chain_snapshots/YYYY-MM-DD/<SYM>.jsonl.gz`, atomic write, fail-open. THE backtesting
+   prerequisite; roughly ~1 MB/day gzipped.
+
+**Why:** the day-1 loss was structural, not unlucky: the bot's only mechanically-workable strategy
+on a share-less $5k account was buying single options (covered structures need shares, CSPs kept
+failing contract match), i.e. always paying the volatility risk premium, at peak fear prices,
+IV-blind and spread-blind. Credit spreads flip it to the side of that premium with documented
+positive base rates (CBOE put-write indices, tastytrade mechanical studies) while capping worst
+case per trade. Full evidence chain in the BotResearch artifacts.
+
+**What was rejected:** long-option band-aids (anti-chase filters alone), IV-rank routing (no IV
+history exists yet — that's what snapshot capture fixes), universe rebuild (later), the
+flag+shadow-baseline A/B harness (operator chose direct ship; the built-then-reverted version is
+in git history at the "pivot" commit's parent diffs if ever wanted).
+
+**30-day review gates (score ~2026-08-19 on decisions.jsonl + structures.jsonl; the numbers
+decide):** validity: ≥ 12 executed spreads and no 15-trading-day window with 0 trades (else the
+finding is "filters/watchlist too tight", not a strategy verdict). Pass: mean P&L per closed trade
+> $0 after subtracting $1.30/contract/leg by hand (Alpaca paper is commission-free, real fees are
+not), AND max-loss exits ≤ 25% of closed trades. Hard abort: equity down 25% from $4,343.84 start
+(→ ~$3,258) at any point = stop and rethink. Review must also gap-test the book: worst overnight
+10% gap-down on all simultaneously-open spreads, plain-language write-up. Honest blow-up mode
+(operator accepted): a broad market gap-down through several spreads can still cost 10-20% in one
+night; width cap bounds it, nothing removes it.
+
+**Known watch items:** (a) sub-$50 watchlist may not offer $2-wide spreads with positive crossed
+credit everywhere — skip reasons `no_spread_matched_criteria` in decisions.jsonl tell us; 0-trade
+weeks route to the liquidity/universe backlog items in artifact 05. (b) LLM may propose neutral
+credit_spread despite the prompt → skipped with a logged reason, watch frequency. (c) snapshot
+capture failures post to Discord but never block the cycle.
+
 ## 2026-07-07 (later still) — Closed the submit-vs-fill gap: sweep now checks opening-order status
 
 **What was decided:** before the exit sweep declares a structure's legs "vanished", it now asks the

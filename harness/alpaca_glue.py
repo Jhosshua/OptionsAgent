@@ -22,6 +22,13 @@ from harness.occ import parse_occ_symbol
 ORDER_PREFIX = "oa-"
 
 
+def _f(val: Any) -> float | None:
+    """Optional numeric -> float, None-safe (alpaca-py fields are Optional and
+    getattr defaults never fire on present-but-None — the fleet's known
+    float(None) gotcha)."""
+    return None if val is None else float(val)
+
+
 def _status_str(status: Any) -> str:
     """alpaca-py order statuses are enums whose str() is 'OrderStatus.FILLED';
     callers must compare against the plain lowercase value ('filled'), so
@@ -128,6 +135,49 @@ class PaperClient:
                 )
             )
         return quotes
+
+    def option_chain_raw(self, underlying: str) -> list[dict]:
+        """Full chain snapshot with EVERYTHING Alpaca sends (quotes with
+        sizes, last trade, implied volatility, all greeks) — for
+        harness/chain_capture.py's daily persistence. option_chain() above
+        stays the lean trading adapter; this one exists because the dropped
+        fields (IV, gamma/theta/vega) are exactly what a future replay
+        harness / IV-rank signal needs and cannot be recovered later."""
+        from alpaca.data.requests import OptionChainRequest
+
+        client = self._option_historical_client()
+        req = OptionChainRequest(underlying_symbol=underlying)
+        chain = client.get_option_chain(req)
+        rows: list[dict] = []
+        for symbol, snap in chain.items():
+            row: dict = {"symbol": symbol, "underlying": underlying}
+            try:
+                parts = parse_occ_symbol(symbol)
+                row.update(strike=parts.strike, expiry=parts.expiry.isoformat(), right=parts.right)
+            except ValueError:
+                pass  # keep the raw row anyway; the replayer can re-parse
+            quote = getattr(snap, "latest_quote", None)
+            if quote is not None:
+                row.update(
+                    bid=_f(quote.bid_price), ask=_f(quote.ask_price),
+                    bid_size=_f(quote.bid_size), ask_size=_f(quote.ask_size),
+                    quote_ts=str(getattr(quote, "timestamp", None)),
+                )
+            trade = getattr(snap, "latest_trade", None)
+            if trade is not None:
+                row.update(
+                    last_price=_f(trade.price), last_size=_f(trade.size),
+                    trade_ts=str(getattr(trade, "timestamp", None)),
+                )
+            row["implied_volatility"] = _f(getattr(snap, "implied_volatility", None))
+            greeks = getattr(snap, "greeks", None)
+            if greeks is not None:
+                row.update(
+                    delta=_f(greeks.delta), gamma=_f(greeks.gamma), theta=_f(greeks.theta),
+                    vega=_f(greeks.vega), rho=_f(getattr(greeks, "rho", None)),
+                )
+            rows.append(row)
+        return rows
 
     # -- order submission ------------------------------------------------
 
