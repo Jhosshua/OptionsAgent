@@ -1,5 +1,25 @@
 # MEMORY.md — OptionsAgent
 
+## 2026-07-08 (later) — BUG FIX: adjusted contracts filtered out of the chain adapter
+
+**What was decided:** the first credit-spreads-only entry cycle (10:15 ET) crashed at order
+submit: the selector had picked `CCL1260821P00022500`, an adjusted contract (root `CCL1`, Carnival
+corporate action) that Alpaca's market data returns but its trading API rejects as "not active"
+(code 42210000). Fix: `alpaca_glue._adapt_chain()` now drops any chain row whose parsed OCC root
+differs from the requested underlying, so only standard, tradable contracts ever reach
+`harness/contracts.py`. 4 regression tests added (76 total passing). Full writeup in ERRORS.md.
+Today's other 2 proposals were lost to the crash (the cycle died on its first submit; mleg orders
+are atomic so nothing partial was placed).
+
+**Why:** adjusted contracts don't just slip through, the wheel score actively prefers them (their
+quotes look mispriced against the nominal strike). Filtering by root match makes the candidate
+pool tradable by construction instead of validating at submit time.
+
+**What was rejected:** validating tradability per-contract via the trading API's
+get-option-contract endpoint before submit (extra network call per candidate, and root-mismatch
+already exactly identifies the adjusted class); catching the APIError and retrying the next-best
+candidate (treats the symptom, keeps untradable rows in the pool).
+
 ## 2026-07-08 — STRATEGY PIVOT: premium buyer → defined-risk premium seller (credit spreads only)
 
 **What was decided:** after the day-1 result (8x MARA Aug-07 $13 long puts at $2.18 lost 37.6% of

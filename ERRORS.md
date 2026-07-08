@@ -1,5 +1,25 @@
 # ERRORS.md — OptionsAgent
 
+## run_cycle crashed on an ADJUSTED contract: chain snapshot includes untradable roots (CCL1)
+
+**What did not work:** `alpaca_glue.option_chain()` trusted every symbol in Alpaca's market-data
+chain snapshot. The 2026-07-08 10:15 ET cycle picked `CCL1260821P00022500` for a CCL credit
+spread — root `CCL1`, an ADJUSTED contract created by a Carnival corporate action (deliverable is
+no longer 100 plain shares). Alpaca's market data returns these, but the trading API rejects any
+order on them: `{"code":42210000,"message":"contract ... is not active"}`. The submit raised,
+run_cycle crashed, and the remaining 2 proposals of the day were never processed. Worse than
+random: the selector actively PREFERS adjusted contracts because their quotes look mispriced
+against their nominal strike (fat premium relative to nominal strike wins the score).
+
+**What worked instead:** filter at the adapter — `_adapt_chain()` drops every row whose parsed OCC
+root differs from the requested underlying. Standard contracts only, by construction. Regression
+tests feed a fake chain containing a `CCL1` row and assert it's excluded.
+
+**Note for next time:** market-data endpoints and trading endpoints disagree about what exists.
+Anything selected from a data feed must be validated as tradable before submit, or filtered to a
+class that is tradable by construction. Fleet-wide: any sibling bot that ever consumes an option
+chain needs the same root-match filter (grep for `get_option_chain`).
+
 ## Exit sweep saw ZERO option positions: enum leaked through the adapter as "AssetClass.US_OPTION"
 
 **What did not work:** `str(enum_member)` on alpaca-py's `AssetClass` gives `"AssetClass.US_OPTION"`,

@@ -36,6 +36,48 @@ def _status_str(status: Any) -> str:
     return str(getattr(status, "value", status)).lower()
 
 
+def _adapt_chain(chain: dict, underlying: str) -> list[OptionQuote]:
+    """Adapt an alpaca-py chain snapshot dict into OptionQuote rows.
+
+    2026-07-08 incident: the CCL chain included CCL1260821P00022500 — an
+    ADJUSTED contract (root CCL1, renamed after a corporate action, deliverable
+    no longer 100 plain shares). Alpaca's market-data chain returns adjusted
+    contracts, but the trading API rejects orders on them
+    ({"code":42210000,"message":"contract ... is not active"}), which crashed
+    run_cycle. The selector had actually favored it because adjusted contracts'
+    quotes look mispriced against their nominal strike. So: drop every row
+    whose OCC root differs from the requested underlying — standard contracts
+    only, by construction."""
+    from datetime import date
+
+    quotes: list[OptionQuote] = []
+    today = date.today()
+    for symbol, snap in chain.items():
+        greeks = getattr(snap, "greeks", None)
+        quote = getattr(snap, "latest_quote", None)
+        if greeks is None or quote is None or greeks.delta is None:
+            continue
+        try:
+            parts = parse_occ_symbol(symbol)
+        except ValueError:
+            continue  # malformed/non-OCC symbol -> skip, never guess
+        if parts.underlying != underlying.strip().upper():
+            continue  # adjusted contract (e.g. CCL1) -> not tradable, skip
+        quotes.append(
+            OptionQuote(
+                symbol=symbol,
+                underlying=underlying,
+                right=parts.right,
+                strike=parts.strike,
+                dte=(parts.expiry - today).days,
+                delta=float(greeks.delta),
+                bid=float(quote.bid_price or 0.0),
+                ask=float(quote.ask_price or 0.0),
+            )
+        )
+    return quotes
+
+
 @dataclass(frozen=True)
 class PaperClient:
     """Single import-point for the broker. Paper-only by construction."""
@@ -104,37 +146,12 @@ class PaperClient:
         alpaca-py's OptionsSnapshot carries NO strike/expiry/right fields
         (verified on 0.43.4: only symbol/latest_trade/latest_quote/IV/greeks)
         — all three must be parsed from the OCC symbol via harness/occ.py."""
-        from datetime import date
-
         from alpaca.data.requests import OptionChainRequest
 
         client = self._option_historical_client()
         req = OptionChainRequest(underlying_symbol=underlying)
         chain = client.get_option_chain(req)
-        quotes: list[OptionQuote] = []
-        today = date.today()
-        for symbol, snap in chain.items():
-            greeks = getattr(snap, "greeks", None)
-            quote = getattr(snap, "latest_quote", None)
-            if greeks is None or quote is None or greeks.delta is None:
-                continue
-            try:
-                parts = parse_occ_symbol(symbol)
-            except ValueError:
-                continue  # malformed/non-OCC symbol -> skip, never guess
-            quotes.append(
-                OptionQuote(
-                    symbol=symbol,
-                    underlying=underlying,
-                    right=parts.right,
-                    strike=parts.strike,
-                    dte=(parts.expiry - today).days,
-                    delta=float(greeks.delta),
-                    bid=float(quote.bid_price or 0.0),
-                    ask=float(quote.ask_price or 0.0),
-                )
-            )
-        return quotes
+        return _adapt_chain(chain, underlying)
 
     def option_chain_raw(self, underlying: str) -> list[dict]:
         """Full chain snapshot with EVERYTHING Alpaca sends (quotes with
