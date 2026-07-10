@@ -118,6 +118,27 @@ another service pulls over HTTPS (there is no shared volume between services).
 **Tests:** +9 (tests/test_marketdata.py: snapshot builder + relay auth/path/traversal). Suite -> **127
 passing**. Remaining: Phase 3 (log-only dry run on a live session, then arm the scalper).
 
+## 2026-07-10 (later) — ARMED LIVE (operator: "flip everything on, it's just paper money")
+
+Operator waived the dry-run: it's paper and the rails bound the paper downside, so we armed live
+mid-session instead. Before arming, added an ORPHAN-RECONCILE (`run_scalp._reconcile_orphans`,
+commit 7036067): re-adopts any registry-open scalp missing from per-day state (crash/redeploy between
+fill and save), closing the one auto-exercise hole. Suite -> **129 passing**.
+
+**Set on Railway (redeployed 11:00 ET):** `OA_SCALP_ENABLED=true`, `OA_MARKETDATA_ENABLED=true`,
+`OA_RELAY_TOKEN=<set>`. `OA_SCALP_DRY_RUN` NOT set (real paper trades).
+
+**First-contact CLEAN (11:01-11:02 ET logs):** relay started on :8399; `scalp tick complete dry=False
+halted=False trades=0` every minute (no crash/traceback, opening range reconstructed, watching for a
+breakout); `marketdata published {SPY:1, QQQ:1}`. The SIGNAL/DATA path is proven live. The ORDER path
+(option_chain_0dte -> submit_scalp_entry -> fill confirm) is still UNPROVEN until the first breakout
+fires — watch the first `⚡ SCALP BUY` in #options-agent + Railway logs for first-contact order bugs.
+Kill switch: `OA_SCALP_ENABLED=false` (one flip). Score the pre-committed gates after ~30 round-trips.
+
+**Data-sharing note:** the relay is running + the feed file is writing, but external bots can only pull
+it once a Railway DOMAIN is exposed on port 8399 (operator step). Until then the data is captured on the
+volume (readable by anything with volume access).
+
 ## 2026-07-08 (later) — BUG FIX: adjusted contracts filtered out of the chain adapter
 
 **What was decided:** the first credit-spreads-only entry cycle (10:15 ET) crashed at order
