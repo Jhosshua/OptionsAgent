@@ -48,8 +48,8 @@
     "dte_max": 45,
     "max_width_usd": 2.0,
     "profit_target_pct": 0.50,
-    "stop_loss_pct": 1.00,
-    "_stop_comment": "stop_loss_pct is vs credit received: 1.00 = close if cost-to-close reaches 2x the credit (loss = 100% of credit). Research gave no verified stop for credit spreads; this is a starting knob.",
+    "stop_loss_pct": null,
+    "_stop_comment": "null = NO per-position stop (operator 2026-07-10, paper account): let each defined-risk spread run to its true outcome (50% profit / 21 DTE close / full max loss = width minus credit, ~$200) to learn the real win/loss distribution instead of cutting early. Max loss is already bounded by the spread structure, so no stop is needed to cap risk. Was 1.00 (close at 2x credit). Re-enable = set a float.",
     "dte_close": 21
   },
   "long_options": {
@@ -59,7 +59,8 @@
     "dte_min": 30,
     "dte_max": 45,
     "profit_target_pct": 1.00,
-    "stop_loss_pct": 0.50,
+    "stop_loss_pct": null,
+    "_stop_comment": "null = NO per-position stop (operator 2026-07-10, paper account, learn the full outcome distribution). Max loss on a long option is the debit paid, already bounded. Was 0.50. Inactive while phase = credit_spreads_only. Re-enable = set a float.",
     "dte_close": 21
   },
   "straddles": {
@@ -68,7 +69,8 @@
     "dte_max": 60,
     "dte_target": 45,
     "long_profit_target_pct": 0.50,
-    "long_stop_loss_pct": 0.50,
+    "long_stop_loss_pct": null,
+    "_long_stop_comment": "null = NO per-position stop (operator 2026-07-10, paper account, learn the full outcome distribution). Long straddle max loss = debit paid, already bounded. Was 0.50. Inactive while phase = credit_spreads_only. Re-enable = set a float.",
     "covered_profit_target_pct": 0.50,
     "dte_close": 21
   },

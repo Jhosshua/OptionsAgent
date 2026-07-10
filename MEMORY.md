@@ -1,5 +1,35 @@
 # MEMORY.md — OptionsAgent
 
+## 2026-07-10 (later) — REMOVED per-position stop losses (paper account, learn the full outcome distribution)
+
+**What was decided:** operator — "this is a paper account, it should not have stop loss limits as
+we need to learn as much as we can." So the per-position stop-loss EXITS are removed. Set to `null`
+in `config/config.json` (no code change — `harness/exits.py` already treats `stop_loss_pct=None` as
+"no stop", and `run_exits.py:_rules_for` passes the config value straight through):
+- `spreads.stop_loss_pct: 1.00 -> null`  ← the ONLY one live now (phase = credit_spreads_only)
+- `long_options.stop_loss_pct: 0.50 -> null`  (inactive phase)
+- `straddles.long_stop_loss_pct: 0.50 -> null`  (inactive phase)
+
+**Why it's safe:** credit spreads are defined-risk — worst case is width minus credit (~$200 on
+max_width_usd=2.0), already bounded by the structure, so a stop was never what capped the risk. Long
+options/straddles cap at the debit paid. Removing the stop just lets each position run to its true
+outcome (50% profit target / 21 DTE close / full max loss) so we see the real win/loss distribution
+instead of cutting early. Bonus: the 2x-credit stop is known to hurt credit-spread expectancy (locks
+in losses on positions that often recover by expiry).
+
+**What was deliberately NOT touched (these are catastrophe rails, NOT P&L stops):**
+- 21 DTE mandatory close (gamma/pin/assignment backstop) — kept.
+- Scalper 15:50 ET EOD flatten + theta cut — kept, non-negotiable (ITM 0DTE auto-exercises into
+  ~$75k of SPY shares on a $5k account).
+- Scalper `stop_loss_pct` (0.30) + `daily_loss_stop_usd` (150): left as-is. The scalper is OFF
+  (`OA_SCALP_ENABLED` unset) so it doesn't affect current learning, AND `run_scalp.py:280` does
+  `float(cfg_scalp.get("stop_loss_pct", 0.30))` — `null` would CRASH it, not disable it. Removing
+  the scalp stop would need a code change to make it Optional; flagged to operator, not done.
+
+**What was rejected:** nulling the scalp stop (would crash), removing DTE/EOD closes (blows the
+account, not "learning"). **Verified:** 129/129 tests pass; `_rules_for` builds `stop_loss_pct=None`
+for every live strategy. Rollback = set any value back to a float.
+
 ## 2026-07-10 — NEW MODE APPROVED: 0DTE ORB scalper (isolated) + Phase-0 probe = GO
 
 **What was decided:** operator wants the Desktop doc `~/Desktop/high_risk_options_strategies.md`
