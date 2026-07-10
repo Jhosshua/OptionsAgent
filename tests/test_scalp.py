@@ -153,9 +153,14 @@ def test_trade_count_predicate():
 
 
 def test_daily_loss_predicate():
+    # Default rails have the halt DISABLED (0) — never halts, however large the loss.
     assert scalp_daily_loss_ok(-100, R)[0]
-    assert not scalp_daily_loss_ok(-150, R)[0]
-    assert not scalp_daily_loss_ok(-200, R)[0]
+    assert scalp_daily_loss_ok(-1000, R)[0]
+    # An explicit positive stop still halts at/below the threshold.
+    RS = ScalpRails(daily_loss_stop_usd=150)
+    assert scalp_daily_loss_ok(-100, RS)[0]
+    assert not scalp_daily_loss_ok(-150, RS)[0]
+    assert not scalp_daily_loss_ok(-200, RS)[0]
 
 
 def test_one_at_a_time_predicate():
@@ -173,11 +178,11 @@ def test_entry_window_and_flatten():
 
 def test_env_overrides_tighten_only(monkeypatch):
     monkeypatch.setenv("OA_SCALP_PER_TRADE_USD", "100")   # tighter -> applied
-    monkeypatch.setenv("OA_SCALP_DAILY_LOSS_USD", "500")  # looser -> ignored
+    monkeypatch.setenv("OA_SCALP_DAILY_LOSS_USD", "500")  # re-enables the (disabled) halt at 500
     monkeypatch.setenv("OA_SCALP_MAX_TRADES", "1")        # tighter -> applied
     r = active_scalp_rails()
     assert r.per_trade_usd_cap == 100
-    assert r.daily_loss_stop_usd == 150  # base kept (500 would loosen)
+    assert r.daily_loss_stop_usd == 500  # base is 0 (disabled); a positive env re-enables it
     assert r.max_trades_per_day == 1
 
 

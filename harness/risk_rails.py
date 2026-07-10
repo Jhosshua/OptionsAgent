@@ -185,7 +185,11 @@ def apply_opened_position(
 class ScalpRails:
     per_trade_usd_cap: float = 250.0     # hard absolute budget per scalp
     max_trades_per_day: int = 3
-    daily_loss_stop_usd: float = 150.0   # realized-loss halt for the day (positive $)
+    daily_loss_stop_usd: float = 0.0     # 0 = DISABLED (operator 2026-07-10, paper account, max
+                                         # learning: let all max_trades_per_day setups play out).
+                                         # Worst-case daily loss is then bounded only by
+                                         # max_trades_per_day * per_trade_usd_cap ($750). A positive
+                                         # OA_SCALP_DAILY_LOSS_USD re-enables the halt at that value.
     max_concurrent_scalps: int = 1       # one position at a time
     entry_cutoff_et: str = "14:30"       # no NEW entries after this ET time
     eod_flatten_et: str = "15:50"        # MANDATORY force-close by this ET time
@@ -212,7 +216,17 @@ def active_scalp_rails() -> ScalpRails:
     OA_SCALP_PER_TRADE_USD, OA_SCALP_MAX_TRADES, OA_SCALP_DAILY_LOSS_USD."""
     base = ScalpRails()
     per_trade = _tighten_float(base.per_trade_usd_cap, os.environ.get("OA_SCALP_PER_TRADE_USD"))
-    loss = _tighten_float(base.daily_loss_stop_usd, os.environ.get("OA_SCALP_DAILY_LOSS_USD"))
+    # Daily-loss halt is DISABLED by default (base 0.0). A positive env value RE-ENABLES it (a
+    # tightening from "no halt at all") — this keeps the escape hatch reversible via Railway env.
+    loss = base.daily_loss_stop_usd
+    raw_loss = os.environ.get("OA_SCALP_DAILY_LOSS_USD")
+    if raw_loss:
+        try:
+            v = float(raw_loss)
+            if v > 0:
+                loss = v
+        except (TypeError, ValueError):
+            pass
     max_trades = base.max_trades_per_day
     raw_mt = os.environ.get("OA_SCALP_MAX_TRADES")
     if raw_mt:
@@ -246,7 +260,9 @@ def scalp_trade_count_ok(trades_today: int, rails: ScalpRails) -> tuple[bool, st
 
 def scalp_daily_loss_ok(realized_pnl_today: float, rails: ScalpRails) -> tuple[bool, str]:
     """realized_pnl_today is signed ($; negative = loss). Halt when the loss reaches
-    the stop."""
+    the stop. A stop of 0 (or less) means the halt is DISABLED — never halts."""
+    if rails.daily_loss_stop_usd <= 0:
+        return True, "daily loss halt disabled"
     if realized_pnl_today <= -abs(rails.daily_loss_stop_usd):
         return False, (
             f"daily loss ${realized_pnl_today:.0f} hit stop -${abs(rails.daily_loss_stop_usd):.0f} — halted"

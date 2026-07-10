@@ -146,9 +146,9 @@ def _state_with(blk, sym="SPYC"):
             "halt_reason": None, "underlyings": {"SPY": blk}}
 
 
-def _mo(fc, blk, state, now_hhmm="11:00"):
+def _mo(fc, blk, state, now_hhmm="11:00", rails=RAILS):
     run_scalp._manage_open(fc, "SPY", blk, now_utc=datetime.now(timezone.utc), now_hhmm=now_hhmm,
-                           rails=RAILS, exit_rules=XR, state=state, dry=False)
+                           rails=rails, exit_rules=XR, state=state, dry=False)
 
 
 def test_manage_open_profit_target_pnl_and_state():
@@ -162,12 +162,26 @@ def test_manage_open_profit_target_pnl_and_state():
 
 
 def test_manage_open_stop_loss_triggers_daily_halt():
+    # The daily halt is disabled by default now, so this test explicitly enables it
+    # (daily_loss_stop_usd=150) to prove the mechanism still fires when a stop IS set.
     blk = _open_pos_blk(entry=1.0, qty=2)
     state = _state_with(blk)
     fc = FakeClient(quotes={"SPYC": {"bid": 0.10, "ask": 0.15}}, positions=["SPYC"], fill_price=0.10)
-    _mo(fc, blk, state)
+    _mo(fc, blk, state, rails=ScalpRails(daily_loss_stop_usd=150))
     assert state["realized_pnl_usd"] == pytest.approx(-180.0)  # beyond -150 stop
     assert state["halted"] is True and blk["state"] == "DONE"
+
+
+def test_manage_open_big_loss_does_not_halt_when_disabled():
+    # With the default (disabled) rails, even a loss past the old $150 line does NOT halt —
+    # the scalper keeps its remaining daily setups. The position still closes on its own stop.
+    blk = _open_pos_blk(entry=1.0, qty=2)
+    state = _state_with(blk)
+    fc = FakeClient(quotes={"SPYC": {"bid": 0.10, "ask": 0.15}}, positions=["SPYC"], fill_price=0.10)
+    _mo(fc, blk, state)  # RAILS default = halt disabled
+    assert state["realized_pnl_usd"] == pytest.approx(-180.0)
+    # Not halted, and re-armed for the next breakout instead of shut down for the day.
+    assert state["halted"] is False and blk["state"] == "WATCHING_FOR_BREAK"
 
 
 def test_manage_open_vanished_position_cleared_without_order():

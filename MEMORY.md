@@ -1,5 +1,33 @@
 # MEMORY.md — OptionsAgent
 
+## 2026-07-10 (later 2) — DISABLED the scalper daily-loss halt (operator saw it fire, wants max learning)
+
+**Trigger:** operator saw `⚡ SCALP HALTED for the day: daily loss $-154 hit stop -$150 — halted`
+and said that's what he does NOT want on a paper account — we need to learn as much as we can.
+(So the 0DTE scalper IS live on Railway — `OA_SCALP_ENABLED` is set — despite the "off by default"
+note in the build entry below.)
+
+**What was decided:** disable the scalper's daily-loss halt. This is a HARD CODE RAIL
+(`harness/risk_rails.py` `ScalpRails.daily_loss_stop_usd`), not the config tunable — `run_scalp.py`
+enforces it via `active_scalp_rails()`, so the `config.json` `scalp.daily_loss_stop_usd` key was
+never actually read (now set to 0 + documented as doc-only to avoid confusion).
+
+**How (code, reversible):**
+- `ScalpRails.daily_loss_stop_usd` default `150.0 -> 0.0`; `scalp_daily_loss_ok()` now treats
+  `<= 0` as DISABLED (returns "daily loss halt disabled", never halts).
+- `active_scalp_rails()`: a POSITIVE `OA_SCALP_DAILY_LOSS_USD` env re-enables the halt at that
+  value (a tightening from "no halt"). So re-enabling is a Railway env var, no code edit.
+- Tests updated: `test_daily_loss_predicate` (default disabled + explicit stop still halts),
+  `test_env_overrides_tighten_only` (env 500 now re-enables, not ignored), and split the driver
+  halt test into enabled-halts vs disabled-does-not-halt. 130/130 pass.
+
+**Why it's still bounded (flagged to operator):** the scalper's OTHER rails are untouched —
+`max_trades_per_day=3` and `per_trade_usd_cap=$250`. Worst-case daily loss without the halt =
+3 * $250 = **$750** if all three 0DTE scalps expire worthless (~21% of ~$3.5k equity). Bounded,
+survivable, paper. The 15:50 ET EOD flatten + theta cut + entry cutoff all remain (catastrophe
+rails, never touched). **Rollback:** set `OA_SCALP_DAILY_LOSS_USD` env to a positive $ on Railway,
+or restore the code default.
+
 ## 2026-07-10 (later) — REMOVED per-position stop losses (paper account, learn the full outcome distribution)
 
 **What was decided:** operator — "this is a paper account, it should not have stop loss limits as
