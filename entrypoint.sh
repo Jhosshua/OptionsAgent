@@ -24,6 +24,10 @@ secret_keys = [
     "ALPACA_API_KEY", "ALPACA_SECRET_KEY", "ALPACA_PAPER",
     "ANTHROPIC_API_KEY", "OA_ANTHROPIC_MODEL", "OA_MAX_TOKENS",
     "DISCORD_WEBHOOK_URL",
+    # 0DTE ORB scalper (isolated). Master switch + tighten-only rail overrides +
+    # dry-run. Missing from this list = silently never reaches the cron job.
+    "OA_SCALP_ENABLED", "OA_SCALP_DRY_RUN",
+    "OA_SCALP_PER_TRADE_USD", "OA_SCALP_MAX_TRADES", "OA_SCALP_DAILY_LOSS_USD",
 ]
 try:
     lines = open(env_file).read().splitlines()
@@ -49,9 +53,11 @@ print("[entrypoint] injected secrets:", ", ".join(injected) if injected else "(n
 PY
 
 # --- 2. Volume runtime dirs (never clobber existing volume state) ---
-mkdir -p "$APP/data/logs" "$APP/data/.locks"
+mkdir -p "$APP/data/logs" "$APP/data/.locks" "$APP/data/scalp_state"
 [ -f "$APP/data/decisions.jsonl" ] || : > "$APP/data/decisions.jsonl"
 [ -f "$APP/data/structures.jsonl" ] || : > "$APP/data/structures.jsonl"
+[ -f "$APP/data/scalp_positions.jsonl" ] || : > "$APP/data/scalp_positions.jsonl"
+[ -f "$APP/data/scalp_decisions.jsonl" ] || : > "$APP/data/scalp_decisions.jsonl"
 
 # --- 3. logs/ -> volume so logs survive redeploys ---
 rm -rf "$APP/logs"

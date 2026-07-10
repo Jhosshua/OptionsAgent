@@ -75,5 +75,29 @@
   "self_learning": {
     "enabled": false,
     "_comment": "Deferred until a paper track record exists, per ARCHITECTURE.md."
+  },
+  "scalp": {
+    "_comment": "0DTE Opening-Range-Breakout scalp mode. FULLY ISOLATED from the credit-spread seller above. Off unless OA_SCALP_ENABLED=true. Tunables only; the hard rails (ScalpRails) live in harness/risk_rails.py and env can only TIGHTEN them. Probe 2026-07-10 confirmed 0DTE SPY/QQQ listed + SIP entitled + snapshot has NO open-interest, so the liquidity guard is spread-only.",
+    "underlyings": ["SPY", "QQQ"],
+    "data_feed": "sip",
+    "_data_feed_comment": "SIP verified on OptionsAgent's own keys (login-level entitlement). IEX fallback degrades the volume/RVOL surge signal.",
+    "range_minutes": 3,
+    "_range_comment": "Do not trade the first N minutes; mark the 09:30-09:33 ET high/low as the opening range.",
+    "rvol_min": 1.5,
+    "_rvol_comment": "Breakout bar volume must be >= rvol_min x the session's average 1-min volume so far (volume-surge confirmation).",
+    "per_trade_usd": 250,
+    "_per_trade_comment": "Small fixed per-trade budget so a scalp can never starve the seller's spreads. Options BP is shared; probe showed only ~$1,579 available.",
+    "max_trades_per_day": 3,
+    "daily_loss_stop_usd": 150,
+    "stop_loss_pct": 0.30,
+    "profit_target_pct": 0.50,
+    "theta_cut_minutes": 15,
+    "_theta_comment": "If the option hasn't hit target and hasn't moved in our favor within N minutes, cut it (theta bleed).",
+    "max_spread_pct": 0.15,
+    "_spread_comment": "Skip a 0DTE contract whose (ask-bid)/mid exceeds this (liquidity guard; OI is not exposed by Alpaca so spread is the only guard).",
+    "entry_cutoff_et": "14:30",
+    "_entry_cutoff_comment": "No NEW entries after this ET time (a 0DTE bought late has all theta, no runway).",
+    "eod_flatten_et": "15:50",
+    "_eod_flatten_comment": "MANDATORY: force-close any open scalp by this ET time. An ITM 0DTE left to expiry auto-exercises into 100 shares (~$75k on SPY) on a $5k account. Non-negotiable."
   }
 }

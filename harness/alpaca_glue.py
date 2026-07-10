@@ -153,6 +153,65 @@ class PaperClient:
         chain = client.get_option_chain(req)
         return _adapt_chain(chain, underlying)
 
+    def option_chain_0dte(
+        self, underlying: str, *, right: str, spot: float, strike_pct: float = 0.03
+    ) -> list[dict]:
+        """Focused 0DTE chain fetch for the ORB scalper: today's-expiry contracts
+        of one right (call/put) within +/- strike_pct of spot. Filtered SERVER-SIDE
+        (expiration_date=today, type, strike range) so it's light + fast, and it
+        keeps rows even when greeks/IV are None (0DTE greeks come back None when the
+        indicative feed hasn't computed them — the probe confirmed this, and the lean
+        option_chain() would drop those rows). Returns [{symbol, strike, right, bid,
+        ask, mid, spread_pct}, ...]. Empty list on error or nothing listed."""
+        from datetime import date
+
+        from alpaca.data.requests import OptionChainRequest
+        from alpaca.trading.enums import ContractType
+
+        if right not in ("call", "put"):
+            raise ValueError(f"right must be call or put, got {right!r}")
+        today = date.today()
+        try:
+            client = self._option_historical_client()
+            req = OptionChainRequest(
+                underlying_symbol=underlying,
+                expiration_date=today,
+                strike_price_gte=spot * (1.0 - strike_pct),
+                strike_price_lte=spot * (1.0 + strike_pct),
+                type=ContractType.CALL if right == "call" else ContractType.PUT,
+            )
+            chain = client.get_option_chain(req)
+        except Exception:
+            return []
+        rows: list[dict] = []
+        for symbol, snap in chain.items():
+            try:
+                parts = parse_occ_symbol(symbol)
+            except ValueError:
+                continue
+            if parts.underlying != underlying.strip().upper():
+                continue  # adjusted contract (e.g. SPY7) -> not tradable
+            if parts.right != right or parts.expiry != today:
+                continue
+            quote = getattr(snap, "latest_quote", None)
+            bid = _f(getattr(quote, "bid_price", None)) if quote is not None else None
+            ask = _f(getattr(quote, "ask_price", None)) if quote is not None else None
+            if not bid or not ask or bid <= 0 or ask <= 0:
+                continue
+            mid = (bid + ask) / 2.0
+            rows.append(
+                {
+                    "symbol": symbol,
+                    "strike": parts.strike,
+                    "right": right,
+                    "bid": bid,
+                    "ask": ask,
+                    "mid": mid,
+                    "spread_pct": (ask - bid) / mid if mid > 0 else 1.0,
+                }
+            )
+        return rows
+
     def option_chain_raw(self, underlying: str) -> list[dict]:
         """Full chain snapshot with EVERYTHING Alpaca sends (quotes with
         sizes, last trade, implied volatility, all greeks) — for
@@ -199,14 +258,15 @@ class PaperClient:
     # -- order submission ------------------------------------------------
 
     def submit_single_leg_order(
-        self, *, option_symbol: str, side: str, qty: int, limit_price: float, decision_id: str
+        self, *, option_symbol: str, side: str, qty: int, limit_price: float, decision_id: str,
+        prefix: str = ORDER_PREFIX,
     ) -> dict[str, Any]:
         from alpaca.trading.enums import OrderSide, TimeInForce
         from alpaca.trading.requests import LimitOrderRequest
 
         if side not in ("buy", "sell"):
             raise ValueError(f"side must be buy or sell, got {side!r}")
-        client_order_id = f"{ORDER_PREFIX}{decision_id}-{uuid.uuid4().hex[:8]}"
+        client_order_id = f"{prefix}{decision_id}-{uuid.uuid4().hex[:8]}"
         req = LimitOrderRequest(
             symbol=option_symbol,
             qty=qty,
@@ -291,7 +351,12 @@ class PaperClient:
 
     def get_order(self, order_id: str) -> dict[str, Any]:
         order = self._trading_client().get_order_by_id(order_id)
-        return {"id": str(order.id), "status": _status_str(order.status), "filled_qty": float(order.filled_qty or 0)}
+        return {
+            "id": str(order.id),
+            "status": _status_str(order.status),
+            "filled_qty": float(order.filled_qty or 0),
+            "filled_avg_price": _f(getattr(order, "filled_avg_price", None)),
+        }
 
     # -- underlying stock data (proposer market context) -------------------
 
@@ -333,6 +398,84 @@ class PaperClient:
                 if b.close is not None
             ]
         return out
+
+    def stock_minute_bars(
+        self, symbol: str, *, lookback_minutes: int = 60, feed: str = "sip"
+    ) -> list[dict[str, Any]]:
+        """Recent 1-minute bars for ONE symbol, for the 0DTE ORB scalper's
+        intraday signals. Returns [{"ts_utc", "et_date", "et_time", "o","h",
+        "l","c","v"}, ...] oldest-first, timestamps converted to America/New_York
+        (Alpaca sends UTC; the opening-range / session filters need ET — the
+        fleet's known SIP-bar gotcha). feed="sip" is verified entitled on this
+        login (probe 2026-07-10); "iex" is the degraded fallback. Empty list on
+        any error or no data (caller fails open, never trades blind)."""
+        from datetime import datetime, timedelta, timezone
+        from zoneinfo import ZoneInfo
+
+        from alpaca.data.enums import DataFeed
+        from alpaca.data.historical.stock import StockHistoricalDataClient
+        from alpaca.data.requests import StockBarsRequest
+        from alpaca.data.timeframe import TimeFrame
+
+        et = ZoneInfo("America/New_York")
+        data_feed = DataFeed.IEX if str(feed).lower() == "iex" else DataFeed.SIP
+        client = StockHistoricalDataClient(self.key_id, self.secret_key)
+        start = datetime.now(timezone.utc) - timedelta(minutes=lookback_minutes)
+        req = StockBarsRequest(
+            symbol_or_symbols=symbol,
+            timeframe=TimeFrame.Minute,
+            start=start,
+            feed=data_feed,
+        )
+        try:
+            bars = client.get_stock_bars(req)
+        except Exception:
+            return []
+        blist = (getattr(bars, "data", {}) or {}).get(symbol, [])
+        out: list[dict[str, Any]] = []
+        for b in blist:
+            if b.close is None:
+                continue
+            ts = b.timestamp  # tz-aware UTC
+            ts_et = ts.astimezone(et)
+            out.append(
+                {
+                    "ts_utc": ts.isoformat(),
+                    "et_date": ts_et.strftime("%Y-%m-%d"),
+                    "et_time": ts_et.strftime("%H:%M"),
+                    "o": float(b.open),
+                    "h": float(b.high),
+                    "l": float(b.low),
+                    "c": float(b.close),
+                    "v": float(b.volume or 0.0),
+                }
+            )
+        return out
+
+    def stock_latest_price(self, symbol: str, *, feed: str = "sip") -> float | None:
+        """Live last-trade price for the underlying (spot for ATM strike
+        selection). None on any failure (caller falls back to the last bar's
+        close)."""
+        from alpaca.data.enums import DataFeed
+        from alpaca.data.historical.stock import StockHistoricalDataClient
+        from alpaca.data.requests import StockLatestTradeRequest
+
+        data_feed = DataFeed.IEX if str(feed).lower() == "iex" else DataFeed.SIP
+        client = StockHistoricalDataClient(self.key_id, self.secret_key)
+        try:
+            req = StockLatestTradeRequest(symbol_or_symbols=symbol, feed=data_feed)
+            tr = client.get_stock_latest_trade(req)
+            t = tr.get(symbol)
+            return float(t.price) if t is not None and t.price is not None else None
+        except Exception:
+            return None
+
+    def cancel_order(self, order_id: str) -> None:
+        """Cancel a working order (e.g. a scalp entry limit that never filled)."""
+        try:
+            self._trading_client().cancel_order_by_id(order_id)
+        except Exception:
+            pass
 
     def market_is_open(self) -> bool:
         """Broker market clock — the cron scripts' holiday/weekend guard.

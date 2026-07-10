@@ -172,3 +172,103 @@ def apply_opened_position(
             0.0, account.available_options_buying_power_usd - collateral_usd
         ),
     )
+
+
+# ---------------------------------------------------------------------------
+# 0DTE ORB scalp rails — a SEPARATE family from the seller's rails above.
+# They never touch evaluate_proposal / conviction sizing. Same discipline: hard
+# values live here in code, env vars may only TIGHTEN (lower a cap, never raise).
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class ScalpRails:
+    per_trade_usd_cap: float = 250.0     # hard absolute budget per scalp
+    max_trades_per_day: int = 3
+    daily_loss_stop_usd: float = 150.0   # realized-loss halt for the day (positive $)
+    max_concurrent_scalps: int = 1       # one position at a time
+    entry_cutoff_et: str = "14:30"       # no NEW entries after this ET time
+    eod_flatten_et: str = "15:50"        # MANDATORY force-close by this ET time
+
+
+def _tighten_float(base: float, raw: str | None, *, lower_is_tighter: bool = True) -> float:
+    """Apply an env override only if it TIGHTENS the base (lower cap). Ignores
+    junk/loosening values."""
+    if not raw:
+        return base
+    try:
+        val = float(raw)
+    except (TypeError, ValueError):
+        return base
+    if val <= 0:
+        return base
+    if lower_is_tighter:
+        return min(base, val)
+    return max(base, val)
+
+
+def active_scalp_rails() -> ScalpRails:
+    """ScalpRails with env overrides that may only TIGHTEN:
+    OA_SCALP_PER_TRADE_USD, OA_SCALP_MAX_TRADES, OA_SCALP_DAILY_LOSS_USD."""
+    base = ScalpRails()
+    per_trade = _tighten_float(base.per_trade_usd_cap, os.environ.get("OA_SCALP_PER_TRADE_USD"))
+    loss = _tighten_float(base.daily_loss_stop_usd, os.environ.get("OA_SCALP_DAILY_LOSS_USD"))
+    max_trades = base.max_trades_per_day
+    raw_mt = os.environ.get("OA_SCALP_MAX_TRADES")
+    if raw_mt:
+        try:
+            mt = int(float(raw_mt))
+            if mt > 0:
+                max_trades = min(max_trades, mt)
+        except (TypeError, ValueError):
+            pass
+    return replace(
+        base,
+        per_trade_usd_cap=per_trade,
+        daily_loss_stop_usd=loss,
+        max_trades_per_day=max_trades,
+    )
+
+
+def scalp_per_trade_budget_ok(intended_usd: float, rails: ScalpRails) -> tuple[bool, str]:
+    if intended_usd <= 0:
+        return False, "intended budget is non-positive"
+    if intended_usd > rails.per_trade_usd_cap:
+        return False, f"intended ${intended_usd:.0f} over per-trade cap ${rails.per_trade_usd_cap:.0f}"
+    return True, "ok"
+
+
+def scalp_trade_count_ok(trades_today: int, rails: ScalpRails) -> tuple[bool, str]:
+    if trades_today >= rails.max_trades_per_day:
+        return False, f"at max trades/day ({rails.max_trades_per_day})"
+    return True, "ok"
+
+
+def scalp_daily_loss_ok(realized_pnl_today: float, rails: ScalpRails) -> tuple[bool, str]:
+    """realized_pnl_today is signed ($; negative = loss). Halt when the loss reaches
+    the stop."""
+    if realized_pnl_today <= -abs(rails.daily_loss_stop_usd):
+        return False, (
+            f"daily loss ${realized_pnl_today:.0f} hit stop -${abs(rails.daily_loss_stop_usd):.0f} — halted"
+        )
+    return True, "ok"
+
+
+def scalp_one_at_a_time_ok(open_scalp_count: int, rails: ScalpRails) -> tuple[bool, str]:
+    if open_scalp_count >= rails.max_concurrent_scalps:
+        return False, f"already holding {open_scalp_count} scalp(s) (max {rails.max_concurrent_scalps})"
+    return True, "ok"
+
+
+def scalp_entry_window_ok(now_et_hhmm: str, rails: ScalpRails) -> tuple[bool, str]:
+    """now_et_hhmm is 'HH:MM' ET. No NEW entries at/after the cutoff (string compare
+    is correct for zero-padded HH:MM)."""
+    if now_et_hhmm >= rails.entry_cutoff_et:
+        return False, f"past entry cutoff {rails.entry_cutoff_et} ET"
+    return True, "ok"
+
+
+def scalp_must_flatten(now_et_hhmm: str, rails: ScalpRails) -> bool:
+    """True once we've reached the mandatory EOD-flatten time. Checked FIRST in the
+    exit path, enforced regardless of P&L (0DTE auto-exercise guard)."""
+    return now_et_hhmm >= rails.eod_flatten_et

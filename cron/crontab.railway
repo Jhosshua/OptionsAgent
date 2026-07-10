@@ -13,4 +13,8 @@ TZ=America/New_York
 */5 10 * * 1-5 root /Users/mo/OptionsAgent/cron/entry.sh >> /proc/1/fd/1 2>&1
 # Exit sweep — every 20 min on weekdays; self-gates to market hours via the broker clock.
 */20 9-16 * * 1-5 root /Users/mo/OptionsAgent/cron/exits.sh >> /proc/1/fd/1 2>&1
+# 0DTE ORB scalper — one fused entry+exit tick every minute during RTH. ISOLATED from the
+# seller above; self-gates on OA_SCALP_ENABLED (off by default), the 09:33-15:59 ET window,
+# a run-lock, and the broker clock. Inert until the operator sets OA_SCALP_ENABLED=true.
+* 9-15 * * 1-5 root /Users/mo/OptionsAgent/cron/scalp.sh >> /proc/1/fd/1 2>&1
 # NOTE: a /etc/cron.d file MUST end with a trailing newline (below) or the last line is ignored.

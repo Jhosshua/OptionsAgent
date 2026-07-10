@@ -1,5 +1,98 @@
 # MEMORY.md — OptionsAgent
 
+## 2026-07-10 — NEW MODE APPROVED: 0DTE ORB scalper (isolated) + Phase-0 probe = GO
+
+**What was decided:** operator wants the Desktop doc `~/Desktop/high_risk_options_strategies.md`
+(high-risk 0DTE 1-minute options scalping) implemented into live paper. Locked scope: **extend
+OptionsAgent** with an isolated **Opening-Range-Breakout (ORB) 0DTE scalper** (strategy C only for
+v1), built **disciplined** (deterministic rules + hard rails + pre-committed success gates), and
+the fetched Alpaca data must be **shareable with the other bots**. Full approved plan:
+`~/.claude/plans/cozy-strolling-canyon.md`.
+
+**Honest framing (on the record):** buying OTM 0DTE options is the SAME systematic premium-BUYING
+that BotResearch flagged as the negative-EV side of the vol risk premium — the exact reason this
+bot was pivoted to credit-spread SELLING (2026-07-08 entry below). So the scalper ships as a
+**thesis under test**, fully isolated from the live seller, killed by the numbers if the gates fail.
+
+**Isolation contract (never violate):** the seller (`run_cycle.py`/`run_exits.py`, phase
+`credit_spreads_only`) stays byte-untouched. Scalper is a parallel system: separate order prefix
+`oas-` (vs seller `oa-`), separate registry `data/scalp_positions.jsonl` (seller reads only
+`structures.jsonl` and never sees scalp legs), own enable switch `OA_SCALP_ENABLED` (off by
+default), own decision log `data/scalp_decisions.jsonl`, own `⚡ SCALP` Discord prefix. Disjoint by
+expiry (0DTE vs 21-45 DTE), underlying (SPY/QQQ vs the 13 small-caps), and structure.
+
+**Phase-0 read-only probe (2026-07-10, live paper keys via `railway run`, NO orders) — VERDICT GO:**
+- **0DTE IS listed on paper:** SPY 56 + QQQ 50 contracts expiring same-day, ATM quotes present.
+- **SIP works on OptionsAgent's OWN keys** (operator confirmed all bots share one Alpaca login that
+  holds the SIP/Algo Trader Plus sub; entitlement is login-level). SIP gave 3882 SPY 1-min bars w/
+  real volume (8322 on a bar) vs IEX 1573 w/ volume 100. So the scalper fetches SIP with its own
+  `ALPACA_API_KEY` — NO key-borrowing. (The existing `stock_daily_bars` IEX default was just
+  conservative, not a hard limit.)
+- **Option snapshot does NOT expose open interest / volume** (only greeks/IV/quote/trade/symbol) →
+  the entry liquidity guard gates on **bid/ask spread only**, OI is best-effort/absent.
+- **Greeks/IV came back None** on the 0DTE sample (market was closed) → the 0DTE selector must use
+  **spot-based nearest-strike ATM**, never a delta filter. (Design already does this.)
+- Account at probe time: equity $3,517, options BP $1,579 (shared w/ the seller), options level 3.
+  => scalp `per_trade_usd` must stay SMALL (default ~$250, one-at-a-time) so it can't starve the
+  seller's spreads.
+- **Auto-exercise** could not be tested read-only; assume ITM 0DTE auto-exercises into 100 shares
+  (~$75k notional on SPY at $752) → the mandatory **15:50 ET EOD flatten** rail is non-negotiable.
+
+**Next:** Phase 1 build (off by default), then pre-committed gates + log-only dry run before arming.
+
+## 2026-07-10 (later) — Phase 1 BUILT: the isolated 0DTE ORB scalper (off by default, 102 tests green)
+
+**What shipped (all new, gated behind `OA_SCALP_ENABLED`, seller byte-untouched):**
+- `harness/signals_intraday.py` — ET-aware opening range (09:30-09:33), 1-min breakout + RVOL
+  surge gate, session VWAP. Pure functions over bar dicts (unit-tested, no network).
+- `harness/alpaca_glue.py` — `stock_minute_bars` (SIP, UTC->ET), `stock_latest_price`,
+  `option_chain_0dte` (server-side today-expiry + strike-window + type filter; keeps rows even
+  when 0DTE greeks are None), `get_order` now returns `filled_avg_price`, `cancel_order`, and a
+  `prefix=` arg on `submit_single_leg_order` so scalp orders carry `oas-`.
+- `harness/contracts.py` — `ScalpContract` + `select_0dte_atm` (SPOT-nearest strike, spread-only
+  liquidity guard; delta unused because 0DTE greeks are None).
+- `harness/risk_rails.py` — `ScalpRails` + 6 pure predicates + `active_scalp_rails` (env
+  TIGHTEN-only: OA_SCALP_PER_TRADE_USD / _MAX_TRADES / _DAILY_LOSS_USD).
+- `harness/scalp_state.py` (atomic per-day state machine on the volume), `scalp_registry.py`
+  (append-only `data/scalp_positions.jsonl`, the seller NEVER reads it), `scalp_execution.py`
+  (fill-confirmed entry/close, `oas-` prefix), `scalp_exits.py` (EOD-flatten -> stop -> target ->
+  theta priority).
+- `run_scalp.py` — fused entry+exit state machine, **OA_SCALP_DRY_RUN=1 = log-only shadow**.
+- `cron/scalp.sh` (enable + 09:33-15:59 ET window + run-lock + broker-clock gates), crontab line
+  (`* 9-15 * * 1-5`), entrypoint secret-allowlist + dir seeding, and a belt-and-suspenders guard
+  in `run_exits.py` (drops any live scalp symbol from the seller's reconcile set).
+
+**Isolation (verified):** separate order prefix `oas-` vs seller `oa-`; separate registry file;
+own enable switch, decision log (`data/scalp_decisions.jsonl`), and `⚡ SCALP` Discord prefix;
+disjoint by expiry (0DTE vs 21-45 DTE) + underlying (SPY/QQQ vs the 13 small-caps) + structure.
+The seller's run_cycle/run_exits are behaviorally unchanged. 76 seller tests still pass.
+
+**Two self-review bugs found + fixed before commit:** (1) bar lookback was 90 min, so the
+09:30-09:33 range bars aged out by ~11am and afternoon breakouts (valid to 14:30) could never fire
+-> now fetch the full session (420 min) AND freeze the range in state (survives a mid-session
+redeploy). (2) a transient empty option quote read `bid=0` as a stop-loss and would dump the
+position at the tick floor -> now skip the exit on a zero bid unless it's the mandatory EOD flatten.
+
+**Tests:** `tests/test_scalp.py` 26 cases (signals, 0DTE selection, every rail predicate incl.
+env-tighten-only, exit priority order, state + registry). Suite 76 -> **102 passing**.
+
+**Pre-committed ARMING GATES (score ~30 trading days after OA_SCALP_ENABLED=true; the Phase-3
+decision, logged BEFORE arming per the credit-spread-A/B precedent):**
+- Sample floor: >= 30 scalp round-trips before ANY verdict (0DTE is high-variance).
+- Win rate >= 45%; average winner >= 1.4x average loser (target +50% vs stop -30% ~ 1.67 structural).
+- Net P&L > $0 over the 30-trade sample (on the isolated scalp budget, not the account).
+- Daily-loss `HALTED` rail trips on <= ~20% of trading days (else sizing/stop miscalibrated).
+- BINARY discipline invariants (must be 100%, ANY violation = disarm immediately regardless of P&L):
+  zero 0DTE positions ever held past 15:50 ET / to expiry; zero scalp order ever touched by
+  run_exits.py; zero seller position ever touched by the scalp loop.
+- Fail any of the above -> revert to OA_SCALP_ENABLED unset (one env flip), same as the seller's
+  "flip back = one config key" posture.
+
+**Status:** built + committed locally, NOT pushed (holding per the batch-push-after-16:00 rule so a
+redeploy doesn't restart the live seller mid-session). NOT armed (OA_SCALP_ENABLED unset on Railway).
+Remaining: QAExpert review reconcile, Phase 2 (data-sharing relay producer), Phase 3 (log-only dry
+run on a live session, then arm). Data feed = OptionsAgent's own keys on SIP (probe-confirmed).
+
 ## 2026-07-08 (later) — BUG FIX: adjusted contracts filtered out of the chain adapter
 
 **What was decided:** the first credit-spreads-only entry cycle (10:15 ET) crashed at order

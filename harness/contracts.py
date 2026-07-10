@@ -264,6 +264,56 @@ class StraddleLegs:
         return self.call.bid + self.put.bid
 
 
+@dataclass(frozen=True)
+class ScalpContract:
+    """A 0DTE ATM contract chosen for an ORB scalp. Sourced from
+    alpaca_glue.option_chain_0dte rows (dicts), NOT OptionQuote — 0DTE greeks come
+    back None so we select on SPOT-nearest strike, never on delta."""
+
+    symbol: str          # OCC
+    right: str           # "call" | "put"
+    strike: float
+    bid: float
+    ask: float
+    mid: float
+    spread_pct: float
+
+
+def select_0dte_atm(
+    rows: list[dict],
+    *,
+    spot: float,
+    right: str,
+    max_spread_pct: float,
+) -> ScalpContract | None:
+    """Pick today's-expiry ATM option in the breakout direction: of the given
+    `right`, the contract whose strike is NEAREST to spot that also clears the
+    liquidity guard (two-sided quote + spread <= max_spread_pct). Returns None if
+    nothing qualifies (no 0DTE listed, or every near-ATM strike is too wide) — never
+    guesses, never falls back to a later expiry. `rows` come from
+    alpaca_glue.option_chain_0dte (already right/expiry/root filtered)."""
+    candidates = [
+        r
+        for r in rows
+        if r.get("right") == right
+        and r.get("bid", 0) > 0
+        and r.get("ask", 0) > 0
+        and r.get("spread_pct", 1.0) <= max_spread_pct
+    ]
+    if not candidates:
+        return None
+    best = min(candidates, key=lambda r: abs(r["strike"] - spot))
+    return ScalpContract(
+        symbol=best["symbol"],
+        right=right,
+        strike=float(best["strike"]),
+        bid=float(best["bid"]),
+        ask=float(best["ask"]),
+        mid=float(best["mid"]),
+        spread_pct=float(best["spread_pct"]),
+    )
+
+
 def select_straddle(
     chain: list[OptionQuote],
     *,

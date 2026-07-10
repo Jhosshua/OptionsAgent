@@ -138,6 +138,14 @@ def run() -> None:
     live_option_symbols = {
         p["symbol"] for p in positions_raw if p["asset_class"].lower() in ("us_option", "option")
     }
+    # Belt-and-suspenders isolation from the 0DTE scalper: the scalper keeps its
+    # own registry (data/scalp_positions.jsonl) and `oas-` order prefix and NEVER
+    # writes structures.jsonl, so its legs already can't be a seller structure. As
+    # extra insurance, drop any currently-held scalp option symbol from the seller's
+    # reconcile set so this sweep can never reason about a scalp leg. (Symbols are
+    # disjoint anyway — SPY/QQQ 0DTE vs the seller's 21-45 DTE small-caps.)
+    from harness import scalp_registry
+    live_option_symbols = scalp_registry.exclude_scalp_symbols(live_option_symbols)
     intact, vanished = structures.reconcile(open_structures, live_option_symbols)
 
     for s in vanished:
