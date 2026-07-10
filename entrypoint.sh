@@ -28,6 +28,8 @@ secret_keys = [
     # dry-run. Missing from this list = silently never reaches the cron job.
     "OA_SCALP_ENABLED", "OA_SCALP_DRY_RUN",
     "OA_SCALP_PER_TRADE_USD", "OA_SCALP_MAX_TRADES", "OA_SCALP_DAILY_LOSS_USD",
+    # Shared market-data feed: publisher switch + relay token/port.
+    "OA_MARKETDATA_ENABLED", "OA_RELAY_TOKEN", "OA_RELAY_PORT",
 ]
 try:
     lines = open(env_file).read().splitlines()
@@ -53,7 +55,7 @@ print("[entrypoint] injected secrets:", ", ".join(injected) if injected else "(n
 PY
 
 # --- 2. Volume runtime dirs (never clobber existing volume state) ---
-mkdir -p "$APP/data/logs" "$APP/data/.locks" "$APP/data/scalp_state"
+mkdir -p "$APP/data/logs" "$APP/data/.locks" "$APP/data/scalp_state" "$APP/data/marketdata"
 [ -f "$APP/data/decisions.jsonl" ] || : > "$APP/data/decisions.jsonl"
 [ -f "$APP/data/structures.jsonl" ] || : > "$APP/data/structures.jsonl"
 [ -f "$APP/data/scalp_positions.jsonl" ] || : > "$APP/data/scalp_positions.jsonl"
@@ -66,6 +68,14 @@ ln -sfn "$APP/data/logs" "$APP/logs"
 # --- 4. Install cron schedule + run cron in the foreground ---
 install -m 0644 -o root -g root "$APP/cron/crontab.railway" /etc/cron.d/optionsagent
 echo "[entrypoint] cron schedule installed; handing off to cron (foreground)."
+
+# --- 4b. Shared market-data relay (background). Only starts when OA_RELAY_TOKEN is
+# set (read-only, token-gated GET server serving data/marketdata/<date>.jsonl to
+# other bots). A crash here never affects trading — it's a separate process. ---
+if [ -n "${OA_RELAY_TOKEN:-}" ]; then
+  echo "[entrypoint] starting market-data relay on port ${OA_RELAY_PORT:-8399}"
+  python3 -m harness.marketdata_relay >> "$APP/data/logs/marketdata_relay.log" 2>&1 &
+fi
 
 # Announce the deploy in Discord if the webhook is configured. Never fatal.
 if [ -n "${DISCORD_WEBHOOK_URL:-}" ]; then

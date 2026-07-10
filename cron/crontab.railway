@@ -17,4 +17,7 @@ TZ=America/New_York
 # seller above; self-gates on OA_SCALP_ENABLED (off by default), the 09:33-15:59 ET window,
 # a run-lock, and the broker clock. Inert until the operator sets OA_SCALP_ENABLED=true.
 * 9-15 * * 1-5 root /Users/mo/OptionsAgent/cron/scalp.sh >> /proc/1/fd/1 2>&1
+# Shared market-data publisher — one SPY/QQQ bar+signals snapshot per minute to the volume,
+# for the fleet relay to serve. Self-gates on OA_MARKETDATA_ENABLED (off by default).
+* 9-15 * * 1-5 root /Users/mo/OptionsAgent/cron/marketdata.sh >> /proc/1/fd/1 2>&1
 # NOTE: a /etc/cron.d file MUST end with a trailing newline (below) or the last line is ignored.

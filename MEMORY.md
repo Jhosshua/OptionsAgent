@@ -88,10 +88,35 @@ decision, logged BEFORE arming per the credit-spread-A/B precedent):**
 - Fail any of the above -> revert to OA_SCALP_ENABLED unset (one env flip), same as the seller's
   "flip back = one config key" posture.
 
-**Status:** built + committed locally, NOT pushed (holding per the batch-push-after-16:00 rule so a
-redeploy doesn't restart the live seller mid-session). NOT armed (OA_SCALP_ENABLED unset on Railway).
-Remaining: QAExpert review reconcile, Phase 2 (data-sharing relay producer), Phase 3 (log-only dry
-run on a live session, then arm). Data feed = OptionsAgent's own keys on SIP (probe-confirmed).
+**Status:** Phase 1 committed + PUSHED (dee3339, operator-authorized 2026-07-10; Railway redeployed,
+scalp stays OFF, seller unaffected). QAExpert review: only 1/5 reviewers finished (shared z.ai key
+rate-limited fleet-wide); its testing-reviewer findings are all covered by new driver/execution/
+isolation integration tests (tests/test_scalp_driver.py). Data feed = OptionsAgent's own keys on SIP.
+
+## 2026-07-10 (later) — Phase 2 BUILT: shared market-data relay (producer for the fleet)
+
+**Operator ask ("share the same Alpaca data with the other bots") — delivered by mirroring DTA's
+proven token-gated HTTP relay pattern.** OptionsAgent becomes a market-data PRODUCER:
+- `harness/marketdata_publish.py` — per-minute snapshot of each SPY/QQQ latest 1-min SIP bar +
+  computed signals (session VWAP, frozen opening range, latest RVOL, breakout direction) appended to
+  `data/marketdata/<ET-date>.jsonl` on the volume (fail-open per symbol, like chain_capture).
+- `run_marketdata.py` + `cron/marketdata.sh` — publisher tick every minute RTH, gated on
+  `OA_MARKETDATA_ENABLED=true` (off by default; INDEPENDENT of the trading scalper — sharing data is
+  useful even with OA_SCALP_ENABLED off).
+- `harness/marketdata_relay.py` — token-gated read-only GET server. GET-only, `Bearer` token
+  (constant-time compare), filename whitelisted to a bare date (no path traversal), path asserted
+  inside the data dir. Launched from `entrypoint.sh` ONLY when `OA_RELAY_TOKEN` is set; port
+  `OA_RELAY_PORT` (default 8399). Pure `resolve_request()` is unit-tested; verified end-to-end over a
+  real socket (401 no/bad token, 200 ndjson with the token).
+- `MARKETDATA_RELAY.md` — consumer doc + a stdlib pull-and-cache snippet other bots drop in.
+- Both env keys added to the entrypoint secret allowlist; `data/marketdata/` seeded on boot.
+
+**To activate sharing:** set `OA_MARKETDATA_ENABLED=true` (publish) + `OA_RELAY_TOKEN=<secret>` (serve)
+on Railway, expose the port with a domain. Caveat recorded: this is the cross-Railway bridge — a bot on
+another service pulls over HTTPS (there is no shared volume between services).
+
+**Tests:** +9 (tests/test_marketdata.py: snapshot builder + relay auth/path/traversal). Suite -> **127
+passing**. Remaining: Phase 3 (log-only dry run on a live session, then arm the scalper).
 
 ## 2026-07-08 (later) — BUG FIX: adjusted contracts filtered out of the chain adapter
 

@@ -117,6 +117,20 @@ def breakout_check(
     )
 
 
+def latest_rvol(bars: list[dict], et_date: str) -> float | None:
+    """The most recent regular-session bar's volume relative to the session's average
+    1-min volume so far. None if the baseline is too thin. Published in the shared
+    market-data feed (not a trading gate)."""
+    session = regular_session_bars(bars, et_date)
+    if not session:
+        return None
+    idx = len(session) - 1
+    avg = _avg_prior_volume(session, idx)
+    if avg is None or avg <= 0:
+        return None
+    return round(session[idx]["v"] / avg, 2)
+
+
 def session_vwap(bars: list[dict], et_date: str) -> float | None:
     """Session VWAP over regular-hours bars (typical price * volume / volume).
     For logging / the shared market-data feed, not a gate. None if no volume."""
