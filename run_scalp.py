@@ -236,6 +236,39 @@ def _try_entry(client, u, blk, bars, *, et_date, now_hhmm, now_utc, cfg_scalp, r
           f"(break {bo.direction}, rvol {bo.rvol})")
 
 
+def _reconcile_orphans(state: dict, now_utc) -> None:
+    """Re-adopt any scalp that the registry says is OPEN but the per-day state has
+    lost — e.g. the process was killed (redeploy) between the entry fill and the
+    state save. Without this, an orphaned 0DTE would go unmanaged and could ride to
+    expiry / auto-exercise (the one discipline-invariant-breaking failure). The
+    per-tick _manage_open (with its vanished guard) then handles it normally,
+    including the mandatory EOD flatten."""
+    try:
+        open_positions = scalp_registry.load_open()
+    except Exception:
+        return
+    known = {
+        blk["position"]["scalp_id"]
+        for blk in state["underlyings"].values()
+        if blk.get("position")
+    }
+    for pos in open_positions:
+        if pos.scalp_id in known:
+            continue
+        blk = state["underlyings"].get(pos.underlying)
+        if blk is None or blk.get("position"):
+            continue
+        blk["position"] = {
+            "scalp_id": pos.scalp_id, "option_symbol": pos.option_symbol, "right": pos.right,
+            "direction": pos.direction, "qty": pos.qty, "entry_fill_price": pos.entry_price,
+            "entry_ts": pos.opened_ts or now_utc.isoformat(), "entry_order_id": pos.entry_order_id,
+        }
+        blk["state"] = "IN_TRADE"
+        _post(f"re-adopted orphaned {pos.underlying} scalp {pos.option_symbol} from the registry "
+              f"(state was missing it) — now managed.")
+        log.warning("re-adopted orphaned scalp %s (%s)", pos.scalp_id, pos.option_symbol)
+
+
 def run() -> None:
     if not _enabled():
         log.info("OA_SCALP_ENABLED not true — scalper inert.")
@@ -261,6 +294,7 @@ def run() -> None:
     now_hhmm = now_et.strftime("%H:%M")
 
     state = scalp_state.load_state(et_date, underlyings)
+    _reconcile_orphans(state, now_utc)  # re-adopt any registry-open scalp missing from state
     feed = cfg_scalp.get("data_feed", "sip")
 
     for u in underlyings:

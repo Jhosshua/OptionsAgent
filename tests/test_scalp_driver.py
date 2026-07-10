@@ -254,6 +254,35 @@ def test_try_entry_halted_blocks_entry():
     assert fc.orders == [] and blk["position"] is None
 
 
+# --------------------------------------------------------------- orphan reconcile (auto-exercise guard)
+def test_reconcile_orphans_readopts_registry_open_position():
+    # Registry says a scalp is open, but the per-day state lost it (crash between
+    # fill and save). Reconcile must re-adopt it so it gets managed + EOD-flattened.
+    scalp_registry.record_opened(scalp_registry.ScalpPosition(
+        scalp_id="orph1", underlying="SPY", option_symbol="SPYC0DTE", right="call",
+        direction="up", qty=1, entry_price=0.9, opened_ts="2026-07-13T13:40:00+00:00",
+        entry_order_id="e9"))
+    blk = _fresh_blk()
+    state = {"date": DATE, "trades_today": 1, "realized_pnl_usd": 0.0, "halted": False,
+             "underlyings": {"SPY": blk, "QQQ": _fresh_blk()}}
+    run_scalp._reconcile_orphans(state, datetime.now(timezone.utc))
+    assert blk["state"] == "IN_TRADE"
+    assert blk["position"]["scalp_id"] == "orph1"
+    assert blk["position"]["entry_fill_price"] == 0.9
+
+
+def test_reconcile_orphans_noop_when_state_has_it():
+    scalp_registry.record_opened(scalp_registry.ScalpPosition(
+        scalp_id="s1", underlying="SPY", option_symbol="SPYC0DTE", right="call",
+        direction="up", qty=1, entry_price=0.9))
+    blk = _open_pos_blk(sym="SPYC0DTE")
+    blk["position"]["scalp_id"] = "s1"
+    state = {"date": DATE, "trades_today": 1, "realized_pnl_usd": 0.0, "halted": False,
+             "underlyings": {"SPY": blk}}
+    run_scalp._reconcile_orphans(state, datetime.now(timezone.utc))
+    assert blk["position"]["scalp_id"] == "s1"  # unchanged, not duplicated
+
+
 # --------------------------------------------------------------- TST-004: isolation guard
 def test_exclude_scalp_symbols_drops_open_scalp(tmp_path, monkeypatch):
     path = str(tmp_path / "sp.jsonl")
