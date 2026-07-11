@@ -34,7 +34,12 @@ from harness.risk_rails import (
 )
 from harness.scalp_execution import submit_scalp_close, submit_scalp_entry
 from harness.scalp_exits import ScalpExitRules, evaluate_scalp_exit
-from harness.signals_intraday import breakout_check, opening_range, session_vwap
+from harness.signals_intraday import (
+    breakout_check,
+    breakout_thesis_intact,
+    opening_range,
+    session_vwap,
+)
 from harness.scalp_registry import ScalpPosition
 
 logging.basicConfig(level=logging.INFO)
@@ -72,7 +77,9 @@ def _minutes_between(iso_a: str, dt_b: datetime) -> float:
     return max(0.0, (dt_b - a).total_seconds() / 60.0)
 
 
-def _manage_open(client, u, blk, *, now_utc, now_hhmm, rails, exit_rules, state, dry) -> None:
+def _manage_open(
+    client, u, blk, bars, *, et_date, now_utc, now_hhmm, rails, exit_rules, state, dry
+) -> None:
     """Exit path for an underlying that holds a scalp. Runs every minute."""
     pos = blk["position"]
     sym = pos["option_symbol"]
@@ -92,6 +99,19 @@ def _manage_open(client, u, blk, *, now_utc, now_hhmm, rails, exit_rules, state,
     entry_price = float(pos["entry_fill_price"])
     minutes_held = _minutes_between(pos["entry_ts"], now_utc)
     must_flat = scalp_must_flatten(now_hhmm, rails)
+    # A re-adopted orphan may come from a lost day-state file and therefore
+    # lack its original range.  Manage it conservatively with the ordinary
+    # stop/time cut instead of crashing or assuming the thesis still holds.
+    if blk.get("range_high") is None or blk.get("range_low") is None:
+        thesis_intact = False
+    else:
+        thesis_intact = breakout_thesis_intact(
+            bars,
+            et_date,
+            direction=pos["direction"],
+            range_high=float(blk["range_high"]),
+            range_low=float(blk["range_low"]),
+        )
     # A zero/empty bid may be a transient quote gap, not a truly worthless option.
     # Don't dump the position at the tick floor on a phantom 0 bid — wait for a real
     # quote next minute. EXCEPT at the mandatory EOD flatten, where we must exit
@@ -100,7 +120,7 @@ def _manage_open(client, u, blk, *, now_utc, now_hhmm, rails, exit_rules, state,
         return
     decision = evaluate_scalp_exit(
         entry_price=entry_price, current_bid=bid, minutes_held=minutes_held,
-        must_flatten=must_flat, rules=exit_rules,
+        must_flatten=must_flat, thesis_intact=thesis_intact, rules=exit_rules,
     )
     if not decision.should_close:
         return
@@ -159,6 +179,26 @@ def _try_entry(client, u, blk, bars, *, et_date, now_hhmm, now_utc, cfg_scalp, r
     range_high = float(blk["range_high"])
     range_low = float(blk["range_low"])
 
+    # Never allow a pending confirmation to survive while another symbol is in
+    # trade and then fire hours later.  It is valid only for the immediately
+    # following minute bar.
+    pending = blk.get("pending_breakout")
+    if pending is not None:
+        session = [
+            b for b in bars
+            if b.get("et_date") == et_date and "09:30" <= b.get("et_time", "") < "16:00"
+        ]
+        if session:
+            try:
+                signal_ts = datetime.fromisoformat(pending["bar_ts_utc"])
+                latest_ts = datetime.fromisoformat(session[-1]["ts_utc"])
+                if (latest_ts - signal_ts).total_seconds() > 90:
+                    blk["pending_breakout"] = None
+                    pending = None
+            except (KeyError, TypeError, ValueError):
+                blk["pending_breakout"] = None
+                pending = None
+
     # Entry-gate: halted / trade count / entry window / one-at-a-time.
     if state.get("halted"):
         return
@@ -173,26 +213,66 @@ def _try_entry(client, u, blk, bars, *, et_date, now_hhmm, now_utc, cfg_scalp, r
     if not ok:
         return
 
-    bo = breakout_check(
-        bars, et_date, range_high=range_high, range_low=range_low,
-        rvol_min=float(cfg_scalp.get("rvol_min", 1.5)),
-    )
-    if bo is None:
+    # A breakout first becomes PENDING.  The next completed bar must still be
+    # outside the range and on the same side of VWAP before any option is bought.
+    # This rejected July 10's 11:45 downside fakeout while confirming the 12:16
+    # upside move one minute later.
+    pending = blk.get("pending_breakout")
+    if pending is not None:
+        session = [b for b in bars if b.get("et_date") == et_date and "09:30" <= b.get("et_time", "") < "16:00"]
+        latest_ts = session[-1]["ts_utc"] if session else None
+        if latest_ts != pending.get("bar_ts_utc"):
+            direction = pending["direction"]
+            confirmed = breakout_thesis_intact(
+                bars,
+                et_date,
+                direction=direction,
+                range_high=range_high,
+                range_low=range_low,
+            )
+            blk["pending_breakout"] = None
+            if not confirmed or direction in blk.get("traded_directions", []):
+                return
+            bo = pending
+        else:
+            return
+    else:
+        bo = breakout_check(
+            bars,
+            et_date,
+            range_high=range_high,
+            range_low=range_low,
+            rvol_min=float(cfg_scalp.get("rvol_min", 1.5)),
+        )
+        if bo is None:
+            return
+        # Once-per-bar idempotency.
+        if blk.get("last_evaluated_bar_ts") == bo.bar_ts_utc:
+            return
+        blk["last_evaluated_bar_ts"] = bo.bar_ts_utc
+        if bo.direction in blk.get("traded_directions", []):
+            return
+        blk["pending_breakout"] = {
+            "direction": bo.direction,
+            "bar_et_time": bo.bar_et_time,
+            "bar_ts_utc": bo.bar_ts_utc,
+            "close": bo.close,
+            "rvol": bo.rvol,
+        }
         return
-    # Once-per-bar idempotency.
-    if blk.get("last_evaluated_bar_ts") == bo.bar_ts_utc:
-        return
-    blk["last_evaluated_bar_ts"] = bo.bar_ts_utc
 
-    right = "call" if bo.direction == "up" else "put"
-    spot = client.stock_latest_price(u, feed=cfg_scalp.get("data_feed", "sip")) or bo.close
+    direction = bo["direction"] if isinstance(bo, dict) else bo.direction
+    signal_close = bo["close"] if isinstance(bo, dict) else bo.close
+    signal_rvol = bo["rvol"] if isinstance(bo, dict) else bo.rvol
+    right = "call" if direction == "up" else "put"
+    spot = client.stock_latest_price(u, feed=cfg_scalp.get("data_feed", "sip")) or signal_close
     rows = client.option_chain_0dte(u, right=right, spot=spot)
     contract = select_0dte_atm(
         rows, spot=spot, right=right, max_spread_pct=float(cfg_scalp.get("max_spread_pct", 0.15)),
     )
     if contract is None:
         _log({"kind": "scalp_skip", "underlying": u, "reason": "no_0dte_contract",
-              "direction": bo.direction, "spot": spot, "ts": decision_log.now_iso()})
+              "direction": direction, "spot": spot, "ts": decision_log.now_iso()})
         return
 
     budget = float(cfg_scalp.get("per_trade_usd", 250))
@@ -204,9 +284,9 @@ def _try_entry(client, u, blk, bars, *, et_date, now_hhmm, now_utc, cfg_scalp, r
     vwap = session_vwap(bars, et_date)
     if dry:
         _post(f"{u} WOULD BUY {right} {contract.symbol} @~{contract.ask:.2f} "
-              f"(break {bo.direction}, rvol {bo.rvol}, spot {spot:.2f}, vwap {vwap})")
+              f"(break {direction}, rvol {signal_rvol}, spot {spot:.2f}, vwap {vwap})")
         _log({"kind": "scalp_would_enter", "underlying": u, "symbol": contract.symbol, "right": right,
-              "direction": bo.direction, "ask": contract.ask, "spot": spot, "rvol": bo.rvol,
+              "direction": direction, "ask": contract.ask, "spot": spot, "rvol": signal_rvol,
               "ts": decision_log.now_iso()})
         return
 
@@ -219,21 +299,24 @@ def _try_entry(client, u, blk, bars, *, et_date, now_hhmm, now_utc, cfg_scalp, r
 
     scalp_registry.record_opened(ScalpPosition(
         scalp_id=decision_id, underlying=u, option_symbol=fill.option_symbol, right=right,
-        direction=bo.direction, qty=fill.qty, entry_price=fill.fill_price,
+        direction=direction, qty=fill.qty, entry_price=fill.fill_price,
         opened_ts=decision_log.now_iso(), entry_order_id=fill.order_id,
     ))
     blk["position"] = {
         "scalp_id": decision_id, "option_symbol": fill.option_symbol, "right": right,
-        "direction": bo.direction, "qty": fill.qty, "entry_fill_price": fill.fill_price,
+        "direction": direction, "qty": fill.qty, "entry_fill_price": fill.fill_price,
         "entry_ts": now_utc.isoformat(), "entry_order_id": fill.order_id,
     }
     blk["state"] = "IN_TRADE"
     state["trades_today"] = int(state.get("trades_today", 0)) + 1
+    blk.setdefault("traded_directions", []).append(direction)
     _log({"kind": "scalp_open", "underlying": u, "symbol": fill.option_symbol, "right": right,
-          "direction": bo.direction, "qty": fill.qty, "entry_price": fill.fill_price,
-          "rvol": bo.rvol, "spot": spot, "decision_id": decision_id, "ts": decision_log.now_iso()})
+          "direction": direction,
+          "qty": fill.qty, "entry_price": fill.fill_price,
+          "rvol": signal_rvol,
+          "spot": spot, "decision_id": decision_id, "ts": decision_log.now_iso()})
     _post(f"BUY {u} {right} {fill.option_symbol} x{fill.qty} @ {fill.fill_price:.2f} "
-          f"(break {bo.direction}, rvol {bo.rvol})")
+          f"(break {direction}, rvol {signal_rvol})")
 
 
 def _reconcile_orphans(state: dict, now_utc) -> None:
@@ -278,6 +361,7 @@ def run() -> None:
     rails = active_scalp_rails()
     exit_rules = ScalpExitRules(
         stop_loss_pct=float(cfg_scalp.get("stop_loss_pct", 0.30)),
+        thesis_intact_stop_loss_pct=float(cfg_scalp.get("thesis_intact_stop_loss_pct", 0.60)),
         profit_target_pct=float(cfg_scalp.get("profit_target_pct", 0.50)),
         theta_cut_minutes=int(cfg_scalp.get("theta_cut_minutes", 15)),
     )
@@ -307,7 +391,8 @@ def run() -> None:
             if not bars:
                 continue  # fail open: no data this minute -> do nothing for u
             if blk.get("position"):
-                _manage_open(client, u, blk, now_utc=now_utc, now_hhmm=now_hhmm,
+                _manage_open(client, u, blk, bars, et_date=et_date,
+                             now_utc=now_utc, now_hhmm=now_hhmm,
                              rails=rails, exit_rules=exit_rules, state=state, dry=dry)
             else:
                 _try_entry(client, u, blk, bars, et_date=et_date, now_hhmm=now_hhmm,

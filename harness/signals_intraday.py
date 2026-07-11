@@ -142,3 +142,30 @@ def session_vwap(bars: list[dict], et_date: str) -> float | None:
         num += tp * b["v"]
         den += b["v"]
     return round(num / den, 4) if den > 0 else None
+
+
+def breakout_thesis_intact(
+    bars: list[dict],
+    et_date: str,
+    *,
+    direction: str,
+    range_high: float,
+    range_low: float,
+) -> bool:
+    """Whether the most recent closed bar still supports an ORB position.
+
+    Price must remain outside the opening range *and* on the matching side of
+    session VWAP.  This gives entries a one-bar confirmation and lets exits
+    distinguish harmless option-premium noise from an actual failed breakout.
+    Missing/invalid data fails closed (the thesis is not considered intact).
+    """
+    session = regular_session_bars(bars, et_date)
+    vwap = session_vwap(bars, et_date)
+    if not session or vwap is None:
+        return False
+    close = float(session[-1].get("c") or 0.0)
+    if direction == "up":
+        return close > range_high and close > vwap
+    if direction == "down":
+        return close < range_low and close < vwap
+    return False

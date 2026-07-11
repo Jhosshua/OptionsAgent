@@ -90,7 +90,8 @@ def _breakout_bars():
 
 def _fresh_blk():
     return {"state": "WAITING_FOR_RANGE", "range_high": None, "range_low": None,
-            "last_evaluated_bar_ts": None, "position": None}
+            "last_evaluated_bar_ts": None, "pending_breakout": None,
+            "traded_directions": [], "position": None}
 
 
 CFG = {"range_minutes": 3, "rvol_min": 1.5, "max_spread_pct": 0.15,
@@ -131,12 +132,14 @@ def test_submit_scalp_close_unconfirmed_reports_not_filled():
 
 
 # --------------------------------------------------------------- TST-001: _manage_open
-def _open_pos_blk(entry=1.0, qty=2, sym="SPYC"):
+def _open_pos_blk(entry=1.0, qty=2, sym="SPYC", minutes_ago=5):
     blk = _fresh_blk()
+    blk["range_high"] = 101
+    blk["range_low"] = 100
     blk["state"] = "IN_TRADE"
     blk["position"] = {"scalp_id": "s1", "option_symbol": sym, "right": "call", "direction": "up",
                        "qty": qty, "entry_fill_price": entry,
-                       "entry_ts": (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat(),
+                       "entry_ts": (datetime.now(timezone.utc) - timedelta(minutes=minutes_ago)).isoformat(),
                        "entry_order_id": "e1"}
     return blk
 
@@ -147,7 +150,8 @@ def _state_with(blk, sym="SPYC"):
 
 
 def _mo(fc, blk, state, now_hhmm="11:00", rails=RAILS):
-    run_scalp._manage_open(fc, "SPY", blk, now_utc=datetime.now(timezone.utc), now_hhmm=now_hhmm,
+    run_scalp._manage_open(fc, "SPY", blk, _breakout_bars(), et_date=DATE,
+                           now_utc=datetime.now(timezone.utc), now_hhmm=now_hhmm,
                            rails=rails, exit_rules=XR, state=state, dry=False)
 
 
@@ -210,9 +214,17 @@ def test_manage_open_eod_flatten_forces_exit_even_on_zero_bid():
 
 
 # --------------------------------------------------------------- TST-002: _try_entry
-def _te(fc, blk, state, dry, now_hhmm="10:00"):
-    run_scalp._try_entry(fc, "SPY", blk, _breakout_bars(), et_date=DATE, now_hhmm=now_hhmm,
+def _te(fc, blk, state, dry, now_hhmm="10:00", bars=None):
+    run_scalp._try_entry(fc, "SPY", blk, bars or _breakout_bars(), et_date=DATE, now_hhmm=now_hhmm,
                          now_utc=datetime.now(timezone.utc), cfg_scalp=CFG, rails=RAILS, state=state, dry=dry)
+
+
+def _confirmed_breakout_bars():
+    return _breakout_bars() + [_bar("09:35", 102.0, 102.4, 101.8, 102.2, 1200)]
+
+
+def _failed_breakout_bars():
+    return _breakout_bars() + [_bar("09:35", 102.0, 102.1, 100.4, 100.5, 1200)]
 
 
 def _entry_client():
@@ -240,10 +252,33 @@ def test_try_entry_live_opens_position_and_counts_trade():
     state = {"date": DATE, "trades_today": 0, "realized_pnl_usd": 0.0, "halted": False,
              "underlyings": {"SPY": blk}}
     fc = _entry_client()
-    _te(fc, blk, state, dry=False)
+    _te(fc, blk, state, dry=False)  # signal becomes pending
+    _te(fc, blk, state, dry=False, bars=_confirmed_breakout_bars())
     assert blk["state"] == "IN_TRADE" and blk["position"]["option_symbol"] == "SPYC"
     assert state["trades_today"] == 1
     assert fc.orders[-1]["prefix"] == "oas-" and fc.orders[-1]["side"] == "buy"
+
+
+def test_try_entry_rejects_next_bar_breakout_failure():
+    blk = _fresh_blk()
+    state = {"date": DATE, "trades_today": 0, "realized_pnl_usd": 0.0, "halted": False,
+             "underlyings": {"SPY": blk}}
+    fc = _entry_client()
+    _te(fc, blk, state, dry=False)
+    assert blk["pending_breakout"] is not None
+    _te(fc, blk, state, dry=False, bars=_failed_breakout_bars())
+    assert fc.orders == [] and blk["position"] is None
+    assert blk["pending_breakout"] is None
+
+
+def test_manage_open_holds_deep_option_drawdown_while_breakout_intact():
+    # July 10 regression: the call was down more than 30% after 15 minutes,
+    # but SPY remained above both the opening range and VWAP and later hit target.
+    blk = _open_pos_blk(entry=1.0, qty=1, minutes_ago=20)
+    state = _state_with(blk)
+    fc = FakeClient(quotes={"SPYC": {"bid": 0.45, "ask": 0.50}}, positions=["SPYC"])
+    _mo(fc, blk, state)
+    assert blk["position"] is not None and fc.orders == []
 
 
 def test_try_entry_idempotent_per_bar():

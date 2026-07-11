@@ -38,6 +38,8 @@ def _fresh(et_date: str, underlyings: list[str]) -> dict[str, Any]:
                 "range_high": None,
                 "range_low": None,
                 "last_evaluated_bar_ts": None,
+                "pending_breakout": None,
+                "traded_directions": [],
                 "position": None,
             }
             for u in underlyings
@@ -72,9 +74,13 @@ def load_state(et_date: str, underlyings: list[str]) -> dict[str, Any]:
                 "range_high": None,
                 "range_low": None,
                 "last_evaluated_bar_ts": None,
+                "pending_breakout": None,
+                "traded_directions": [],
                 "position": None,
             },
         )
+        ul[u].setdefault("pending_breakout", None)
+        ul[u].setdefault("traded_directions", [])
     return st
 
 

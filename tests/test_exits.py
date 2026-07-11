@@ -4,6 +4,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from harness.exits import ExitRules, OpenPosition, evaluate_exit
+from harness.exit_state import observe_stop
 
 WHEEL_RULES = ExitRules(dte_close=21, profit_target_pct=0.50, stop_loss_pct=None)
 SPREAD_RULES = ExitRules(dte_close=21, profit_target_pct=0.50, stop_loss_pct=1.00)
@@ -148,3 +149,21 @@ def test_unknown_strategy_type_holds_and_flags():
     decision = evaluate_exit(make_short(strategy_type="mystery"), WHEEL_RULES)
     assert not decision.should_close
     assert "unknown" in decision.reason
+
+
+def test_stop_requires_consecutive_sweep_confirmations():
+    state = {}
+    assert not observe_stop(
+        state, structure_id="vz", triggered=True, required=2, observed_at="2026-07-10T10:00:00-04:00"
+    )
+    assert observe_stop(
+        state, structure_id="vz", triggered=True, required=2, observed_at="2026-07-10T10:20:00-04:00"
+    )
+
+
+def test_stop_confirmation_resets_when_quote_recovers():
+    state = {}
+    observe_stop(state, structure_id="vz", triggered=True, required=2, observed_at="one")
+    assert not observe_stop(state, structure_id="vz", triggered=False, required=2, observed_at="recovered")
+    assert "vz" not in state
+    assert not observe_stop(state, structure_id="vz", triggered=True, required=2, observed_at="new")

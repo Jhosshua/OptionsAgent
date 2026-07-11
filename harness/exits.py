@@ -132,7 +132,7 @@ def check_dividend_assignment_risk(position: OpenPosition) -> ExitDecision | Non
     return None
 
 
-def evaluate_exit(position: OpenPosition, rules: ExitRules) -> ExitDecision:
+def evaluate_exit(position: OpenPosition, rules: ExitRules, *, include_stop: bool = True) -> ExitDecision:
     """Runs the checks for the position's structure family in priority
     order — dividend-assignment first (time-sensitive, the broker won't warn
     you), then stop loss, then DTE, then profit target. First trigger wins."""
@@ -141,7 +141,7 @@ def evaluate_exit(position: OpenPosition, rules: ExitRules) -> ExitDecision:
             check_dividend_assignment_risk(position),
             (
                 check_short_premium_stop(position, stop_loss_pct=rules.stop_loss_pct)
-                if rules.stop_loss_pct is not None
+                if include_stop and rules.stop_loss_pct is not None
                 else None
             ),
             check_dte_close(position, dte_close=rules.dte_close),
@@ -151,7 +151,7 @@ def evaluate_exit(position: OpenPosition, rules: ExitRules) -> ExitDecision:
         checks = [
             (
                 check_long_stop(position, stop_loss_pct=rules.stop_loss_pct)
-                if rules.stop_loss_pct is not None
+                if include_stop and rules.stop_loss_pct is not None
                 else None
             ),
             check_dte_close(position, dte_close=rules.dte_close),

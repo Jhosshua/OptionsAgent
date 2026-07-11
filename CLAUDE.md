@@ -95,6 +95,20 @@ premium SELLER. Shipped straight to live paper (operator: no experiment flag, no
 - Exits for credit spreads were already live (short-premium family: 50% profit target, 2x-credit
   stop, 21 DTE close) — unchanged.
 
+## ⭐ UPDATE 2026-07-11: JULY 10 EXECUTION SAFEGUARDS
+
+The July 10 replay found two quote/signal timing failures and one exit-policy mismatch. Fixed in
+the deterministic layer:
+
+- Credit-spread 2x-credit stops are evaluated only from 10:00 ET and must persist across two
+  consecutive 20-minute sweeps. A recovered quote resets confirmation. This prevents a single
+  wide opening combo quote from forcing another VZ-style liquidation.
+- 0DTE ORB entries now require the immediately following one-minute bar to remain outside the
+  opening range and on the matching side of session VWAP. Stale confirmations expire.
+- While the confirmed underlying breakout remains intact, the scalper suppresses its ordinary
+  30% premium stop and 15-minute theta cut, but retains a 60% catastrophic premium stop, the 50%
+  profit target, and mandatory 15:50 ET flatten. Each direction may be traded once per symbol/day.
+
 ## ⭐ UPDATE 2026-07-03 (later): ALL STRATEGIES LIVE AT ONCE + RAILWAY — supersedes the phased rollout below
 
 Operator decision: build all 4 strategy phases immediately and deploy straight to Railway (no local

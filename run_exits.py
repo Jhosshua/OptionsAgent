@@ -11,9 +11,10 @@ the matching order shape -> log + Discord with estimated P&L.
 from __future__ import annotations
 
 import logging
-from datetime import date
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 
-from harness import decision_log, notify, structures
+from harness import decision_log, exit_state, notify, structures
 from harness.alpaca_glue import make_client
 from harness.dividends import upcoming_dividend
 from harness.env import config
@@ -27,6 +28,7 @@ from harness.exits import (
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("optionsagent.run_exits")
+ET = ZoneInfo("America/New_York")
 
 
 def _rules_for(strategy_type: str, cfg: dict) -> ExitRules:
@@ -128,6 +130,9 @@ def _close_structure(client, structure: structures.Structure, quotes: dict, deci
 def run() -> None:
     cfg = config()
     client = make_client()
+    stop_state = exit_state.load()
+    stop_state_dirty = False
+    now_et = datetime.now(ET)
 
     open_structures = structures.load_open()
     if not open_structures:
@@ -238,7 +243,42 @@ def run() -> None:
             dividend_amount=dividend_amount,
             is_ex_dividend_within_dte=ex_div_within,
         )
-        decision = evaluate_exit(position, _rules_for(s.strategy_type, cfg))
+        rules = _rules_for(s.strategy_type, cfg)
+        decision = evaluate_exit(position, rules)
+        is_stop = decision.should_close and decision.reason.startswith("stop loss:")
+        if is_stop:
+            strategy_cfg = cfg["spreads"] if s.strategy_type in ("credit_spread", "debit_spread") else {}
+            start_et = str(strategy_cfg.get("stop_evaluation_start_et", "09:30"))
+            required = int(strategy_cfg.get("stop_confirmations", 1))
+            eligible = now_et.strftime("%H:%M") >= start_et
+            confirmed = exit_state.observe_stop(
+                stop_state,
+                structure_id=s.structure_id,
+                triggered=eligible,
+                required=required,
+                observed_at=now_et.isoformat(),
+            )
+            stop_state_dirty = True
+            if not confirmed:
+                # A safety/time exit must not be hidden just because the noisy
+                # stop itself is waiting for confirmation.
+                decision = evaluate_exit(position, rules, include_stop=False)
+                if not decision.should_close:
+                    log.info(
+                        "%s %s: stop observed but awaiting confirmation (%s sweep(s), after %s ET)",
+                        s.underlying, s.strategy_type, required, start_et,
+                    )
+                    continue
+        else:
+            if s.structure_id in stop_state:
+                exit_state.observe_stop(
+                    stop_state,
+                    structure_id=s.structure_id,
+                    triggered=False,
+                    required=1,
+                    observed_at=now_et.isoformat(),
+                )
+                stop_state_dirty = True
         if not decision.should_close:
             continue
 
@@ -260,6 +300,9 @@ def run() -> None:
             reason=decision.reason, pnl_usd=pnl_usd,
         )
         log.info("closed %s %s: %s (est P&L $%.2f)", s.underlying, s.strategy_type, decision.reason, pnl_usd)
+
+    if stop_state_dirty:
+        exit_state.save(stop_state)
 
 
 if __name__ == "__main__":
