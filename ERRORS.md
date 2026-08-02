@@ -1,5 +1,32 @@
 # ERRORS.md — OptionsAgent
 
+## `railway ssh "... | base64"` silently truncates a large stream (11 MB came back as 353 KB)
+
+**What did not work:** backing up the Railway volume in one shot —
+`railway ssh "tar czf - data | base64 -w0" > out.b64`. It exited 0 and produced a plausible-looking
+471 KB base64 file. It was garbage: the stream started mid-file (no `H4sI` gzip header), and the
+real archive was 11 MB, not 353 KB. Nothing errored. A backup that exits 0 and is silently
+truncated is worse than one that fails loudly — this would have been discovered only when the data
+was needed, long after the source was deleted.
+
+**What worked instead:** stage the archive INSIDE the container, split it, fetch chunk by chunk,
+and checksum everything.
+1. `railway ssh "tar czf /tmp/oabk/vol.tgz data && md5sum vol.tgz && base64 -w0 vol.tgz > vol.b64
+   && split -b 500000 -d -a 3 vol.b64 part"` (note: `-a 2` blew up at 147 chunks —
+   "output file suffixes exhausted"; needs 3 suffix digits).
+2. Fetch each `partNNN` with its own `railway ssh cat`. One of 30 chunks came back at 182 bytes
+   instead of 500000 — same silent truncation, caught only because the sizes were printed.
+   Refetching it fixed it.
+3. `md5sum part*` in the container vs `md5 -q` locally, compared per chunk, then reassemble and
+   verify the final tarball md5 against the one taken at step 1. Only then treat the source as
+   deletable.
+
+**Note for next time:** never trust a single-shot `railway ssh` pipe for anything bigger than a few
+hundred KB, and never delete a remote source until a checksum taken ON THE SOURCE matches the local
+copy. Also: macOS `base64` has no `-d file` form — it's `base64 -d -i in -o out` (GNU-style
+`base64 -d file` errors with "invalid argument"), and macOS has no `timeout`.
+
+
 ## run_cycle crashed on an ADJUSTED contract: chain snapshot includes untradable roots (CCL1)
 
 **What did not work:** `alpaca_glue.option_chain()` trusted every symbol in Alpaca's market-data

@@ -5,5 +5,11 @@ __pycache__/
 data/*.jsonl
 data/*.json
 !data/.gitkeep
+# Restored Railway volume contents (2026-08-02 shutdown). The archived copy is
+# committed as backups/volume_2026-08-02.tar.gz — don't commit the loose files too.
+data/chain_snapshots/
+data/marketdata/
+data/scalp_state/
+data/logs/
 logs/*.log
 !logs/.gitkeep

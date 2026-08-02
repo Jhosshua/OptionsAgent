@@ -1,5 +1,17 @@
 # CLAUDE.md — OptionsAgent
 
+> ## ⛔ RETIRED 2026-08-02 — this bot is OFF and does not trade.
+>
+> Shut down at the operator's instruction. The Railway container is removed, every app env var
+> (Alpaca, Anthropic, Discord) is deleted, the Discord webhook is deleted at the API, the GitHub
+> repo is disconnected from the Railway service (so pushing here does NOT redeploy), and the
+> Alpaca paper account is being closed. The volume data is archived in
+> `backups/volume_2026-08-02.tar.gz` (md5-verified) and extracted into `data/`.
+>
+> Do not "fix", redeploy, or restart anything here without the operator explicitly saying to bring
+> the bot back. Read `MEMORY.md` 2026-08-02 first — it lists exactly what has to be re-created.
+> Everything below describes how the bot worked while it was live.
+
 > Read this first every session. Then read `MEMORY.md` and `ERRORS.md`.
 
 ## What this is

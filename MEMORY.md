@@ -1,5 +1,48 @@
 # MEMORY.md — OptionsAgent
 
+## 2026-08-02 — SHUT DOWN. Railway off, Discord off, data archived.
+
+**Operator instruction:** turn the agent completely off in Railway, kill the Discord side, he is
+deleting the Alpaca paper account. Data kept for future use.
+
+**What was done, in order:**
+1. **Backed up the Railway volume FIRST** (before touching anything). 11 MB tarball,
+   `md5 bc28e9bc6f3123ebdfdfe5577612757e`, verified byte-identical against the container. Pulled
+   via 30 base64 chunks over `railway ssh`, each chunk md5-checked (a single-shot stream silently
+   truncated 11 MB to 353 KB — see ERRORS.md). Archive: `backups/volume_2026-08-02.tar.gz`,
+   also extracted into `data/` for direct use.
+   Contents: 19 chain snapshots (11 MB, full chains w/ IV + greeks), marketdata (4 MB),
+   `decisions.jsonl` (91), `structures.jsonl` (23), `scalp_decisions.jsonl` (104),
+   `scalp_positions.jsonl` (74), `exit_state.json`, scalp_state, logs.
+2. `railway down` — the running container/deployment removed. No cron, no cycles, no exit sweep,
+   no market-data relay.
+3. **Discord webhook DELETED** at the API (`DELETE` → 204, now 404). Nothing can post to
+   `#options-agent` again, ever, even if the container came back. The channel and its message
+   history were deliberately left intact (that's history worth keeping).
+4. **All app env vars deleted from Railway**: `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`,
+   `ALPACA_PAPER`, `ANTHROPIC_API_KEY`, `OA_ANTHROPIC_MODEL`, `DISCORD_WEBHOOK_URL`,
+   `OA_RELAY_TOKEN`, `OA_MARKETDATA_ENABLED`, `OA_SCALP_ENABLED`. Only Railway's own
+   `RAILWAY_*` vars remain. Even a manual redeploy now has no broker key, no LLM key, no webhook.
+5. **GitHub repo DISCONNECTED from the Railway service** (`serviceDisconnect`). This was the real
+   trap: the service auto-deployed on every push to `Jhosshua/OptionsAgent`, so committing these
+   very notes would have brought the bot back online. Pushes are now inert.
+
+**Still standing (deliberately):** the Railway project/service shell + the `optionsagent-volume`
+(1.1 GB provisioned). Kept because deleting the project is irreversible and destroys the volume;
+the data is archived either way. Deleting it is a one-command follow-up if the operator wants the
+storage line gone.
+
+**Side effect flagged:** the shared market-data relay
+(`optionsagent-production.up.railway.app`, `MARKETDATA_RELAY.md`) is DEAD. No other bot's code
+referenced it (checked every `.py` under `/Users/mo`) — only mentions in sibling md files — so
+nothing else breaks.
+
+**To bring this back one day:** new Alpaca paper keys + a new Discord webhook into Railway vars,
+reconnect the GitHub repo to the service, redeploy, and restore `data/` from the tarball onto the
+volume. The 30-day pivot review (`credit_spreads_only`, gates scored ~2026-08-19) never completed
+— it was cut short here at the operator's call, not by hitting the -25% abort.
+
+
 ## 2026-07-10 (later 2) — DISABLED the scalper daily-loss halt (operator saw it fire, wants max learning)
 
 **Trigger:** operator saw `⚡ SCALP HALTED for the day: daily loss $-154 hit stop -$150 — halted`
