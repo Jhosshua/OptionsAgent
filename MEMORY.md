@@ -27,18 +27,22 @@ deleting the Alpaca paper account. Data kept for future use.
    trap: the service auto-deployed on every push to `Jhosshua/OptionsAgent`, so committing these
    very notes would have brought the bot back online. Pushes are now inert.
 
-**Still standing (deliberately):** the Railway project/service shell + the `optionsagent-volume`
-(1.1 GB provisioned). Kept because deleting the project is irreversible and destroys the volume;
-the data is archived either way. Deleting it is a one-command follow-up if the operator wants the
-storage line gone.
+6. **Railway project DELETED** (operator confirmed, same session). `railway delete --project
+   e312c619-5ac9-4edb-9d57-6ec4d1252ddd --yes`; the API now reports
+   `deletedAt: 2026-08-04T19:30:51Z` — Railway schedules the purge rather than doing it instantly,
+   so the name may linger in `railway list` until then. The `optionsagent-volume` goes with it.
+   Local dir `railway unlink`ed. Nothing of this bot remains on Railway.
+
+   Deletion was only done AFTER the archive was md5-verified locally **and** pushed to GitHub in
+   commit `0d5c3b2`, so there are two independent copies that do not depend on Railway.
 
 **Side effect flagged:** the shared market-data relay
 (`optionsagent-production.up.railway.app`, `MARKETDATA_RELAY.md`) is DEAD. No other bot's code
 referenced it (checked every `.py` under `/Users/mo`) — only mentions in sibling md files — so
 nothing else breaks.
 
-**To bring this back one day:** new Alpaca paper keys + a new Discord webhook into Railway vars,
-reconnect the GitHub repo to the service, redeploy, and restore `data/` from the tarball onto the
+**To bring this back one day:** it's a from-scratch redeploy now — new Railway project + service +
+volume, new Alpaca paper keys and a new Discord webhook into its vars, reconnect the GitHub repo, and restore `data/` from the tarball onto the
 volume. The 30-day pivot review (`credit_spreads_only`, gates scored ~2026-08-19) never completed
 — it was cut short here at the operator's call, not by hitting the -25% abort.
 

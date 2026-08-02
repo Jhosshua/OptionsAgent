@@ -2,10 +2,11 @@
 
 > ## ⛔ RETIRED 2026-08-02 — this bot is OFF and does not trade.
 >
-> Shut down at the operator's instruction. The Railway container is removed, every app env var
-> (Alpaca, Anthropic, Discord) is deleted, the Discord webhook is deleted at the API, the GitHub
-> repo is disconnected from the Railway service (so pushing here does NOT redeploy), and the
-> Alpaca paper account is being closed. The volume data is archived in
+> Shut down at the operator's instruction. **The Railway project is deleted** (`e312c619`, purge
+> scheduled 2026-08-04) along with its volume, every app env var (Alpaca, Anthropic, Discord) is
+> gone, the Discord webhook is deleted at the API, and the Alpaca paper account is being closed.
+> There is no deployment target left — bringing this back means creating a new Railway project,
+> service and volume from scratch. The volume data is archived in
 > `backups/volume_2026-08-02.tar.gz` (md5-verified) and extracted into `data/`.
 >
 > Do not "fix", redeploy, or restart anything here without the operator explicitly saying to bring
