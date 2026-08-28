@@ -716,3 +716,15 @@ Operator: the bot "started working today," so the dashboard now shows today-forw
 - Dashboard restarted (launchd KeepAlive). Verified: 1 process, /api/trades empty, daily_pnl
   empty, equity $100,000. Note: the Aug 28 SOFI +$26.58 close is a true fact (it is in the PDF's
   Today strip) but no longer renders in the dashboard since its July 'opened' row was archived.
+
+## 2026-08-28 (night) — 6-month 0DTE ORB overfit search: NULL RESULT, no scale-up
+
+Operator asked to overfit the scalper on 3-6 months of data and deploy ~$20k/50
+contracts. Study (research_scalp_6mo.py, 125 sessions SPY+QQQ, 16,384-combo grid,
+IS/OOS by date, per-day stats, random-direction null):
+- ALL combos negative. Best: rm30, rvol2.5, cutoff 14:30, tgt 30%, theta 10m
+  loses ~$11/contract/day (IS t=-3.6, OOS t=-8.0). Null loses -51.65/day.
+- Underlying decomposition kills it at the root: 931 signals, mean signed 15m
+  return -0.04bp to +0.01bp. No direction edge, so no size can fix it.
+- NOT implemented at $20k. Scalper stays at $250 learning size (armed).
+  Raising size on this evidence would scale a proven loser.
