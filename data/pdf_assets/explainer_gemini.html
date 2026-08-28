@@ -2,900 +2,966 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>OptionsAgent, Operator Explainer and System Architecture</title>
+<title>OptionsAgent Explainer</title>
 <style>
   @page {
     size: 11in 8.5in;
     margin: 0;
   }
+
   *, *::before, *::after {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
-    box-sizing: border-box;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
-  :root {
-    --bg: #080d14;
-    --card-bg: #0e1520;
-    --card-bg-subtle: #0b111a;
-    --border: #1a2636;
-    --border-light: #223247;
-    --border-e1: #1e3d59;
-    --border-e2: #1e4d3a;
-    --text-main: #e6edf5;
-    --text-muted: #8e9fad;
-    --text-faint: #596b7d;
-    --e1-blue: #38bdf8;
-    --e1-blue-bg: rgba(56, 189, 248, 0.08);
-    --e1-blue-border: #184e77;
-    --e2-green: #35d39a;
-    --e2-green-bg: rgba(53, 211, 154, 0.08);
-    --e2-green-border: #1e5e45;
-    --amber: #f0b45b;
-    --amber-bg: rgba(240, 180, 91, 0.08);
-    --amber-border: #634b23;
-    --red: #f87171;
-    --red-bg: rgba(248, 113, 113, 0.08);
-    --red-border: #662626;
-  }
+
   body {
-    background: var(--bg);
-    color: var(--text-main);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+    font-family: "Airbnb Cereal", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #F7F7F7;
+    color: #484848;
+    font-size: 10.5px;
+    line-height: 1.4;
     -webkit-font-smoothing: antialiased;
   }
-  .mono {
-    font-family: "SF Mono", Menlo, Monaco, Consolas, monospace;
-  }
+
   .page {
     width: 11in;
     height: 8.5in;
+    max-width: 11in;
     max-height: 8.5in;
-    padding: 0.34in 0.44in 0.28in 0.44in;
-    position: relative;
-    overflow: hidden;
     page-break-after: always;
+    page-break-inside: avoid;
+    background-color: #F7F7F7;
+    padding: 20px 32px 14px 32px;
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
   }
 
-  /* Header Components */
-  .header-row {
+  /* Page Footer */
+  .page-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 9px;
-    padding-bottom: 7px;
-    border-bottom: 1px solid var(--border);
+    padding-top: 6px;
+    border-top: 1px solid #EBEBEB;
+    font-size: 9px;
+    color: #767676;
+    font-weight: 500;
   }
-  .brand-group {
+
+  /* Typography and Chips */
+  h1, h2, h3, h4 {
+    color: #222222;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 9999px;
+    font-size: 9.5px;
+    font-weight: 600;
+    background: #FFFFFF;
+    border: 1px solid #EBEBEB;
+    color: #484848;
+    line-height: 1;
+  }
+
+  .pill-coral {
+    background: #FFF5F5;
+    border-color: #FFD1D4;
+    color: #D93B41;
+  }
+
+  .pill-teal {
+    background: #F0FAF9;
+    border-color: #B2E5E0;
+    color: #008489;
+  }
+
+  .dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 5px;
+  }
+
+  .dot-coral { background-color: #FF5A5F; }
+  .dot-teal { background-color: #00A699; }
+  .dot-green { background-color: #00A699; }
+
+  /* PAGE 1 SPECIFIC STYLES */
+  .p1-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .p1-title-group {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
   }
-  .brand-badge {
-    width: 36px;
-    height: 36px;
-    border-radius: 9px;
-    background: linear-gradient(135deg, #102d24 0%, #0d283e 100%);
-    border: 1px solid #235848;
+
+  .logo-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #FF5A5F 0%, #00A699 100%);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 17px;
+    color: #FFFFFF;
     font-weight: 800;
-    color: var(--e2-green);
-    letter-spacing: -0.5px;
+    font-size: 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.06);
   }
-  .brand-title-area h1 {
-    font-size: 21px;
-    font-weight: 800;
-    letter-spacing: -0.2px;
+
+  .p1-title-text h1 {
+    font-size: 19px;
     line-height: 1.1;
-    color: #ffffff;
+    color: #222222;
   }
-  .brand-title-area h1 span {
-    color: var(--e2-green);
-  }
-  .brand-title-area .subtitle {
-    font-size: 9.5px;
-    color: var(--text-muted);
+
+  .p1-title-text p {
+    font-size: 10.5px;
+    color: #767676;
     font-weight: 500;
-    margin-top: 2px;
   }
-  .chips-group {
+
+  .p1-pills {
     display: flex;
     gap: 6px;
   }
-  .status-chip {
-    font-size: 8px;
-    font-weight: 700;
-    letter-spacing: 0.6px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    text-transform: uppercase;
-  }
-  .chip-green {
-    background: var(--e2-green-bg);
-    color: var(--e2-green);
-    border: 1px solid var(--e2-green-border);
-  }
-  .chip-blue {
-    background: var(--e1-blue-bg);
-    color: var(--e1-blue);
-    border: 1px solid var(--e1-blue-border);
-  }
-  .chip-amber {
-    background: var(--amber-bg);
-    color: var(--amber);
-    border: 1px solid var(--amber-border);
-  }
-  .chip-neutral {
-    background: rgba(255, 255, 255, 0.04);
-    color: var(--text-muted);
-    border: 1px solid var(--border);
-  }
 
-  /* Lede Banner */
-  .lede-banner {
+  .p1-lede {
+    background: #FFFFFF;
+    border: 1px solid #EBEBEB;
+    border-radius: 10px;
+    padding: 8px 12px;
     font-size: 10.8px;
-    line-height: 1.46;
-    color: #cbd5e1;
-    background: #0b131e;
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--e1-blue);
-    border-radius: 6px;
-    padding: 7px 11px;
+    color: #484848;
+    line-height: 1.4;
     margin-bottom: 8px;
-  }
-  .lede-banner b {
-    color: #ffffff;
-    font-weight: 700;
-  }
-  .lede-banner .highlight-green {
-    color: var(--e2-green);
-  }
-  .lede-banner .highlight-blue {
-    color: var(--e1-blue);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
   }
 
-  /* Section Title Bar */
-  .section-label {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 8.5px;
-    font-weight: 800;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    margin-bottom: 5px;
-    padding: 0 1px;
-  }
-  .label-e1 {
-    color: var(--e1-blue);
-  }
-
-  /* Engine 1 Pipeline (6 Steps) */
-  .pipe-grid {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 6px;
-    margin-bottom: 8px;
-  }
-  .pipe-step {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 7px 8px 8px;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-  }
-  .pipe-step.special {
-    background: linear-gradient(180deg, #101c29 0%, #0b131d 100%);
-    border-color: var(--e1-blue-border);
-  }
-  .pipe-step.winner-hero {
-    background: linear-gradient(180deg, #0e241c 0%, #091712 100%);
-    border-color: var(--e2-green-border);
-  }
-  .step-num {
-    font-size: 7.5px;
-    font-weight: 800;
-    letter-spacing: 0.8px;
-    color: var(--text-faint);
-    margin-bottom: 3px;
-  }
-  .pipe-step.winner-hero .step-num {
-    color: #2e7d5a;
-  }
-  .step-title {
-    font-size: 9.2px;
-    font-weight: 800;
-    color: #ffffff;
-    margin-bottom: 4px;
-    line-height: 1.2;
-  }
-  .pipe-step.winner-hero .step-title {
-    color: var(--e2-green);
-  }
-  .step-desc {
-    font-size: 7.8px;
-    line-height: 1.36;
-    color: var(--text-muted);
-  }
-  .step-desc b {
-    color: var(--amber);
-    font-weight: 700;
-  }
-  .step-desc i {
-    font-style: normal;
-    color: var(--e1-blue);
-    font-weight: 600;
-  }
-  .step-desc span.g {
-    color: var(--e2-green);
+  .p1-lede strong {
+    color: #222222;
     font-weight: 600;
   }
 
-  /* Dual Engine Strips */
-  .engine-strips {
+  .p1-engines {
     display: grid;
-    grid-template-columns: 1.05fr 1fr;
-    gap: 8px;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
     margin-bottom: 8px;
   }
-  .strip-panel {
-    border-radius: 6px;
-    padding: 7px 11px;
-    font-size: 8.3px;
-    line-height: 1.38;
-  }
-  .strip-e1 {
-    background: #09131e;
-    border: 1px solid var(--border-e1);
-    border-left: 3px solid var(--e1-blue);
-  }
-  .strip-e2 {
-    background: #081712;
-    border: 1px solid var(--border-e2);
-    border-left: 3px solid var(--e2-green);
-  }
-  .strip-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 4px;
-  }
-  .strip-title {
-    font-size: 8.5px;
-    font-weight: 800;
-    letter-spacing: 0.8px;
-    text-transform: uppercase;
-  }
-  .strip-e1 .strip-title { color: var(--e1-blue); }
-  .strip-e2 .strip-title { color: var(--e2-green); }
-  .strip-tag {
-    font-size: 7.5px;
-    font-weight: 700;
-    padding: 2px 6px;
-    border-radius: 3px;
-  }
-  .strip-e1 .strip-tag {
-    background: var(--e1-blue-bg);
-    color: var(--e1-blue);
-    border: 1px solid var(--e1-blue-border);
-  }
-  .strip-e2 .strip-tag {
-    background: var(--e2-green-bg);
-    color: var(--e2-green);
-    border: 1px solid var(--e2-green-border);
-  }
-  .strip-body {
-    color: var(--text-muted);
-  }
-  .strip-body b {
-    color: #ffffff;
-    font-weight: 600;
-  }
-  .strip-body .kw-amber { color: var(--amber); font-weight: 600; }
-  .strip-body .kw-green { color: var(--e2-green); font-weight: 600; }
-  .strip-body .kw-blue { color: var(--e1-blue); font-weight: 600; }
 
-  /* Page 1 Lower Grid */
-  .p1-lower-grid {
-    display: grid;
-    grid-template-columns: 1.1fr 1fr 1.05fr;
-    gap: 8px;
-    flex: 1;
-  }
-  .panel-card {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 8px 10px;
+  .engine-card {
+    background: #FFFFFF;
+    border: 1px solid #EBEBEB;
+    border-radius: 12px;
+    padding: 11px 13px;
     display: flex;
     flex-direction: column;
-  }
-  .panel-card h3 {
-    font-size: 8px;
-    font-weight: 800;
-    letter-spacing: 1px;
-    color: var(--text-faint);
-    text-transform: uppercase;
-    margin-bottom: 6px;
-    padding-bottom: 3px;
-    border-bottom: 1px solid var(--border);
-  }
-  .panel-card.card-today {
-    background: linear-gradient(180deg, #0d1e18 0%, #091310 100%);
-    border-color: var(--e2-green-border);
-  }
-  .panel-card.card-today h3 {
-    color: var(--e2-green);
-    border-bottom-color: #173d2f;
+    justify-content: space-between;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.02);
   }
 
-  /* Key-Value List */
-  .kv-table {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
+  .engine-card.seller-card {
+    border-top: 3px solid #FF5A5F;
   }
-  .kv-row {
+
+  .engine-card.scalper-card {
+    border-top: 3px solid #00A699;
+  }
+
+  .engine-header {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
-    font-size: 8px;
-    padding-bottom: 2.5px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  }
-  .kv-row:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-  }
-  .kv-key {
-    color: var(--text-muted);
-  }
-  .kv-val {
-    font-weight: 700;
-    color: var(--text-main);
-  }
-  .kv-val.g { color: var(--e2-green); }
-  .kv-val.a { color: var(--amber); }
-  .kv-val.r { color: var(--red); }
-  .kv-val.b { color: var(--e1-blue); }
-
-  /* Watchlist & Guardrails */
-  .watchlist-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
+    align-items: flex-start;
     margin-bottom: 7px;
   }
-  .ticker-chip {
-    font-family: "SF Mono", Menlo, monospace;
-    font-size: 8px;
+
+  .engine-name {
+    font-size: 13.5px;
     font-weight: 700;
-    color: var(--e1-blue);
-    background: var(--e1-blue-bg);
-    border: 1px solid var(--e1-blue-border);
-    border-radius: 4px;
-    padding: 2px 5.5px;
+    color: #222222;
   }
-  .never-list {
+
+  .engine-timing {
+    font-size: 10px;
+    color: #767676;
+    font-weight: 500;
+    margin-top: 1px;
+  }
+
+  .engine-bullets {
+    list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 3.5px;
+    gap: 4px;
+    margin-bottom: 8px;
   }
-  .never-item {
-    font-size: 7.7px;
-    line-height: 1.32;
-    color: var(--text-muted);
-    padding-left: 12px;
+
+  .engine-bullets li {
     position: relative;
+    padding-left: 12px;
+    font-size: 10px;
+    color: #484848;
+    line-height: 1.32;
   }
-  .never-item::before {
-    content: "x";
+
+  .engine-bullets.seller-bullets li::before {
+    content: "•";
+    color: #FF5A5F;
+    font-weight: bold;
     position: absolute;
     left: 0;
+    font-size: 12px;
+    line-height: 1;
     top: -1px;
-    color: var(--red);
-    font-weight: 800;
-    font-size: 9px;
   }
 
-  /* Real Day Card */
-  .today-text {
-    font-size: 8px;
-    line-height: 1.42;
-    color: #9fb1c2;
-  }
-  .today-text b {
-    color: #ffffff;
-    font-weight: 700;
-  }
-  .today-text .stat-win {
-    color: var(--e2-green);
-    font-weight: 700;
-  }
-  .today-text .stat-skip {
-    color: var(--amber);
-    font-weight: 700;
+  .engine-bullets.scalper-bullets li::before {
+    content: "•";
+    color: #00A699;
+    font-weight: bold;
+    position: absolute;
+    left: 0;
+    font-size: 12px;
+    line-height: 1;
+    top: -1px;
   }
 
-  /* Footer on all pages */
-  .doc-footer {
-    margin-top: auto;
-    padding-top: 5px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-top: 1px solid var(--border);
-    font-size: 7.5px;
-    color: var(--text-faint);
-  }
-  .doc-footer .doc-notice {
-    letter-spacing: 0.2px;
-  }
-  .doc-footer .page-num {
-    font-family: "SF Mono", Menlo, monospace;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-  }
-
-  /* ================= PAGE 2: FAQ ================= */
-  .faq-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    margin-bottom: 9px;
-    padding-bottom: 7px;
-    border-bottom: 1px solid var(--border);
-  }
-  .faq-header h2 {
-    font-size: 20px;
-    font-weight: 800;
-    letter-spacing: -0.2px;
-    color: #ffffff;
-  }
-  .faq-header .faq-sub {
-    font-size: 9.5px;
-    color: var(--text-muted);
-    margin-top: 2px;
-  }
-  .faq-grid {
+  .stat-tiles {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 7px;
-    flex: 1;
-  }
-  .faq-column {
-    display: flex;
-    flex-direction: column;
     gap: 6px;
+    margin-bottom: 7px;
   }
-  .faq-card {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 7px 9px;
+
+  .stat-tile {
+    background: #F9F9F9;
+    border: 1px solid #EFEFEF;
+    border-radius: 7px;
+    padding: 5px 7px;
+    text-align: left;
+  }
+
+  .stat-value {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #222222;
+    line-height: 1.1;
+    margin-bottom: 1px;
+  }
+
+  .stat-label {
+    font-size: 8.5px;
+    font-weight: 600;
+    color: #767676;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .pipeline-container {
+    background: #FAFAFA;
+    border: 1px solid #EFEFEF;
+    border-radius: 7px;
+    padding: 5px 7px;
+  }
+
+  .pipeline-title {
+    font-size: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #888888;
+    margin-bottom: 3px;
+  }
+
+  .pipeline-steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    align-items: center;
+  }
+
+  .pipeline-step {
+    background: #FFFFFF;
+    border: 1px solid #E5E5E5;
+    border-radius: 5px;
+    padding: 3px 4px;
+    font-size: 8.5px;
+    font-weight: 600;
+    color: #333333;
+    text-align: center;
+    line-height: 1.15;
+  }
+
+  .today-strip {
+    background: #FFFFFF;
+    border: 1px solid #EBEBEB;
+    border-radius: 10px;
+    padding: 8px 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  }
+
+  .today-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+
+  .today-badge {
+    background: #222222;
+    color: #FFFFFF;
+    font-size: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 5px;
+    border-radius: 3px;
+  }
+
+  .today-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: #222222;
+  }
+
+  .today-lines {
     display: flex;
     flex-direction: column;
+    gap: 2.5px;
   }
-  .faq-q {
-    font-size: 9.2px;
-    font-weight: 800;
-    color: #ffffff;
-    margin-bottom: 4px;
-    line-height: 1.25;
+
+  .today-line {
+    font-size: 9.5px;
+    color: #484848;
+    line-height: 1.3;
     display: flex;
     align-items: baseline;
     gap: 5px;
   }
-  .faq-q-num {
-    font-size: 7.5px;
-    font-family: "SF Mono", Menlo, monospace;
-    color: var(--e1-blue);
-    font-weight: 700;
-    flex-shrink: 0;
-  }
-  .faq-card.scalp-card .faq-q-num {
-    color: var(--e2-green);
-  }
-  .faq-a {
-    font-size: 7.9px;
-    line-height: 1.38;
-    color: #94a3b8;
-  }
-  .faq-a b {
-    color: #f1f5f9;
-    font-weight: 700;
-  }
-  .faq-a .mono {
-    font-size: 7.5px;
-    background: rgba(255, 255, 255, 0.05);
-    padding: 1px 3px;
-    border-radius: 3px;
-    color: var(--text-main);
-  }
-  .faq-a .kw-green { color: var(--e2-green); font-weight: 600; }
-  .faq-a .kw-blue { color: var(--e1-blue); font-weight: 600; }
-  .faq-a .kw-amber { color: var(--amber); font-weight: 600; }
-  .faq-a .kw-red { color: var(--red); font-weight: 600; }
 
-  /* ================= PAGES 3-8: DASHBOARDS ================= */
-  .dash-head {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-    margin-bottom: 8px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid var(--border);
+  .today-line-dot {
+    width: 4.5px;
+    height: 4.5px;
+    border-radius: 50%;
+    background: #00A699;
+    flex-shrink: 0;
+    transform: translateY(-1px);
   }
-  .dash-index {
-    font-size: 8px;
-    font-weight: 800;
-    letter-spacing: 1px;
-    color: var(--e2-green);
-    background: var(--e2-green-bg);
-    border: 1px solid var(--e2-green-border);
-    padding: 2.5px 7px;
+
+  /* PAGE 2 SPECIFIC STYLES */
+  .p2-header {
+    margin-bottom: 8px;
+  }
+
+  .p2-header h1 {
+    font-size: 18px;
+    color: #222222;
+    line-height: 1.15;
+  }
+
+  .p2-header p {
+    font-size: 10.5px;
+    color: #767676;
+  }
+
+  .p2-top-strip {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .strip-card {
+    background: #FFFFFF;
+    border: 1px solid #EBEBEB;
+    border-radius: 10px;
+    padding: 8px 10px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  }
+
+  .strip-card-title {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #222222;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .tickers-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-bottom: 3px;
+  }
+
+  .ticker-chip {
+    background: #F7F7F7;
+    border: 1px solid #E5E5E5;
+    padding: 1.5px 5px;
     border-radius: 4px;
+    font-size: 9px;
+    font-weight: 700;
+    color: #222222;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  .strip-note {
+    font-size: 8.5px;
+    color: #767676;
+    line-height: 1.2;
+  }
+
+  .rules-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2.5px;
+  }
+
+  .rules-list li {
+    font-size: 9px;
+    color: #333333;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    line-height: 1.25;
+  }
+
+  .rule-tag {
+    background: #FFF0F0;
+    color: #D93B41;
+    border: 1px solid #FFD8D8;
+    font-size: 7.5px;
+    font-weight: 700;
+    padding: 1px 3.5px;
+    border-radius: 3px;
     text-transform: uppercase;
     flex-shrink: 0;
   }
-  .dash-title {
-    font-size: 16px;
-    font-weight: 800;
-    color: #ffffff;
-    letter-spacing: -0.2px;
-    flex-shrink: 0;
+
+  .faq-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-auto-rows: 1fr;
+    gap: 7px;
+    margin-bottom: 6px;
   }
-  .dash-caption {
-    font-size: 9px;
-    line-height: 1.35;
-    color: var(--text-muted);
-  }
-  .dash-frame {
-    flex: 1;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: #03070c;
-    overflow: hidden;
+
+  .faq-card {
+    background: #FFFFFF;
+    border: 1px solid #EBEBEB;
+    border-radius: 9px;
+    padding: 7px 9px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
     display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 3px;
+    flex-direction: column;
   }
-  .dash-frame img {
+
+  .faq-q {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: #222222;
+    line-height: 1.2;
+    margin-bottom: 2.5px;
+  }
+
+  .faq-a {
+    font-size: 8.8px;
+    color: #484848;
+    line-height: 1.32;
+  }
+
+  /* PAGES 3-8 SPECIFIC STYLES (DASHBOARD SCREENSHOTS) */
+  .p-dash-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 7px;
+  }
+
+  .dash-caption-group h1 {
+    font-size: 16.5px;
+    color: #222222;
+    line-height: 1.15;
+  }
+
+  .dash-caption-group p {
+    font-size: 10px;
+    color: #767676;
+    margin-top: 1px;
+  }
+
+  .dash-view-pill {
+    font-size: 9px;
+    font-weight: 600;
+    background: #FFFFFF;
+    border: 1px solid #E0E0E0;
+    padding: 3px 8px;
+    border-radius: 9999px;
+    color: #484848;
+  }
+
+  .screenshot-frame {
+    background: #FFFFFF;
+    border: 1px solid #E0E0E0;
+    border-radius: 12px;
+    padding: 7px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.04);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 7px;
+    flex-grow: 1;
+    overflow: hidden;
+  }
+
+  .screenshot-frame img {
     width: 100%;
     height: 100%;
     object-fit: contain;
+    border-radius: 7px;
     display: block;
-    border-radius: 5px;
+    border: 1px solid #2A2E39;
   }
 </style>
 </head>
 <body>
 
-<!-- ================= PAGE 1: HOW IT WORKS ================= -->
-<div class="page">
-  <div class="header-row">
-    <div class="brand-group">
-      <div class="brand-badge">OA</div>
-      <div class="brand-title-area">
-        <h1>Options<span>Agent</span></h1>
-        <div class="subtitle">Autonomous Paper-Trading System Architecture and Operational Rules</div>
-      </div>
-    </div>
-    <div class="chips-group">
-      <div class="status-chip chip-green">PAPER ONLY ($100K)</div>
-      <div class="status-chip chip-blue">TWO ENGINES</div>
-      <div class="status-chip chip-neutral">RUNS ON THIS MAC</div>
-      <div class="status-chip chip-amber">LLM NEVER PICKS STRIKES</div>
-    </div>
-  </div>
-
-  <div class="lede-banner">
-    OptionsAgent trades a defined-risk options framework on a <b>$100,000 Alpaca paper account</b> (re-funded Aug 28, 2026).
-    The system runs two completely isolated engines: <span class="highlight-blue"><b>Engine 1</b> (Credit-Spread Seller)</span> sells 30 to 45 DTE vertical spreads across 13 liquid underlyings under $50, where Claude proposes directional conviction while fixed Python rails select all strikes, deltas, and sizing; and <span class="highlight-green"><b>Engine 2</b> (0DTE ORB Scalper)</span> trades pure momentum breakouts on SPY and QQQ intraday with zero LLM involvement.
-  </div>
-
-  <div class="section-label label-e1">
-    <span>Engine 1 Execution Pipeline (Daily Seller, 10:15 to 10:27 ET)</span>
-    <span>Deterministic Rails and Winner Gate</span>
-  </div>
-
-  <div class="pipe-grid">
-    <div class="pipe-step">
-      <div class="step-num">STEP 01</div>
-      <div class="step-title">Cron Wakes It</div>
-      <div class="step-desc">Runs weekdays <b>10:15 to 10:27 ET</b> via local crontab with an atomic once-per-day lock file. Fails closed if the broker clock check fails or market is closed.</div>
-    </div>
-    <div class="pipe-step">
-      <div class="step-num">STEP 02</div>
-      <div class="step-title">Chain Snapshot</div>
-      <div class="step-desc">Archives full option chains (quotes, IV, greeks) for all <i>13 watchlist names</i> to disk and builds a structured market context bundle per symbol.</div>
-    </div>
-    <div class="pipe-step special">
-      <div class="step-num">STEP 03</div>
-      <div class="step-title">Claude Proposes</div>
-      <div class="step-desc">Local Claude Code CLI (<i>sonnet</i>, no tools, no web) proposes only <b>ticker, direction, conviction (0 to 1), and thesis</b>. Strikes and size are strictly banned.</div>
-    </div>
-    <div class="pipe-step">
-      <div class="step-num">STEP 04</div>
-      <div class="step-title">Rails Sizing Gate</div>
-      <div class="step-desc">Conviction floor <b>0.60</b> (below = veto), max <b>6 positions</b>, phase allowlist. Sizing scales linearly from <b>30% to 100%</b> of free options buying power.</div>
-    </div>
-    <div class="pipe-step">
-      <div class="step-num">STEP 05</div>
-      <div class="step-title">Contract Selection</div>
-      <div class="step-desc">Short leg <b>15 to 30 delta</b>, width capped at <b>$2.00</b>, <b>30 to 45 DTE</b>. Put spread if bullish, call spread if bearish. Single MLEG combo limit order (prefix <i>oa-</i>).</div>
-    </div>
-    <div class="pipe-step winner-hero">
-      <div class="step-num">STEP 06</div>
-      <div class="step-title">Winner Profile Gate</div>
-      <div class="step-desc">Spread must match replayed winners: <span class="g">CCL put</span> (credit &ge; $0.29, width &ge; $1.50), <span class="g">SOFI put</span> (credit &ge; $0.23, width &ge; $1.00), or <span class="g">F call</span> (credit &ge; $0.06, width &le; $0.50).</div>
-    </div>
-  </div>
-
-  <div class="engine-strips">
-    <div class="strip-panel strip-e1">
-      <div class="strip-head">
-        <span class="strip-title">Engine 1 Exit Sweep (Every 20 Min During Market Hours, No LLM)</span>
-        <span class="strip-tag">SELLER EXITS</span>
-      </div>
-      <div class="strip-body">
-        Profit target at <span class="kw-blue">50% of credit received</span>; stop loss at <span class="kw-amber">2x credit</span> evaluated only from 10:00 ET and requiring <span class="kw-amber">two consecutive sweeps to confirm</span> (protects against transient wide quotes); mandatory force close at <span class="kw-blue">21 DTE</span>; and proactive dividend checks closing short calls prior to ex-dates. Worst case per spread is width minus credit (~$200), bounding 6 positions near $1,200 (1.2% account risk).
-      </div>
-    </div>
-
-    <div class="strip-panel strip-e2">
-      <div class="strip-head">
-        <span class="strip-title">Engine 2 0DTE ORB Scalper (Armed Aug 28, 12:25 ET, No LLM)</span>
-        <span class="strip-tag">SCALPER INTRADAY</span>
-      </div>
-      <div class="strip-body">
-        Fully isolated (own state, registry, prefix <i>oas-</i>). Trades <span class="kw-green">0DTE ATM SPY and QQQ</span> on 09:30 to 09:33 ET opening range breakout. Requires 1-min bar close outside range with <span class="kw-green">volume &ge; 1.5x session avg</span>, confirmed by next bar and VWAP. Fixed <b>$250/trade</b>, max 2/day, 1 open, no entries at/after <b>11:30 ET</b>. Exits: +50% target, -30% stop (-60% if thesis holds), 15-min theta cut, mandatory <span class="kw-green">15:50 ET flatten</span>. Split feeds: SIP data key plus Public.com chain sidecar.
-      </div>
-    </div>
-  </div>
-
-  <div class="p1-lower-grid">
-    <div class="panel-card">
-      <h3>Key Governing Parameters</h3>
-      <div class="kv-table">
-        <div class="kv-row"><span class="kv-key">Account Equity</span><span class="kv-val g">$100,000 (Alpaca Paper)</span></div>
-        <div class="kv-row"><span class="kv-key">Seller Conviction Floor</span><span class="kv-val">0.60 (below = veto)</span></div>
-        <div class="kv-row"><span class="kv-key">Seller Sizing Scale</span><span class="kv-val">30% to 100% of free BP</span></div>
-        <div class="kv-row"><span class="kv-key">Max Concurrent Spreads</span><span class="kv-val">6 positions (bound ~$1.2k)</span></div>
-        <div class="kv-row"><span class="kv-key">Spread Rails</span><span class="kv-val a">Delta 15-30, Width &le; $2, 30-45 DTE</span></div>
-        <div class="kv-row"><span class="kv-key">Seller Exits</span><span class="kv-val b">50% gain, 2x stop (2 sweeps), 21 DTE</span></div>
-        <div class="kv-row"><span class="kv-key">Scalper Allocation</span><span class="kv-val g">$250 / trade, max 2 / day</span></div>
-        <div class="kv-row"><span class="kv-key">Scalper Cutoffs</span><span class="kv-val a">No entry &ge; 11:30, flat 15:50 ET</span></div>
-      </div>
-    </div>
-
-    <div class="panel-card">
-      <h3>Watchlist and Rails</h3>
-      <div class="watchlist-grid">
-        <span class="ticker-chip">F</span><span class="ticker-chip">T</span><span class="ticker-chip">PFE</span>
-        <span class="ticker-chip">VZ</span><span class="ticker-chip">CMCSA</span><span class="ticker-chip">KVUE</span>
-        <span class="ticker-chip">SOFI</span><span class="ticker-chip">CCL</span><span class="ticker-chip">AAL</span>
-        <span class="ticker-chip">WBD</span><span class="ticker-chip">MARA</span><span class="ticker-chip">EWZ</span>
-        <span class="ticker-chip">KWEB</span>
-      </div>
-      <div class="never-list">
-        <div class="never-item">Let model output choose strikes, expiries, or order size</div>
-        <div class="never-item">Loosen any risk rail via config (env vars may only tighten)</div>
-        <div class="never-item">Route live-money orders (broker client refuses non-paper)</div>
-        <div class="never-item">Enter scalps after 11:30 ET or hold 0DTE past 15:50 ET</div>
-      </div>
-    </div>
-
-    <div class="panel-card card-today">
-      <h3>A Real Day (Aug 28, 2026)</h3>
-      <div class="today-text">
-        Claude proposed <b>8 credit spreads</b> (T, CMCSA, WBD, VZ, PFE, MARA, CCL, AAL). Deterministic rails executed <span class="stat-skip">0</span>: 3 found no contract matching delta, width, and credit rules; 5 failed the winner profile gate. Meanwhile, the exit sweep closed July's SOFI spread for <span class="stat-win">+$26.58</span>. Vetoing non-compliant setups is the system working as designed. The 0DTE scalper was armed at 12:25 ET after verifying sub-minute SIP feeds; its first live entry window is Monday 09:33 ET.
-      </div>
-    </div>
-  </div>
-
-  <div class="doc-footer">
-    <div class="doc-notice">OptionsAgent explainer, built from the code and live account, Aug 28 2026</div>
-    <div class="page-num">page 1 of 8</div>
-  </div>
-</div>
-
-<!-- ================= PAGE 2: FAQ ================= -->
-<div class="page">
-  <div class="faq-header">
+  <!-- PAGE 1: OVERVIEW -->
+  <div class="page">
     <div>
-      <h2>Frequently Asked Questions</h2>
-      <div class="faq-sub">Operational mechanics, risk constraints, and architectural safeguards verified directly from the code.</div>
+      <!-- Header -->
+      <div class="p1-header">
+        <div class="p1-title-group">
+          <div class="logo-badge">OA</div>
+          <div class="p1-title-text">
+            <h1>OptionsAgent</h1>
+            <p>Automated options execution system running two deterministic engines</p>
+          </div>
+        </div>
+        <div class="p1-pills">
+          <span class="pill"><span class="dot dot-green"></span>$100,000 Paper Account</span>
+          <span class="pill"><span class="dot dot-coral"></span>Credit Seller (10:15 ET)</span>
+          <span class="pill"><span class="dot dot-teal"></span>0DTE Scalper (Armed)</span>
+          <span class="pill"><span class="dot dot-green"></span>Deterministic Rails</span>
+        </div>
+      </div>
+
+      <!-- Lede -->
+      <div class="p1-lede">
+        Two distinct engines run side by side on a single $100,000 Alpaca paper account. Claude proposes candidate trade ideas while deterministic Python code enforces every risk gate, sizing rule, and order parameter. Most days nothing trades, and that is by design.
+      </div>
+
+      <!-- Two Engine Cards -->
+      <div class="p1-engines">
+        <!-- Engine 1 Card -->
+        <div class="engine-card seller-card">
+          <div>
+            <div class="engine-header">
+              <div>
+                <div class="engine-name">Engine 1, Credit-Spread Seller</div>
+                <div class="engine-timing">Weekdays 10:15 to 10:27 ET (Once daily, locked window)</div>
+              </div>
+              <span class="pill pill-coral">Daily Swing</span>
+            </div>
+
+            <ul class="engine-bullets seller-bullets">
+              <li>Claude proposes ticker, direction, conviction (0.0 to 1.0), and thesis; Python selects strikes, deltas, and sizing.</li>
+              <li>Sells 30 to 45 DTE credit spreads (15 to 30 delta, max $2.00 width) on a 13-ticker liquid watchlist.</li>
+              <li>Winner profile gate vetoes setups unless matching hard-coded CCL put, SOFI put, or F call criteria.</li>
+              <li>Automated 20-min sweeps: 50% profit, 2x credit stop (confirmed across two sweeps), or 21 DTE close.</li>
+            </ul>
+          </div>
+
+          <div>
+            <div class="stat-tiles">
+              <div class="stat-tile">
+                <div class="stat-value">$2.00</div>
+                <div class="stat-label">Max Width</div>
+              </div>
+              <div class="stat-tile">
+                <div class="stat-value">6</div>
+                <div class="stat-label">Max Open</div>
+              </div>
+              <div class="stat-tile">
+                <div class="stat-value">30% to 100%</div>
+                <div class="stat-label">Sizing Scale</div>
+              </div>
+            </div>
+
+            <div class="pipeline-container">
+              <div class="pipeline-title">Execution Lifecycle</div>
+              <div class="pipeline-steps">
+                <div class="pipeline-step">1. Claude Idea</div>
+                <div class="pipeline-step">2. Profile Gate</div>
+                <div class="pipeline-step">3. Combo Limit</div>
+                <div class="pipeline-step">4. 20m Sweeps</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Engine 2 Card -->
+        <div class="engine-card scalper-card">
+          <div>
+            <div class="engine-header">
+              <div>
+                <div class="engine-name">Engine 2, 0DTE Scalper</div>
+                <div class="engine-timing">Every minute 09:33 to 15:59 ET (Entries cut off at 11:30 ET)</div>
+              </div>
+              <span class="pill pill-teal">Intraday Momentum</span>
+            </div>
+
+            <ul class="engine-bullets scalper-bullets">
+              <li>Zero LLM dependency; pure deterministic opening range breakout (ORB) on SPY and QQQ same-day contracts.</li>
+              <li>Enters on 1-min close outside 09:30 to 09:33 range with 1.5x volume, confirmed by next bar and VWAP.</li>
+              <li>Strict caps: $250 fixed per trade, max 2 trades daily, one open at a time, no entries at/after 11:30 ET.</li>
+              <li>Fast exits: +50% target, -30% to -60% trailing stop, 15-min theta cut, and mandatory 15:50 ET flat.</li>
+            </ul>
+          </div>
+
+          <div>
+            <div class="stat-tiles">
+              <div class="stat-tile">
+                <div class="stat-value">$250</div>
+                <div class="stat-label">Fixed Risk</div>
+              </div>
+              <div class="stat-tile">
+                <div class="stat-value">2 / Day</div>
+                <div class="stat-label">Trade Cap</div>
+              </div>
+              <div class="stat-tile">
+                <div class="stat-value">15:50 ET</div>
+                <div class="stat-label">Mandatory Flat</div>
+              </div>
+            </div>
+
+            <div class="pipeline-container">
+              <div class="pipeline-title">Execution Lifecycle</div>
+              <div class="pipeline-steps">
+                <div class="pipeline-step">1. 3m Range</div>
+                <div class="pipeline-step">2. VWAP Break</div>
+                <div class="pipeline-step">3. $250 ATM Buy</div>
+                <div class="pipeline-step">4. Fast Exits</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Today Strip -->
+      <div class="today-strip">
+        <div class="today-header">
+          <span class="today-badge">Live Status</span>
+          <span class="today-title">Today, Aug 28 Live Account Log</span>
+        </div>
+        <div class="today-lines">
+          <div class="today-line">
+            <span class="today-line-dot"></span>
+            <span>Claude proposed 8 spreads; the rails executed 0 (3 no matching contract, 5 failed the winner profile). Vetoing everything is the system working.</span>
+          </div>
+          <div class="today-line">
+            <span class="today-line-dot"></span>
+            <span>The exit sweep closed July's SOFI spread for +$26.58.</span>
+          </div>
+          <div class="today-line">
+            <span class="today-line-dot"></span>
+            <span>The scalper was armed at 12:25 ET after its data feed was verified real-time to the minute.</span>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="chips-group">
-      <div class="status-chip chip-blue">ENGINE 1 RAILS</div>
-      <div class="status-chip chip-green">ENGINE 2 SCALPER</div>
-      <div class="status-chip chip-amber">FAIL-CLOSED DESIGN</div>
+
+    <!-- Footer -->
+    <div class="page-footer">
+      <span>OptionsAgent explainer, built from the code and live account, Aug 28 2026</span>
+      <span>page 1 of 8</span>
     </div>
   </div>
 
-  <div class="faq-grid">
-    <!-- Column 1: Questions 1 to 4 -->
-    <div class="faq-column">
-      <div class="faq-card">
-        <div class="faq-q"><span class="faq-q-num">Q1</span>Is this real money?</div>
-        <div class="faq-a">No. OptionsAgent operates strictly on an Alpaca paper account (<span class="mono">$100,000</span> balance, re-funded Aug 28, 2026). The Python broker client validates environment keys at startup and unconditionally refuses non-paper endpoints. No live capital is ever at risk.</div>
+  <!-- PAGE 2: RULES AND FAQ -->
+  <div class="page">
+    <div>
+      <!-- Header -->
+      <div class="p2-header">
+        <h1>The rules and the FAQ</h1>
+        <p>Deterministic guardrails, in-sample winner filters, and architectural answers.</p>
       </div>
 
-      <div class="faq-card">
-        <div class="faq-q"><span class="faq-q-num">Q2</span>What exactly does the LLM control?</div>
-        <div class="faq-a">The local Claude Code CLI (<span class="mono">sonnet</span>) acts solely as a directional idea generator. It receives an isolated JSON bundle and proposes only <span class="mono">{underlying, direction, conviction, thesis}</span>. Output is schema-validated; the LLM cannot name strikes, deltas, or sizes. Parsing failure yields zero trades. The scalper uses no LLM at all.</div>
+      <!-- Top Strip: Watchlist + Invariants -->
+      <div class="p2-top-strip">
+        <div class="strip-card">
+          <div class="strip-card-title">
+            <span class="dot dot-coral"></span>Watchlist (13 Liquid Underlyings)
+          </div>
+          <div class="tickers-grid">
+            <span class="ticker-chip">F</span>
+            <span class="ticker-chip">T</span>
+            <span class="ticker-chip">PFE</span>
+            <span class="ticker-chip">VZ</span>
+            <span class="ticker-chip">CMCSA</span>
+            <span class="ticker-chip">KVUE</span>
+            <span class="ticker-chip">SOFI</span>
+            <span class="ticker-chip">CCL</span>
+            <span class="ticker-chip">AAL</span>
+            <span class="ticker-chip">WBD</span>
+            <span class="ticker-chip">MARA</span>
+            <span class="ticker-chip">EWZ</span>
+            <span class="ticker-chip">KWEB</span>
+          </div>
+          <div class="strip-note">Selected for low share price, high liquidity, and tight bid-ask spreads.</div>
+        </div>
+
+        <div class="strip-card">
+          <div class="strip-card-title">
+            <span class="dot dot-teal"></span>The Four "Never" Rules
+          </div>
+          <ul class="rules-list">
+            <li><span class="rule-tag">Invariant</span> Never let model output pick a strike, delta, or expiration.</li>
+            <li><span class="rule-tag">Invariant</span> Never loosen a rail by editing config (env vars may only tighten).</li>
+            <li><span class="rule-tag">Invariant</span> Never place a live-money order.</li>
+            <li><span class="rule-tag">Invariant</span> Never buy options after an extended move (anti-chase rule).</li>
+          </ul>
+        </div>
       </div>
 
-      <div class="faq-card">
-        <div class="faq-q"><span class="faq-q-num">Q3</span>Why credit spreads?</div>
-        <div class="faq-a">Day-one operational testing with a single-leg MARA long put suffered severe theta decay, losing 37.6% of premium. The architecture pivoted to defined-risk credit spreads, capturing positive time decay while capping maximum loss to spread width minus credit.</div>
-      </div>
+      <!-- 12 FAQ Cards in 3x4 Grid -->
+      <div class="faq-grid">
+        <!-- Q1 -->
+        <div class="faq-card">
+          <div class="faq-q">1. Is this real money?</div>
+          <div class="faq-a">No, Alpaca paper only. The code refuses non-paper endpoints at startup and connection time.</div>
+        </div>
 
-      <div class="faq-card">
-        <div class="faq-q"><span class="faq-q-num">Q4</span>How does sizing work?</div>
-        <div class="faq-a">Position budget is a conviction-scaled share of available options buying power. At the <span class="mono">0.60</span> conviction floor, sizing receives 30% of free BP, scaling linearly to 100% at <span class="mono">0.85+</span>. Contracts equal budget divided by (width &times; 100). If budget yields under 1 contract, the trade is skipped.</div>
+        <!-- Q2 -->
+        <div class="faq-card">
+          <div class="faq-q">2. What exactly does the LLM control?</div>
+          <div class="faq-a">The idea only (ticker, direction, conviction, thesis). Output is schema-checked; malformed data is dropped. The scalper uses no LLM at all.</div>
+        </div>
+
+        <!-- Q3 -->
+        <div class="faq-card">
+          <div class="faq-q">3. Why credit spreads?</div>
+          <div class="faq-a">Day one a MARA long put lost 37.6% of its premium in a session. The bot pivoted to selling defined-risk premium with a width-capped worst case.</div>
+        </div>
+
+        <!-- Q4 -->
+        <div class="faq-card">
+          <div class="faq-q">4. How does sizing work?</div>
+          <div class="faq-a">Conviction-scaled share of free buying power; 30% at the 0.60 floor to 100% at 0.85+. If sizing falls below one contract, the trade is skipped.</div>
+        </div>
+
+        <!-- Q5 -->
+        <div class="faq-card">
+          <div class="faq-q">5. 100% of buying power sounds aggressive.</div>
+          <div class="faq-a">Deliberate policy. The brakes are the $2 width cap, 6 positions, broker margin rejection, and a tighten-only kill switch (OA_MAX_POSITION_USD).</div>
+        </div>
+
+        <!-- Q6 -->
+        <div class="faq-card">
+          <div class="faq-q">6. What is the winner profile gate?</div>
+          <div class="faq-a">Three replayed winners (CCL put spread, SOFI put spread, F call spread), hard-coded and fail-closed. A frozen in-sample profile held unchanged to collect honest out-of-sample evidence.</div>
+        </div>
+
+        <!-- Q7 -->
+        <div class="faq-card">
+          <div class="faq-q">7. Walk me through the exits.</div>
+          <div class="faq-a">Seller: 50% profit, 2x credit stop confirmed across two sweeps starting 10:00 ET, 21 DTE close, dividend check. Scalper: +50% target, -30% or -60% stop, 15-minute theta cut, 15:50 flatten.</div>
+        </div>
+
+        <!-- Q8 -->
+        <div class="faq-card">
+          <div class="faq-q">8. Assignment and overnight gap risk?</div>
+          <div class="faq-a">Verticals are defined risk; max loss is width minus credit. The stop is loss control, not a guarantee. Worst day near $1,200. The scalper never holds overnight.</div>
+        </div>
+
+        <!-- Q9 -->
+        <div class="faq-card">
+          <div class="faq-q">9. Is there a daily loss limit?</div>
+          <div class="faq-a">The seller has none, relying on structural position brakes. The scalper is bounded at 2 x $250 before exits, with an optional emergency halt switch.</div>
+        </div>
+
+        <!-- Q10 -->
+        <div class="faq-card">
+          <div class="faq-q">10. What does the 0DTE scalper actually do?</div>
+          <div class="faq-a">Watches SPY and QQQ 09:30 to 09:33 range. Enters on 1-minute close outside range on 1.5x volume, confirmed by next bar and VWAP. Buys $250 ATM contracts, exiting on targets, stops, 15-minute theta, or 15:50 ET.</div>
+        </div>
+
+        <!-- Q11 -->
+        <div class="faq-card">
+          <div class="faq-q">11. How do I know what it did on any given day?</div>
+          <div class="faq-a">Read-only local dashboard at 127.0.0.1:8765, plus data/decisions.jsonl and data/structures.jsonl for the seller, data/scalp_decisions.jsonl and data/scalp_positions.jsonl for the scalper.</div>
+        </div>
+
+        <!-- Q12 -->
+        <div class="faq-card">
+          <div class="faq-q">12. What stops a bug from doing something catastrophic?</div>
+          <div class="faq-a">Rails hard-coded in Python, env may only tighten. Broker client refuses non-paper, entry windows are locked, sweeps reconcile live registries, and the scalper force-flattens at 15:50 ET and re-adopts orphans.</div>
+        </div>
       </div>
     </div>
 
-    <!-- Column 2: Questions 5 to 8 -->
-    <div class="faq-column">
-      <div class="faq-card">
-        <div class="faq-q"><span class="faq-q-num">Q5</span>100% of buying power sounds aggressive.</div>
-        <div class="faq-a">It is deliberate operator policy: "use all the cash, not necessarily all at once." Structural brakes prevent reckless exposure: $2.00 maximum spread width (~$200 loss cap), 6-position ceiling, broker BP rejection, and an optional tighten-only kill switch (<span class="mono">OA_MAX_POSITION_USD</span>).</div>
-      </div>
-
-      <div class="faq-card">
-        <div class="faq-q"><span class="faq-q-num">Q6</span>What is the winner profile gate?</div>
-        <div class="faq-a">Historical replay of July fills isolated three profitable setups: <span class="kw-green">CCL bullish puts</span> (credit &ge; $0.29, width &ge; $1.50), <span class="kw-green">SOFI bullish puts</span> (credit &ge; $0.23, width &ge; $1.00), and <span class="kw-blue">F bearish calls</span> (credit &ge; $0.06, width &le; $0.50). All other proposals fail closed. This is a deliberate in-sample overfit frozen to gather clean out-of-sample evidence.</div>
-      </div>
-
-      <div class="faq-card">
-        <div class="faq-q"><span class="faq-q-num">Q7</span>Walk me through the exits.</div>
-        <div class="faq-a">Seller: 20-min sweeps without LLM enforce ex-dividend risk checks first, <span class="kw-blue">50% profit target</span>, <span class="kw-amber">2x credit stop</span> (evaluated from 10:00 ET and confirmed across 2 consecutive sweeps to prevent bad-tick stops), and <span class="kw-blue">21 DTE force close</span>. Scalper: +50% target, -30% stop (-60% if breakout intact), 15-min theta cut, and mandatory 15:50 ET flatten.</div>
-      </div>
-
-      <div class="faq-card">
-        <div class="faq-q"><span class="faq-q-num">Q8</span>Assignment and overnight gap risk?</div>
-        <div class="faq-a">Verticals are defined-risk: max loss is width minus credit regardless of assignment mechanics. The 2x stop is a loss control, not a guarantee. An overnight gap through short strikes costs the full width (~$200/spread). Six positions bound worst-case catastrophic loss near $1,200 (1.2% of account). Scalper never holds overnight.</div>
-      </div>
-    </div>
-
-    <!-- Column 3: Questions 9 to 12 -->
-    <div class="faq-column">
-      <div class="faq-card">
-        <div class="faq-q"><span class="faq-q-num">Q9</span>Is there a daily loss limit?</div>
-        <div class="faq-a">Seller: no dedicated loss cap, as risk is bounded structurally by the $2 width limit, 6 positions, single entry window, and winner gate. Scalper: strictly bounded to 2 trades of $250 each ($500 max daily risk before exits). An emergency halt can be re-enabled via environment variables.</div>
-      </div>
-
-      <div class="faq-card scalp-card">
-        <div class="faq-q"><span class="faq-q-num">Q10</span>What does the 0DTE scalper actually do?</div>
-        <div class="faq-a">Engine 2 is a fully isolated system (prefix <span class="mono">oas-</span>, zero LLM) trading 0DTE ATM SPY and QQQ. It marks the 09:30 to 09:33 ET opening range, entering on 1-min breakout with volume &ge; 1.5x avg confirmed by the next bar and VWAP. $250/trade, max 2/day, 1 open, no entries &ge; 11:30 ET (12 of 12 historical late entries lost), mandatory flatten at 15:50 ET.</div>
-      </div>
-
-      <div class="faq-card">
-        <div class="faq-q"><span class="faq-q-num">Q11</span>How do I know what it did on any given day?</div>
-        <div class="faq-a">Through the read-only dashboard at <span class="mono">127.0.0.1:8765</span> and structured JSONL logs: <span class="mono">data/decisions.jsonl</span> (every proposal and veto reason), <span class="mono">data/structures.jsonl</span> (open/closed credit spreads), plus <span class="mono">data/scalp_decisions.jsonl</span> and <span class="mono">data/scalp_positions.jsonl</span> for intraday scalps.</div>
-      </div>
-
-      <div class="faq-card">
-        <div class="faq-q"><span class="faq-q-num">Q12</span>What stops a bug from doing something catastrophic?</div>
-        <div class="faq-a">Hard-coded Python rails (env can only tighten constraints), broker client refusing non-paper endpoints, single locked daily entry window, exit sweeps reconciling local registry against broker positions with alerts on vanished legs, and scalper force-flattening at 15:50 ET while auto-recovering orphaned positions.</div>
-      </div>
+    <!-- Footer -->
+    <div class="page-footer">
+      <span>OptionsAgent explainer, built from the code and live account, Aug 28 2026</span>
+      <span>page 2 of 8</span>
     </div>
   </div>
 
-  <div class="doc-footer">
-    <div class="doc-notice">OptionsAgent explainer, built from the code and live account, Aug 28 2026</div>
-    <div class="page-num">page 2 of 8</div>
-  </div>
-</div>
+  <!-- PAGE 3: DASHBOARD OVERVIEW -->
+  <div class="page">
+    <div>
+      <div class="p-dash-header">
+        <div class="dash-caption-group">
+          <h1>Overview &amp; Portfolio State</h1>
+          <p>Real-time account balance, daily P&amp;L curve, engine status badges, and capital utilization.</p>
+        </div>
+        <span class="dash-view-pill">Dashboard View 1 of 6</span>
+      </div>
 
-<!-- ================= PAGE 3: DASHBOARD 1 (OVERVIEW) ================= -->
-<div class="page">
-  <div class="dash-head">
-    <span class="dash-index">Dashboard 1 of 6</span>
-    <span class="dash-title">Overview</span>
-    <span class="dash-caption">Executive cockpit displaying daily P/L, open spreads against the 6-position cap, available options buying power, active winner profile rules, equity curve ($100k re-fund), daily P/L bars, and closed trades.</span>
-  </div>
-  <div class="dash-frame">
-    <img src="dash_overview.png" alt="OptionsAgent Overview Dashboard">
-  </div>
-  <div class="doc-footer">
-    <div class="doc-notice">OptionsAgent explainer, built from the code and live account, Aug 28 2026</div>
-    <div class="page-num">page 3 of 8</div>
-  </div>
-</div>
+      <div class="screenshot-frame">
+        <img src="dash_overview.png" alt="Dashboard Overview">
+      </div>
+    </div>
 
-<!-- ================= PAGE 4: DASHBOARD 2 (POSITIONS) ================= -->
-<div class="page">
-  <div class="dash-head">
-    <span class="dash-index">Dashboard 2 of 6</span>
-    <span class="dash-title">Positions</span>
-    <span class="dash-caption">Live Alpaca paper positions continuously reconciled against the local structure registry. An empty state represents disciplined execution when proposals fail the winner profile gate.</span>
+    <div class="page-footer">
+      <span>OptionsAgent explainer, built from the code and live account, Aug 28 2026</span>
+      <span>page 3 of 8</span>
+    </div>
   </div>
-  <div class="dash-frame">
-    <img src="dash_positions.png" alt="OptionsAgent Positions Dashboard">
-  </div>
-  <div class="doc-footer">
-    <div class="doc-notice">OptionsAgent explainer, built from the code and live account, Aug 28 2026</div>
-    <div class="page-num">page 4 of 8</div>
-  </div>
-</div>
 
-<!-- ================= PAGE 5: DASHBOARD 3 (TRADE HISTORY) ================= -->
-<div class="page">
-  <div class="dash-head">
-    <span class="dash-index">Dashboard 3 of 6</span>
-    <span class="dash-title">Trade History</span>
-    <span class="dash-caption">Immutable audit log of closed multi-leg structures with entry and exit timestamps, holding durations, and realized P/L, including July learning losses and the Aug 28 SOFI winner (+$26.58).</span>
-  </div>
-  <div class="dash-frame">
-    <img src="dash_trades.png" alt="OptionsAgent Trade History Dashboard">
-  </div>
-  <div class="doc-footer">
-    <div class="doc-notice">OptionsAgent explainer, built from the code and live account, Aug 28 2026</div>
-    <div class="page-num">page 5 of 8</div>
-  </div>
-</div>
+  <!-- PAGE 4: DASHBOARD POSITIONS -->
+  <div class="page">
+    <div>
+      <div class="p-dash-header">
+        <div class="dash-caption-group">
+          <h1>Active Positions Registry</h1>
+          <p>Open credit spreads and intraday scalps with mark-to-market prices, credit collected, and DTE tracking.</p>
+        </div>
+        <span class="dash-view-pill">Dashboard View 2 of 6</span>
+      </div>
 
-<!-- ================= PAGE 6: DASHBOARD 4 (RESEARCH) ================= -->
-<div class="page">
-  <div class="dash-head">
-    <span class="dash-index">Dashboard 4 of 6</span>
-    <span class="dash-title">Research</span>
-    <span class="dash-caption">Empirical replay studies supporting operational parameters: the 11:30 ET scalp entry cutoff (12 of 12 late entries lost), winner profile mining, and the in-sample P/L (+$345 on 12 trades) behind the gate.</span>
-  </div>
-  <div class="dash-frame">
-    <img src="dash_research.png" alt="OptionsAgent Research Dashboard">
-  </div>
-  <div class="doc-footer">
-    <div class="doc-notice">OptionsAgent explainer, built from the code and live account, Aug 28 2026</div>
-    <div class="page-num">page 6 of 8</div>
-  </div>
-</div>
+      <div class="screenshot-frame">
+        <img src="dash_positions.png" alt="Dashboard Positions">
+      </div>
+    </div>
 
-<!-- ================= PAGE 7: DASHBOARD 5 (RISK RAILS) ================= -->
-<div class="page">
-  <div class="dash-head">
-    <span class="dash-index">Dashboard 5 of 6</span>
-    <span class="dash-title">Risk Rails</span>
-    <span class="dash-caption">Live inspection of all deterministic risk limits compiled from the Python harness: seller conviction floor, sizing curve, 6-position cap, 21 DTE close, and scalper per-trade budget and daily caps.</span>
+    <div class="page-footer">
+      <span>OptionsAgent explainer, built from the code and live account, Aug 28 2026</span>
+      <span>page 4 of 8</span>
+    </div>
   </div>
-  <div class="dash-frame">
-    <img src="dash_risk.png" alt="OptionsAgent Risk Rails Dashboard">
-  </div>
-  <div class="doc-footer">
-    <div class="doc-notice">OptionsAgent explainer, built from the code and live account, Aug 28 2026</div>
-    <div class="page-num">page 7 of 8</div>
-  </div>
-</div>
 
-<!-- ================= PAGE 8: DASHBOARD 6 (SYSTEM) ================= -->
-<div class="page">
-  <div class="dash-head">
-    <span class="dash-index">Dashboard 6 of 6</span>
-    <span class="dash-title">System and Runtime</span>
-    <span class="dash-caption">Live process monitor verifying entry crontab (10:15 to 10:27 ET), 20-min exit sweeps, every-minute 0DTE scalper ticks, Public.com sidecar quotes, real-time SIP data feed keys, and paper enforcement.</span>
+  <!-- PAGE 5: DASHBOARD TRADES -->
+  <div class="page">
+    <div>
+      <div class="p-dash-header">
+        <div class="dash-caption-group">
+          <h1>Trade History &amp; Executions</h1>
+          <p>Historical audit ledger of filled combo orders, realized gains and losses, fill prices, and automated exit triggers.</p>
+        </div>
+        <span class="dash-view-pill">Dashboard View 3 of 6</span>
+      </div>
+
+      <div class="screenshot-frame">
+        <img src="dash_trades.png" alt="Dashboard Trades">
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <span>OptionsAgent explainer, built from the code and live account, Aug 28 2026</span>
+      <span>page 5 of 8</span>
+    </div>
   </div>
-  <div class="dash-frame">
-    <img src="dash_system.png" alt="OptionsAgent System Dashboard">
+
+  <!-- PAGE 6: DASHBOARD RESEARCH -->
+  <div class="page">
+    <div>
+      <div class="p-dash-header">
+        <div class="dash-caption-group">
+          <h1>LLM Proposals &amp; Market Context</h1>
+          <p>Claude's daily candidate trade suggestions, macro summaries, directional conviction scores, and generated theses.</p>
+        </div>
+        <span class="dash-view-pill">Dashboard View 4 of 6</span>
+      </div>
+
+      <div class="screenshot-frame">
+        <img src="dash_research.png" alt="Dashboard Research">
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <span>OptionsAgent explainer, built from the code and live account, Aug 28 2026</span>
+      <span>page 6 of 8</span>
+    </div>
   </div>
-  <div class="doc-footer">
-    <div class="doc-notice">OptionsAgent explainer, built from the code and live account, Aug 28 2026</div>
-    <div class="page-num">page 8 of 8</div>
+
+  <!-- PAGE 7: DASHBOARD RISK -->
+  <div class="page">
+    <div>
+      <div class="p-dash-header">
+        <div class="dash-caption-group">
+          <h1>Risk Matrix &amp; Winner Profile Gates</h1>
+          <p>Real-time evaluation of conviction floors, buying power allocations, concentration limits, and in-sample profile vetoes.</p>
+        </div>
+        <span class="dash-view-pill">Dashboard View 5 of 6</span>
+      </div>
+
+      <div class="screenshot-frame">
+        <img src="dash_risk.png" alt="Dashboard Risk">
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <span>OptionsAgent explainer, built from the code and live account, Aug 28 2026</span>
+      <span>page 7 of 8</span>
+    </div>
   </div>
-</div>
+
+  <!-- PAGE 8: DASHBOARD SYSTEM -->
+  <div class="page">
+    <div>
+      <div class="p-dash-header">
+        <div class="dash-caption-group">
+          <h1>System Health, Cron &amp; Feed Status</h1>
+          <p>Feed latency monitors, cron execution timers, Alpaca API heartbeat, sidecar connectivity, and event audit trails.</p>
+        </div>
+        <span class="dash-view-pill">Dashboard View 6 of 6</span>
+      </div>
+
+      <div class="screenshot-frame">
+        <img src="dash_system.png" alt="Dashboard System">
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <span>OptionsAgent explainer, built from the code and live account, Aug 28 2026</span>
+      <span>page 8 of 8</span>
+    </div>
+  </div>
 
 </body>
 </html>
