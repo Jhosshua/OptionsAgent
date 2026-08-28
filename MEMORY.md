@@ -704,3 +704,15 @@ Most mds above are historical. Verified from code + live runtime today:
 - Explainer PDF updated throughout (scalper strip, key numbers, FAQ, ARMED chip).
 - Other SIP-entitled keys on this machine (SIP-403 test 08-28): AKZZZ5 (MTEdge1, LIVE key, avoid),
   PKA6ON (DriftShort, also serves SwingNotifications), PKSJHP (MT1 eyes), PKDJRT (MT4, now dual-use).
+
+## 2026-08-28 (final) — dashboard reset to activation date
+
+Operator: the bot "started working today," so the dashboard now shows today-forward only.
+- Archived to data/archive_pre_2026-08-28/ (gitignored, nothing deleted): structures.jsonl (24,
+  0 open), scalp_positions.jsonl (37, 0 open), scalp_decisions.jsonl, pre-08-28 scalp_state day
+  files, and 91 pre-08-28 decision lines.
+- Kept: today's 11 decision lines and today's scalp state (2026-08-28.json, holds the live
+  opening ranges). decisions.jsonl was SPLIT, not moved, to preserve today's vetoes.
+- Dashboard restarted (launchd KeepAlive). Verified: 1 process, /api/trades empty, daily_pnl
+  empty, equity $100,000. Note: the Aug 28 SOFI +$26.58 close is a true fact (it is in the PDF's
+  Today strip) but no longer renders in the dashboard since its July 'opened' row was archived.
