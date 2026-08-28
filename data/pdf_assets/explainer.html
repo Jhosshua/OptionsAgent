@@ -1,0 +1,334 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>OptionsAgent, how it works</title>
+<style>
+  @page { size: 11in 8.5in; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  :root {
+    --bg: #0a0f16;
+    --panel: #111823;
+    --panel2: #0d141d;
+    --line: #223041;
+    --text: #dce6f2;
+    --muted: #8fa0b4;
+    --faint: #5c6c80;
+    --green: #35d49a;
+    --amber: #f0b45b;
+    --red: #f37272;
+    --blue: #6ab0f3;
+  }
+  html, body { background: var(--bg); color: var(--text);
+    font-family: "SF Pro Display", -apple-system, "Helvetica Neue", sans-serif; }
+  .page { width: 11in; height: 8.5in; padding: 0.42in 0.5in 0.34in; position: relative; overflow: hidden; page-break-after: always; }
+  .mono { font-family: "SF Mono", Menlo, monospace; }
+
+  /* ---------- page 1 header ---------- */
+  .brandrow { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 14px; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .mark { width: 44px; height: 44px; border-radius: 11px; background: linear-gradient(135deg, #0f2a22, #123051);
+    border: 1px solid #2c4a3f; display: flex; align-items: center; justify-content: center;
+    font-size: 22px; font-weight: 800; color: var(--green); }
+  h1 { font-size: 27px; letter-spacing: 0.4px; font-weight: 800; }
+  h1 span { color: var(--green); }
+  .tag { font-size: 10.5px; color: var(--muted); margin-top: 3px; }
+  .chips { display: flex; gap: 6px; }
+  .chip { font-size: 8.5px; font-weight: 700; letter-spacing: 0.8px; padding: 5px 10px; border-radius: 20px;
+    border: 1px solid var(--line); color: var(--muted); }
+  .chip.on { color: var(--green); border-color: #27584a; background: rgba(53,212,154,0.07); }
+  .chip.warn { color: var(--amber); border-color: #5a4526; background: rgba(240,180,91,0.07); }
+
+  .lede { font-size: 12.5px; line-height: 1.55; color: var(--text); max-width: 9.6in; margin-bottom: 14px; }
+  .lede b { color: var(--green); font-weight: 700; }
+
+  /* ---------- pipeline ---------- */
+  .pipe { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 13px; }
+  .step { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px 10px; position: relative; }
+  .step .n { font-size: 8px; font-weight: 800; letter-spacing: 1.2px; color: var(--faint); margin-bottom: 5px; }
+  .step .t { font-size: 10px; font-weight: 800; color: var(--text); margin-bottom: 5px; }
+  .step .d { font-size: 8.6px; line-height: 1.42; color: var(--muted); }
+  .step .d b { color: var(--amber); font-weight: 700; }
+  .step .d i { font-style: normal; color: var(--blue); }
+  .step:after { content: ""; position: absolute; right: -7px; top: 50%; width: 6px; height: 6px;
+    border-top: 1.5px solid #33506b; border-right: 1.5px solid #33506b; transform: translateY(-50%) rotate(45deg); }
+  .step:last-child:after { display: none; }
+  .step.hero { border-color: #27584a; background: linear-gradient(180deg, #10231d, #0e1a16); }
+  .step.hero .t { color: var(--green); }
+
+  .exitbar { display: flex; align-items: center; gap: 10px; background: #101a28; border: 1px solid #24405e;
+    border-radius: 10px; padding: 9px 14px; margin-bottom: 14px; }
+  .exitbar .lbl { font-size: 9px; font-weight: 800; letter-spacing: 1.2px; color: var(--blue); white-space: nowrap; }
+  .exitbar .txt { font-size: 9.6px; color: var(--muted); line-height: 1.45; }
+  .exitbar .txt b { color: var(--text); }
+
+  /* ---------- lower grid ---------- */
+  .lower { display: grid; grid-template-columns: 3.05in 1fr; gap: 10px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; }
+  .card h3 { font-size: 9px; font-weight: 800; letter-spacing: 1.4px; color: var(--faint); margin-bottom: 8px; }
+  .kv { display: flex; justify-content: space-between; align-items: baseline; padding: 3.6px 0; border-bottom: 1px solid #17222f; }
+  .kv:last-child { border-bottom: none; }
+  .kv .k { font-size: 9px; color: var(--muted); }
+  .kv .v { font-size: 9.6px; font-weight: 700; color: var(--text); }
+  .kv .v.g { color: var(--green); } .kv .v.a { color: var(--amber); } .kv .v.r { color: var(--red); }
+
+  .today { margin-top: 10px; background: linear-gradient(180deg, #12241d, #0e1a16); border: 1px solid #27584a; }
+  .today h3 { color: var(--green); }
+  .today p { font-size: 9.3px; line-height: 1.5; color: var(--muted); }
+  .today p b { color: var(--text); }
+
+  .faq { column-count: 3; column-gap: 12px; }
+  .qa { break-inside: avoid; margin-bottom: 8.5px; }
+  .qa .q { font-size: 9.3px; font-weight: 800; color: var(--text); margin-bottom: 2.5px; }
+  .qa .a { font-size: 8.5px; line-height: 1.44; color: var(--muted); }
+  .qa .a b { color: var(--amber); font-weight: 700; }
+  .qa .a i { font-style: normal; color: var(--green); }
+  .qa .a u { text-decoration: none; color: var(--blue); }
+
+  .foot { position: absolute; bottom: 0.16in; left: 0.5in; right: 0.5in; display: flex; justify-content: space-between;
+    font-size: 7.6px; color: var(--faint); }
+
+  /* ---------- FAQ page ---------- */
+  .pgtitle { font-size: 21px; font-weight: 800; margin-bottom: 4px; }
+  .pgsub { font-size: 10.5px; color: var(--muted); margin-bottom: 16px; }
+  .faqpage { column-count: 2; column-gap: 22px; }
+  .qa.big { margin-bottom: 11px; padding-bottom: 10px; border-bottom: 1px solid #17222f; }
+  .qa.big .q { font-size: 11px; }
+  .qa.big .a { font-size: 9.6px; line-height: 1.5; }
+
+  /* ---------- screenshot pages ---------- */
+  .shotpage { display: flex; flex-direction: column; }
+  .shotHead { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+  .shotHead .num { font-size: 10px; font-weight: 800; color: var(--green); letter-spacing: 1.5px; }
+  .shotHead .name { font-size: 17px; font-weight: 800; }
+  .shotHead .cap { font-size: 9.6px; color: var(--muted); line-height: 1.4; }
+  .frame { flex: 1; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #000; }
+  .frame img { width: 100%; height: 100%; object-fit: contain; display: block; }
+</style>
+</head>
+<body>
+
+<!-- ================= PAGE 1 ================= -->
+<div class="page">
+  <div class="brandrow">
+    <div class="brand">
+      <div class="mark">O</div>
+      <div>
+        <h1>Options<span>Agent</span></h1>
+        <div class="tag">A paper-trading bot that sells credit spreads. Claude proposes. Code decides.</div>
+      </div>
+    </div>
+    <div class="chips">
+      <div class="chip on">PAPER ONLY</div>
+      <div class="chip on">CREDIT SPREADS</div>
+      <div class="chip">RUNS ON THIS MAC</div>
+      <div class="chip warn">LLM NEVER PICKS STRIKES</div>
+    </div>
+  </div>
+
+  <div class="lede">
+    OptionsAgent trades one strategy on a <b>$100,000 Alpaca paper account</b> (re-funded on Aug 28; it traded $5,000 before that): defined-risk credit spreads on 13 liquid
+    names under $50. Once a day it asks Claude for trade ideas, but Claude only gets to say <b>which ticker, which
+    direction, and how confident</b>. Every strike, expiration, size, and exit is chosen by fixed Python rules called
+    rails. If an idea fails any rail, it dies. Most days, nothing trades, and that is by design.
+  </div>
+
+  <div class="pipe">
+    <div class="step">
+      <div class="n">STEP 1</div><div class="t">Cron wakes it</div>
+      <div class="d">Weekdays <b>10:15 to 10:27 ET</b>, once a day. A lock file blocks double runs. If the broker clock check fails or the market is shut, it skips the day.</div>
+    </div>
+    <div class="step">
+      <div class="n">STEP 2</div><div class="t">Snapshot</div>
+      <div class="d">Archives the full option chain (quotes, IV, greeks) for all <i>13 watchlist names</i>, then builds a market context bundle per name.</div>
+    </div>
+    <div class="step">
+      <div class="n">STEP 3</div><div class="t">Claude proposes</div>
+      <div class="d">The local Claude CLI (<i>sonnet</i>, no tools, no web) reads the bundle and proposes <b>ticker, direction, conviction 0 to 1, thesis</b>. Strikes and size are banned from its output. CLI failure means zero trades.</div>
+    </div>
+    <div class="step">
+      <div class="n">STEP 4</div><div class="t">Rails veto or size</div>
+      <div class="d">Deterministic gate: conviction floor <b>0.60</b>, max <b>6</b> open positions, phase allowlist. Size scales from 30% to 100% of available options buying power.</div>
+    </div>
+    <div class="step">
+      <div class="n">STEP 5</div><div class="t">Code picks the contract</div>
+      <div class="d">Short leg <b>15 to 30 delta</b>, width capped at <b>$2</b>, <b>30 to 45 DTE</b>. Bullish sells a put spread, bearish sells a call spread. One combo limit order at the net credit.</div>
+    </div>
+    <div class="step hero">
+      <div class="n">STEP 6</div><div class="t">The winner profile</div>
+      <div class="d">The spread must also match one of three replayed winners: <b>CCL bullish put, SOFI bullish put, F bearish call</b>. Everything else is vetoed. Quiet days are normal.</div>
+    </div>
+  </div>
+
+  <div class="exitbar">
+    <div class="lbl">MEANWHILE, EVERY 20 MIN</div>
+    <div class="txt">A separate exit sweep runs with <b>no LLM at all</b>: take profit at <b>50% of the credit</b>, stop out at
+      <b>2x credit</b> (only after 10:00 ET and only after two consecutive sweeps agree, so one wide quote cannot force a
+      liquidation), force close at <b>21 DTE</b>, and check ex-dividend dates before any short call sits through one.</div>
+  </div>
+
+  <div class="lower">
+    <div>
+      <div class="card">
+        <h3>THE NUMBERS THAT GOVERN IT</h3>
+        <div class="kv"><span class="k">Account</span><span class="v g">$100,000 paper (re-funded Aug 28)</span></div>
+        <div class="kv"><span class="k">Conviction floor</span><span class="v g">0.60, below = no trade</span></div>
+        <div class="kv"><span class="k">Sizing</span><span class="v">30% to 100% of free BP</span></div>
+        <div class="kv"><span class="k">Max concurrent</span><span class="v">6 positions</span></div>
+        <div class="kv"><span class="k">Spread width</span><span class="v a">≤ $2.00, max loss ≈ $200</span></div>
+        <div class="kv"><span class="k">Entry DTE</span><span class="v">30 to 45</span></div>
+        <div class="kv"><span class="k">Profit target</span><span class="v g">50% of credit</span></div>
+        <div class="kv"><span class="k">Stop</span><span class="v r">2x credit, confirmed twice</span></div>
+        <div class="kv"><span class="k">Force close</span><span class="v">21 DTE</span></div>
+      </div>
+      <div class="card today">
+        <h3>A REAL DAY (AUG 28, 2026)</h3>
+        <p>Claude proposed <b>8 spreads</b> across T, CMCSA, WBD, VZ, PFE, MARA, CCL, and AAL.
+        The rails executed <b>0</b>. Three found no contract meeting the delta, width, and credit rules.
+        Five failed the winner profile. Meanwhile the exit sweep closed July's SOFI spread for <b>+$26.58</b>.
+        Vetoing everything is the system working, not failing.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>FAQ</h3>
+      <div class="faq">
+        <div class="qa"><div class="q">Is this real money?</div>
+          <div class="a">No. Alpaca <u>paper only</u>. The code that builds the broker client refuses to run unless paper mode is on. There is no live path.</div></div>
+        <div class="qa"><div class="q">Why credit spreads?</div>
+          <div class="a">Day one it bought a MARA long put and lost <b>37.6%</b> of the premium in a session. The pivot: sell rich premium with the risk defined by the spread width.</div></div>
+        <div class="qa"><div class="q">What can Claude actually control?</div>
+          <div class="a">Only the idea: ticker, direction, conviction, one line of thesis. Output is schema-checked; anything malformed is <i>dropped, never repaired</i>.</div></div>
+        <div class="qa"><div class="q">What if Claude is down?</div>
+          <div class="a">Zero proposals, zero trades. Every failure path fails closed. A broken market clock check skips the whole day rather than trading blind.</div></div>
+        <div class="qa"><div class="q">Why only 3 trade profiles?</div>
+          <div class="a">A replay of July's fills found exactly three winners (CCL, SOFI bullish puts, F bearish calls). Hard-coded so config edits cannot widen them. Full FAQ overleaf.</div></div>
+        <div class="qa"><div class="q">Where does data come from?</div>
+          <div class="a">Chains and quotes from a read-only <u>Public.com</u> sidecar, execution and account at Alpaca paper.</div></div>
+        <div class="qa"><div class="q">Track record so far?</div>
+          <div class="a">Paper, since July 3. Five closed spreads: four small losers, one winner, net about <b>-$37</b>. The $5,000-era book bottomed near $4,920, then the account was re-funded to <b>$100,000</b> on Aug 28.</div></div>
+        <div class="qa"><div class="q">And the 0DTE scalper in the code?</div>
+          <div class="a">A second isolated engine (SPY/QQQ opening range breakout). Its master switch is <b>off</b> and it has no cron line. Dormant, not deleted.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <div>OptionsAgent explainer · written from the code as of Aug 28, 2026 · rails live in harness/risk_rails.py, not config</div>
+    <div>page 1 of 8</div>
+  </div>
+</div>
+
+<!-- ================= PAGE 2: FULL FAQ ================= -->
+<div class="page">
+  <div class="pgtitle">FAQ</div>
+  <div class="pgsub">Everything below is verified from the current code and the live paper account, not from the older docs.</div>
+
+  <div class="faqpage">
+    <div class="qa big"><div class="q">What strategy is running right now, exactly?</div>
+      <div class="a">Vertical credit spreads only. Bullish thesis sells a put spread, bearish sells a call spread, never neutral. Short leg between 15 and 30 delta, long leg further out on the same expiry, width capped at $2.00, entry between 30 and 45 DTE. The spread is submitted as a single MLEG combo limit order priced at the net credit, order IDs prefixed <span class="mono">oa-</span>.</div></div>
+
+    <div class="qa big"><div class="q">How does position sizing work?</div>
+      <div class="a">Position budget = conviction-scaled share of available options buying power. At the 0.60 floor you get 30% of what is free, scaling linearly to 100% at 0.85 and above. Contracts = budget ÷ (width × 100). If the budget buys less than one contract, the trade is skipped. Each fill inside a cycle shrinks the base the next proposal is sized against.</div></div>
+
+    <div class="qa big"><div class="q">100% of buying power on one idea sounds aggressive.</div>
+      <div class="a">It is deliberate operator policy: "use all the cash, not necessarily all at once." The practical brakes are the $2 width cap (max loss ≈ $200 per spread, 0.2% of the account), the 6 position cap, the broker's own buying power rejection, and an optional tighten-only kill switch (<span class="mono">OA_MAX_POSITION_USD</span>) that can clamp any single position.</div></div>
+
+    <div class="qa big"><div class="q">What is the winner profile gate and why does it veto so much?</div>
+      <div class="a">A replay of every archived fill from July 8 to July 31 found three profiles that actually made money: CCL bullish puts (credit ≥ $0.29, width ≥ $1.50), SOFI bullish puts (credit ≥ $0.23, width ≥ $1.00), and F bearish calls (credit ≥ $0.06, width ≤ $0.50). Those three are hard-coded. Anything else fails closed. It is openly an in-sample overfit, held frozen on purpose so the account collects clean out-of-sample evidence on whether the profile means anything.</div></div>
+
+    <div class="qa big"><div class="q">Walk me through the exits.</div>
+      <div class="a">A no-LLM sweep every 20 minutes during market hours. Priority: dividend risk first (a short call sitting through an ex-date where the dividend exceeds the same-strike put gets closed), then the stop, then DTE, then profit. Profit target is 50% of the credit received. The stop is 2x credit but only counts from 10:00 ET and needs two consecutive sweeps to confirm, so a single wide opening quote cannot trigger a forced liquidation. Everything force-closes at 21 DTE. There is no end-of-day flatten for spreads because nothing here is 0DTE.</div></div>
+
+    <div class="qa big"><div class="q">What about assignment and overnight gap risk?</div>
+      <div class="a">Verticals are defined risk: worst case is width minus credit, no more, regardless of assignment mechanics. The 2x credit stop is a loss control, not a guarantee. A gap through the short strike overnight still costs the full width, roughly $200 per spread at the cap. Six concurrent positions put the theoretical worst day near $1,200, just over 1% of the $100,000 account.</div></div>
+
+    <div class="qa big"><div class="q">Is there a daily loss limit for the seller?</div>
+      <div class="a">No dedicated one. The brakes are structural: $2 max width, 6 positions, one short entry window per day (10:15 to 10:27 ET), and the winner profile that rejects most ideas before they exist. If that answer makes you uncomfortable, that is a fair reaction; it is a paper account built to learn the distribution.</div></div>
+
+    <div class="qa big"><div class="q">What does the LLM see, and can it be manipulated by the data?</div>
+      <div class="a">It sees a JSON bundle: the phase, the allowed strategies, and per-ticker market context (price levels, volume, recent movement). The system prompt states the context is data, never instructions. It runs with tools disabled, no session persistence, no web access, and its output is validated against a strict schema before anything downstream sees it.</div></div>
+
+    <div class="qa big"><div class="q">What is the actual track record?</div>
+      <div class="a">Paper since July 3. Credit-spread era, five closed trades: KVUE -$2.65, MARA -$21.83, WBD -$22.94, T -$16.40, SOFI +$26.58. Net ≈ -$37. The $5,000-era book bottomed near $4,920 (the rest of that drawdown is the early long-option phase), then the account was re-funded to $100,000 on Aug 28. Honest summary: no edge proven yet, which is exactly what the frozen winner profile is testing.</div></div>
+
+    <div class="qa big"><div class="q">There is a 0DTE scalper in the repo. Is it trading?</div>
+      <div class="a">No. It is fully isolated: own registry, own state files, own order prefix (<span class="mono">oas-</span>), master switch <span class="mono">OA_SCALP_ENABLED</span> off, and no cron line. When on, it trades SPY/QQQ opening-range breakouts (3 minute range, 1.5x relative volume confirmation plus a VWAP check), $250 per trade, max 2 trades a day, one position at a time, 30% stop that relaxes to 60% while the breakout holds, 50% profit target, no new entries after 11:30 ET, mandatory flatten by 15:50 ET.</div></div>
+
+    <div class="qa big"><div class="q">How do I know what it did on any given day?</div>
+      <div class="a">Three places. The dashboard on the following pages (live at <span class="mono">127.0.0.1:8765</span>, read-only, it cannot submit orders). The decision log at <span class="mono">data/decisions.jsonl</span>, which records every proposal, every veto reason, and every order. And <span class="mono">data/structures.jsonl</span>, the append-only record of what opened and closed. Today's log shows 8 proposals and 8 vetoes with reasons.</div></div>
+
+    <div class="qa big"><div class="q">What stops a bug from doing something catastrophic?</div>
+      <div class="a">Layers. Rails are hard-coded in Python so no config edit or model output can loosen them; env overrides may only tighten. The broker client refuses non-paper endpoints. Entry is one locked window a day. The exit sweep reconciles the registry against live broker positions and alerts on anything that vanished (assignment, expiry, manual close) instead of silently dropping it.</div></div>
+  </div>
+
+  <div class="foot">
+    <div>OptionsAgent FAQ · verified against code and the live paper account, Aug 28, 2026</div>
+    <div>page 2 of 8</div>
+  </div>
+</div>
+
+<!-- ================= SCREENSHOT PAGES ================= -->
+<div class="page shotpage">
+  <div class="shotHead">
+    <span class="num">DASHBOARD 1/6</span><span class="name">Overview</span>
+    <span class="cap">The daily at-a-glance: today's P/L, open spreads against the 6 slot cap, free buying power,
+    the three winner profiles armed, the equity curve (the account was re-funded to $100,000 today), daily P/L bars,
+    and the closed trade list.</span>
+  </div>
+  <div class="frame"><img src="dash_overview.png"></div>
+  <div class="foot"><div>Live local dashboard · 127.0.0.1:8765</div><div>page 3 of 8</div></div>
+</div>
+
+<div class="page shotpage">
+  <div class="shotHead">
+    <span class="num">DASHBOARD 2/6</span><span class="name">Positions</span>
+    <span class="cap">Live Alpaca paper positions reconciled against the structure registry. Empty is the normal state:
+    with the winner profile gate on, most days open nothing.</span>
+  </div>
+  <div class="frame"><img src="dash_positions.png"></div>
+  <div class="foot"><div>Live local dashboard · 127.0.0.1:8765</div><div>page 4 of 8</div></div>
+</div>
+
+<div class="page shotpage">
+  <div class="shotHead">
+    <span class="num">DASHBOARD 3/6</span><span class="name">Trade history</span>
+    <span class="cap">Every closed structure with dates and realized P/L: KVUE, MARA, WBD, T closed at losses, and the
+    SOFI spread that closed Aug 28 for +$26.58.</span>
+  </div>
+  <div class="frame"><img src="dash_trades.png"></div>
+  <div class="foot"><div>Live local dashboard · 127.0.0.1:8765</div><div>page 5 of 8</div></div>
+</div>
+
+<div class="page shotpage">
+  <div class="shotHead">
+    <span class="num">DASHBOARD 4/6</span><span class="name">Research</span>
+    <span class="cap">The replay studies behind the rules: the scalp entry cutoff (12 of 12 late entries lost), the
+    credit-spread winner mining, and the in-sample P/L (+$345 on 12 retained trades) the profile gate is built on.</span>
+  </div>
+  <div class="frame"><img src="dash_research.png"></div>
+  <div class="foot"><div>Live local dashboard · 127.0.0.1:8765</div><div>page 6 of 8</div></div>
+</div>
+
+<div class="page shotpage">
+  <div class="shotHead">
+    <span class="num">DASHBOARD 5/6</span><span class="name">Risk rails</span>
+    <span class="cap">Every hard limit in force, read straight from the code: seller rails (conviction floor, sizing,
+    6 positions, 21 DTE) and scalp rails, with the scalp master switch shown OFF.</span>
+  </div>
+  <div class="frame"><img src="dash_risk.png"></div>
+  <div class="foot"><div>Live local dashboard · 127.0.0.1:8765</div><div>page 7 of 8</div></div>
+</div>
+
+<div class="page shotpage">
+  <div class="shotHead">
+    <span class="num">DASHBOARD 6/6</span><span class="name">System</span>
+    <span class="cap">The live runtime, verified from the running process: entry window 10:15 to 10:27 ET, exit sweep
+    every 20 minutes, scalp and marketdata publisher off, Public.com for chains, trading enabled, paper enforced.</span>
+  </div>
+  <div class="frame"><img src="dash_system.png"></div>
+  <div class="foot"><div>Live local dashboard · 127.0.0.1:8765</div><div>page 8 of 8</div></div>
+</div>
+
+</body>
+</html>
