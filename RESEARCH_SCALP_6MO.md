@@ -49,3 +49,30 @@ Artifacts: `research_scalp_6mo_pull.py`, `research_scalp_6mo.py`,
 `data/research_scalp_6mo/results.json` (gitignored data dir).
 Codex adversarial plan review: running at time of writing; verdict to be
 appended.
+
+## Corrections and final outcome (same night, post codex review)
+
+Codex diff review found two research bugs, both fixed and rerun:
+1. Stage-1 "BOTH" pool overwrote same-date SPY sessions with QQQ ({**spy,**qqq}
+   key collision) — pooled rows were QQQ-only. Fixed to (sym, date) keys. The
+   DEPLOYED rules were scored per-symbol in stage 3, so they are unaffected.
+2. Stage-2 priced a FLOATING-strike ATM (strike reset every bar), making calls
+   and puts identical and unable to monetize direction. Fixed to fixed-strike
+   BSM and rerun: the mined rules in long 0DTE options are +$1-5/contract with
+   t-stats under 1.1 and inconsistent IS/OOS — statistically zero. Shares remain
+   the only expression that harvests the edge.
+
+## Deployed (operator instruction): the EQUITY scalper replaces the option scalper
+
+- 0DTE option scalper RETIRED (OA_SCALP_ENABLED=false, cron line removed):
+  no positive-expectancy configuration exists in 16,384 combos.
+- NEW run_scalp_equity.py + harness/equity_scalp.py, rules frozen from the study:
+  morning fade (SPY+QQQ 10:15 window, fade beyond vwap+15m range, +$23.6/trade
+  in-sample, 60% win) and QQQ gap follow (13:00 window, |gap|>0.8%, +$34.3/trade,
+  64% win, OOS t=+3.1). One slot per rule per day.
+- Rails (harness/risk_rails.py EquityScalpRails, env tighten-only): $20k notional,
+  max 2 trades/day, max 2 open, 0.7% stop on INTRABAR extremes, 120m time exit,
+  mandatory 15:50 flatten, -$300 daily halt, orphan adoption, fail-closed broker
+  reconciliation. Cron: * 9-15 * * 1-5 cron/equity_scalp.sh. 177 tests green.
+- Honest framing: both rules are deliberate in-sample overfits, frozen. LIVE
+  TRADING IS THE OUT-OF-SAMPLE TEST. Expectancy numbers are replay estimates.

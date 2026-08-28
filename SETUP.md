@@ -156,3 +156,20 @@ straight-to-Railway). At 10:15 ET Monday, watch `railway logs` and `#options-age
 first-contact failure shapes: alpaca-py field/shape mismatches in `option_chain`/`option_quotes`,
 mleg order rejections (limit-price sign convention), proposer schema hiccups. All fail toward
 "no trade + loud error", not silent wrong trades.
+
+
+## Local runtime keys (2026-08-28)
+
+Required in `.env` for the current local setup (beyond the original keys):
+- `OA_TRADING_ENABLED=true`, `ALPACA_PAPER=true` (hard gates in every cron script)
+- `OA_CLAUDE_CLI` / `OA_CLAUDE_MODEL` (proposer)
+- `OA_DATA_KEY_ID` / `OA_DATA_SECRET_KEY` — read-only SIP-entitled stock-data key
+  (the bot's own trading key gets only 15-minute-delayed SIP)
+- `OA_OPTIONS_DATA_PROVIDER=public` + `PUBLIC_API_SECRET` (option chains/quotes)
+- `OA_EQUITY_SCALP_ENABLED=true` (equity scalper master switch; tighten-only
+  rails: OA_EQUITY_NOTIONAL_USD, OA_EQUITY_MAX_TRADES, OA_EQUITY_DAILY_LOSS_USD,
+  OA_EQUITY_STOP_PCT)
+- `OA_SCALP_ENABLED` is FALSE: the 0DTE option scalper is retired.
+
+Crontab (local): entry `*/5 10 * * 1-5`, exits `*/20 9-16 * * 1-5`,
+equity scalper `* 9-15 * * 1-5`, all via cron/*.sh with fail-closed market checks.

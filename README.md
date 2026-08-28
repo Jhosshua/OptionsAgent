@@ -11,17 +11,22 @@ on.
 > Public.com is read-only market data and Alpaca remains paper execution. The
 > local `.env` plus user crontab are authoritative; Railway is not used.
 
-## Status (2026-08-28)
+## Status (2026-08-28, night)
 
-**ACTIVE LOCALLY, PAPER ONLY.** Public market data and the Claude Code CLI proposer are enabled
-locally. Alpaca remains paper-only execution. The archived Railway deployment is not used.
-
-### Historical status (2026-08-27)
-
-**RETIRED and not deployed.** The archived bot history was analyzed, the 0DTE scalp hard entry
-cutoff was tightened to 11:30 ET, and the multi-day credit-spread seller was intentionally
-overfit to a three-record historical winner profile. The original Railway project, paper account,
-and webhook were deleted on 2026-08-02; see `CLAUDE.md` and `OVERFIT_ANALYSIS.md` before any restart.
+**ACTIVE LOCALLY, PAPER ONLY, TWO ENGINES on a $100,000 Alpaca paper account.**
+- Engine 1, credit-spread seller: Claude Code CLI proposes, deterministic rails
+  dispose, once daily 10:15-10:27 ET (cron/entry.sh), exits every 20 min
+  (cron/exits.sh). Winner-profile gated; most days it vetoes everything.
+- Engine 2, EQUITY intraday scalper (run_scalp_equity.py, NEW tonight): two
+  rules mined from 6 months of SPY/QQQ minute bars and frozen (morning fade at
+  10:15; QQQ gap follow at 13:00). $20k notional, 0.7% intrabar stop, 120m time
+  exit, 15:50 ET flatten, -$300 daily halt. Cron * 9-15 * * 1-5.
+- The 0DTE OPTION scalper was retired tonight: a 16,384-combination study over
+  125 sessions found no positive-expectancy configuration (RESEARCH_SCALP_6MO.md).
+- Stock data runs through a read-only SIP-entitled key (OA_DATA_* in .env);
+  option chains/quotes via the Public.com sidecar; execution paper-only.
+- Dashboard: local LaunchAgent, 127.0.0.1:8765, read-only, reset to the 08-28
+  activation date. Operator explainer PDF: OptionsAgent-Explained.pdf.
 
 ## Docs map
 

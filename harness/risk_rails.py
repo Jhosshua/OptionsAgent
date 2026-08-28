@@ -348,3 +348,51 @@ def scalp_must_flatten(now_et_hhmm: str, rails: ScalpRails) -> bool:
     """True once we've reached the mandatory EOD-flatten time. Checked FIRST in the
     exit path, enforced regardless of P&L (0DTE auto-exercise guard)."""
     return now_et_hhmm >= rails.eod_flatten_et
+
+
+# ---------------------------------------------------------------------------
+# Equity intraday scalp rails — the share-based rules mined 2026-08-28 from
+# 125 sessions of SPY/QQQ minute bars (research_scalp_mine/stage3, deliberate
+# IN-SAMPLE overfit, frozen to collect live out-of-sample evidence).
+#   Rule A "morning fade": at 10:15 ET, if the last close is above BOTH the
+#     session VWAP and the 15-minute opening range high, go SHORT; below both,
+#     go LONG. Exit after 120 minutes, on stop, or at the 15:50 flatten.
+#   Rule C "gap follow": QQQ only, at 13:00 ET, when the day gapped > 0.8% at
+#     the open, hold WITH the gap direction until ~15:00 (time exit), stop, or
+#     the 15:50 flatten.
+# Same discipline as above: hard values live HERE, env may only TIGHTEN.
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class EquityScalpRails:
+    notional_per_trade_usd: float = 20_000.0  # operator 2026-08-28 ("$20k equity positions")
+    max_trades_per_day: int = 2               # one morning fade + one gap follow
+    max_concurrent: int = 2
+    stop_loss_pct: float = 0.007              # 0.7% adverse move from entry
+    daily_loss_stop_usd: float = 300.0        # halt after ~2 full stop-outs
+    entry_windows: tuple = (("morning_fade", "10:15", "10:26"),   # fire once inside the window
+                            ("gap_follow", "13:00", "13:11"))
+    time_exit_minutes: int = 120
+    eod_flatten_et: str = "15:50"             # MANDATORY flat by close
+
+
+def active_equity_scalp_rails() -> EquityScalpRails:
+    """EquityScalpRails with tighten-only env overrides:
+    OA_EQUITY_NOTIONAL_USD (lower), OA_EQUITY_MAX_TRADES (lower),
+    OA_EQUITY_DAILY_LOSS_USD (lower), OA_EQUITY_STOP_PCT (lower)."""
+    base = EquityScalpRails()
+    notional = _tighten_float(base.notional_per_trade_usd, os.environ.get("OA_EQUITY_NOTIONAL_USD"))
+    stop = _tighten_float(base.stop_loss_pct, os.environ.get("OA_EQUITY_STOP_PCT"))
+    loss = _tighten_float(base.daily_loss_stop_usd, os.environ.get("OA_EQUITY_DAILY_LOSS_USD"))
+    max_trades = base.max_trades_per_day
+    raw_mt = os.environ.get("OA_EQUITY_MAX_TRADES")
+    if raw_mt:
+        try:
+            mt = int(float(raw_mt))
+            if mt > 0:
+                max_trades = min(max_trades, mt)
+        except (TypeError, ValueError):
+            pass
+    return replace(base, notional_per_trade_usd=notional, stop_loss_pct=stop,
+                   daily_loss_stop_usd=loss, max_trades_per_day=max_trades)

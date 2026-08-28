@@ -728,3 +728,21 @@ IS/OOS by date, per-day stats, random-direction null):
   return -0.04bp to +0.01bp. No direction edge, so no size can fix it.
 - NOT implemented at $20k. Scalper stays at $250 learning size (armed).
   Raising size on this evidence would scale a proven loser.
+
+## 2026-08-28 (night 2) — 0DTE option scalper RETIRED, EQUITY scalper deployed
+
+Broadened the hunt per operator (mine ANY formula, overfit to the window):
+- Stage 1 (underlying, model-free): the morning-fade family and QQQ big-gap
+  13:00 follow are the only consistent edges (+10-18bp, day_t 1.5-2.6).
+- Stage 2: long 0DTE options CANNOT harvest them (theta+spread 3-10x the edge;
+  floating-strike bug found by codex, fixed, rerun: options statistically zero).
+- Stage 3 (shares, model-free): rule A morning fade +$23.6/trade 60% win,
+  rule C QQQ gap follow +$34.3/trade 64% win OOS t=+3.1. Both halves positive.
+- DEPLOYED: run_scalp_equity.py (rules A+C, one slot per rule/day), rails in
+  EquityScalpRails ($20k notional, 0.7% intrabar stop, 120m time exit, 15:50
+  flatten, -$300 daily halt, orphan adoption, fail-closed reconcile). Cron
+  * 9-15 * * 1-5. OA_EQUITY_SCALP_ENABLED=true. First windows Monday 10:15/13:00.
+- OA_SCALP_ENABLED=false + option-scalp cron line REMOVED (16,384-combo null).
+- Codex review: 3 P1s fixed (orphan routing with 0-entry-price, fail-closed
+  broker read, intrabar stops), 4 P2s fixed (rule slot reservation, retry on
+  failed entry, BOTH pooling, config wiring). 177 tests green.

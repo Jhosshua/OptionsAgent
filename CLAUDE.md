@@ -1,11 +1,16 @@
 # CLAUDE.md — OptionsAgent
 
-> **CURRENT OPERATING MODE — 2026-08-28:** OptionsAgent is reactivated as a
-> **local paper-trading robot**. The proposal analyst uses the operator's
-> authenticated Claude Code CLI (`claude -p`) with no `ANTHROPIC_API_KEY`.
-> Public.com is read-only market data; Alpaca is paper-only execution. The
-> local `.env` and user crontab are authoritative. Do not use Railway for this
-> bot or link it to `tqqq-qqq-paperbot`.
+> **CURRENT OPERATING MODE — 2026-08-28 (night):** OptionsAgent is a local
+> paper-trading robot with TWO engines on a $100,000 Alpaca paper account:
+> (1) the credit-spread seller (Claude CLI proposes, rails dispose, once daily
+> 10:15-10:27 ET) and (2) the EQUITY intraday scalper (run_scalp_equity.py,
+> mined rules, shares only, every minute 09:45-15:55 ET, cron/equity_scalp.sh).
+> The 0DTE OPTION scalper was RETIRED tonight on 6-month evidence (no positive
+> expectancy in 16,384 configs). Stock data runs through a read-only
+> SIP-entitled key (OA_DATA_*); Public.com is options-only sidecar data; Alpaca
+> is paper-only execution. Local .env + user crontab are authoritative. The
+> dashboard was reset to the 08-28 activation date. See RESEARCH_SCALP_6MO.md.
+> Do not use Railway for this bot.
 
 The retirement and Railway notes below are historical and no longer describe
 the active local setup.

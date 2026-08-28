@@ -109,6 +109,17 @@
     "entry_cutoff_et": "11:30",
     "_entry_cutoff_comment": "Documentation mirror of the hard ScalpRails cutoff. Historical replay found 12/12 realized entries after 11:30 ET lost; no new entries at/after 11:30 ET. This is not a runtime override.",
     "eod_flatten_et": "15:50",
-    "_eod_flatten_comment": "MANDATORY: force-close any open scalp by this ET time. An ITM 0DTE left to expiry auto-exercises into 100 shares (~$75k on SPY) on a $5k account. Non-negotiable."
+    "_eod_flatten_comment": "MANDATORY: force-close any open scalp by this ET time. An ITM 0DTE left to expiry auto-exercises into 100 shares (~$75k on SPY) on a $5k account. Non-negotiable.",
+    "equity_scalp": {
+      "_comment": "Share-based intraday rules mined 2026-08-28 from 125 sessions (research_scalp_mine/stage3), deliberate in-sample overfit frozen for live out-of-sample collection. Hard caps live in harness/risk_rails.py EquityScalpRails; this section is documentation + tunables only. Rule A morning fade: SPY+QQQ at 10:15, fade a close beyond BOTH vwap and the 15m opening range (+$23.6/trade in-sample, 60% win, OOS positive). Rule C gap follow: QQQ at 13:00 with |gap|>0.8%, hold with the gap (+$34.3/trade, 64% win, OOS t=+3.1). Sizing $20k notional, stop 0.7%, 120m time exit, 15:50 flatten, -$300 daily halt.",
+      "underlyings": ["SPY", "QQQ"],
+      "morning_fade": { "entry_et": "10:15", "range_minutes": 15 },
+      "gap_follow": { "entry_et": "13:00", "gap_pct_min": 0.8, "symbol": "QQQ" },
+      "notional_per_trade_usd": 20000,
+      "stop_loss_pct": 0.007,
+      "time_exit_minutes": 120,
+      "eod_flatten_et": "15:50",
+      "daily_loss_stop_usd": 300
+    }
   }
 }

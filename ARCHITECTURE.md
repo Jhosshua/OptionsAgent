@@ -1,3 +1,11 @@
+> **2026-08-28 UPDATE:** the deployed system now has TWO engines: the original
+> credit-spread seller described below, plus an equity intraday scalper
+> (run_scalp_equity.py, harness/equity_scalp.py, rails in
+> harness/risk_rails.py EquityScalpRails) running two rules mined from 6 months
+> of SPY/QQQ minute bars. The 0DTE option scalper was retired the same night on
+> study evidence. See RESEARCH_SCALP_6MO.md and MEMORY.md for current truth;
+> the rest of this file is the original (pre-08-28) design rationale.
+
 # ARCHITECTURE.md — OptionsAgent (original design, 2026-07-03)
 
 > **CURRENT IMPLEMENTATION NOTE — 2026-08-28:** The active runtime is local
