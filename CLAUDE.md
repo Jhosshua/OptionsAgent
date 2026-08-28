@@ -24,6 +24,11 @@
 > market-data sidecar. It is disabled by default; Alpaca remains the paper execution/account
 > broker. It must not be enabled until a new deployment target and valid credentials are created.
 
+> **2026-08-27 dashboard update:** `dashboard/` and `harness/dashboard_server.py` are a
+> token-authenticated, read-only observer. It uses a background cache and a separate supervisor;
+> `OA_TRADING_ENABLED` defaults false and must be verified from the generated `.env` before paper
+> cron may act. Never link or deploy this repo to `tqqq-qqq-paperbot`.
+
 > Read this first every session. Then read `MEMORY.md` and `ERRORS.md`.
 
 ## What this is

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="OptionsAgent paper trading dashboard">
+  <title>OptionsAgent Dashboard</title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+  <div id="auth-screen" class="auth-screen" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+    <form id="auth-form" class="auth-card">
+      <div class="brand-mark small-mark" aria-hidden="true">↗</div>
+      <h1 id="auth-title">OptionsAgent</h1>
+      <p>Enter the dashboard token to view paper-account data.</p>
+      <label for="token-input">Dashboard token</label>
+      <input id="token-input" type="password" autocomplete="off" required minlength="32">
+      <button class="button primary" type="submit">Unlock dashboard</button>
+      <div id="auth-error" class="auth-error" role="alert"></div>
+    </form>
+  </div>
+
+  <div id="app" class="app-shell" hidden>
+    <aside class="sidebar">
+      <div class="brand-block">
+        <div class="brand-row"><div class="brand-mark" aria-hidden="true">↗</div><div class="brand-name">OptionsAgent</div></div>
+        <div class="brand-subtitle">Multi-day credit spread seller</div>
+        <div id="mode-pill" class="mode-pill"><span class="dot"></span> PAPER · DISARMED</div>
+      </div>
+      <nav class="nav" aria-label="Dashboard sections">
+        <button class="nav-item active" data-view="overview"><span class="nav-icon">⌂</span>Overview</button>
+        <button class="nav-item" data-view="positions"><span class="nav-icon">▣</span>Positions</button>
+        <button class="nav-item" data-view="trades"><span class="nav-icon">◷</span>Trade history</button>
+        <button class="nav-item" data-view="research"><span class="nav-icon">⌕</span>Research</button>
+        <button class="nav-item" data-view="risk"><span class="nav-icon">◇</span>Risk rails</button>
+        <button class="nav-item" data-view="system"><span class="nav-icon">⚙</span>System</button>
+      </nav>
+      <div class="sidebar-footer">↗ <span>OptionsAgent v1.0.0</span></div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div><h2 id="page-date">OptionsAgent</h2><span id="page-year" class="muted"></span></div>
+        <div class="top-controls"><div class="pill">◉ <span>Paper account</span></div><div id="clock" class="pill">◷ —</div><button id="clear-token" class="pill button quiet">Clear token</button></div>
+      </header>
+
+      <section id="warning" class="warning-banner" hidden>
+        <div class="warning-icon">!</div><div class="grow"><strong id="warning-title">Dashboard status</strong><span id="warning-detail">—</span></div><button id="retry" class="pill button warning-button">Retry</button>
+      </section>
+
+      <section class="view" data-view-panel="overview">
+        <div class="stats-grid">
+          <article class="card stat-card"><div class="stat-head"><span>Today P/L</span><span class="quiet-icon">↗</span></div><strong id="today-pnl" class="metric money">—</strong><span id="today-pnl-sub" class="muted">Realized, market open</span></article>
+          <article class="card stat-card"><div class="stat-head"><span>Open spreads</span><span class="quiet-icon">▱</span></div><div><strong id="open-spreads" class="metric">—</strong><span id="open-cap" class="metric-suffix"></span></div><span class="muted">Total open positions</span></article>
+          <article class="card stat-card"><div class="stat-head"><span>Buying power</span><span class="quiet-icon">▰</span></div><strong id="buying-power" class="metric money">—</strong><span class="muted">Available to deploy</span></article>
+          <article class="card stat-card"><div class="stat-head"><span>Profile status</span><span class="quiet-icon">◇</span></div><div><strong id="winner-rules" class="metric">—</strong><span class="metric-suffix">winner rules</span></div><span id="profile-status" class="status-text">● Unavailable</span></article>
+        </div>
+
+        <div class="two-column">
+          <article class="card chart-card"><div class="card-heading"><h3>Equity curve</h3><button class="pill button range-button active">30D</button></div><div class="chart-wrap"><svg class="chart" viewBox="0 0 500 220" role="img" aria-label="Cumulative realized P/L curve"><g class="grid-lines"><line x1="54" y1="20" x2="492" y2="20"/><line x1="54" y1="65" x2="492" y2="65"/><line x1="54" y1="110" x2="492" y2="110"/><line x1="54" y1="155" x2="492" y2="155"/><line x1="54" y1="200" x2="492" y2="200"/></g><g class="axis-labels"><text id="axis-top" x="0" y="24">$0</text><text id="axis-mid" x="0" y="114">$0</text><text id="axis-bottom" x="0" y="204">$0</text></g><path id="equity-line" class="equity-line" d="M54 110 L492 110"/><g id="equity-points" class="equity-points"></g><text x="54" y="218">30D</text><text x="452" y="218">Today</text></svg></div></article>
+          <article class="card chart-card"><div class="card-heading"><h3>Daily P/L, realized</h3><button class="pill button range-button active">30D</button></div><div id="daily-bars" class="bars" aria-label="Daily realized profit and loss"></div><div id="daily-accessible" class="sr-only" aria-live="polite"></div><div class="chart-foot"><span>Last 30 days</span><span id="daily-total">—</span></div></article>
+        </div>
+
+        <div class="two-column bottom-grid">
+          <article class="card history-card"><div class="card-heading"><h3>Credit spread history</h3><button class="text-button" data-view-link="trades">View all →</button></div><div class="table-head" role="row"><span role="columnheader">SYMBOL</span><span role="columnheader">TYPE</span><span role="columnheader">WIDTH</span><span role="columnheader">CREDIT</span><span role="columnheader">P/L</span><span role="columnheader">EXIT</span></div><div id="history-rows" role="rowgroup"></div></article>
+          <article class="card research-card"><div class="card-heading"><h3>Research replay</h3><span class="quiet-icon">⌁</span></div><div class="research-summary"><div class="document-icon">▤</div><div><strong id="research-days">— entry days</strong><span id="research-records" class="muted">— archived records</span></div></div><div class="research-lines"><div><span>Realized</span><strong id="research-realized" class="loss">—</strong></div><div><span>Filtered replay</span><strong id="research-profile" class="gain">—</strong></div></div><button class="button primary full" data-view-link="research">Open replay</button></article>
+        </div>
+      </section>
+
+      <section class="view" data-view-panel="positions" hidden><div class="section-heading"><div><h2>Positions</h2><p class="muted">Live paper positions from the broker snapshot.</p></div><button class="pill button" data-view-link="overview">← Overview</button></div><article class="card table-card"><div id="positions-table" class="wide-table"></div></article></section>
+      <section class="view" data-view-panel="trades" hidden><div class="section-heading"><div><h2>Trade history</h2><p class="muted">Closed structures from the append-only registry. Unknown P/L stays unknown.</p></div><button class="pill button" data-view-link="overview">← Overview</button></div><article class="card table-card"><div id="trades-table" class="wide-table"></div></article></section>
+      <section class="view" data-view-panel="research" hidden><div class="section-heading"><div><h2>Research replay</h2><p class="muted">Conditional realized replay; not a full backtest or durable edge claim.</p></div><button class="pill button" data-view-link="overview">← Overview</button></div><div id="research-detail" class="research-detail"></div></section>
+      <section class="view" data-view-panel="risk" hidden><div class="section-heading"><div><h2>Risk rails</h2><p class="muted">Deterministic gates remain in code and the bot is paper-only.</p></div><button class="pill button" data-view-link="overview">← Overview</button></div><div id="risk-list" class="rail-list"></div></section>
+      <section class="view" data-view-panel="system" hidden><div class="section-heading"><div><h2>System</h2><p class="muted">Runtime health and market-data provider status.</p></div><button class="pill button" data-view-link="overview">← Overview</button></div><div id="system-detail" class="system-detail"></div></section>
+      <footer class="footer-note">Read-only dashboard · Account data is cached and never used to submit orders.</footer>
+    </main>
+  </div>
+  <script src="/app.js" defer></script>
+</body>
+</html>

@@ -8,6 +8,18 @@
 set -u
 cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)" || exit 1
 
+TRADING_ENABLED=$(grep -E '^OA_TRADING_ENABLED=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d ' "')
+if [ "${TRADING_ENABLED:-}" != "true" ]; then exit 0; fi
+PAPER_MODE=$(grep -E '^ALPACA_PAPER=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d ' "')
+if [ "${PAPER_MODE:-}" != "true" ]; then echo "[exits] paper gate failed — skipping"; exit 0; fi
+
+LOCK="$PWD/data/.locks/exits_running"
+if [ -d "$LOCK" ]; then
+  find "$LOCK" -maxdepth 0 -type d -mmin +15 -exec rmdir {} \; 2>/dev/null || true
+fi
+if ! mkdir "$LOCK" 2>/dev/null; then exit 0; fi
+trap 'rmdir "$LOCK" 2>/dev/null' EXIT
+
 if ! python3 -c "
 from harness.alpaca_glue import make_client
 import sys

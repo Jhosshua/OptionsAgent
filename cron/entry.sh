@@ -9,6 +9,11 @@
 set -u
 cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)" || exit 1
 
+TRADING_ENABLED=$(grep -E '^OA_TRADING_ENABLED=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d ' "')
+if [ "${TRADING_ENABLED:-}" != "true" ]; then exit 0; fi
+PAPER_MODE=$(grep -E '^ALPACA_PAPER=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d ' "')
+if [ "${PAPER_MODE:-}" != "true" ]; then echo "[entry] paper gate failed — skipping"; exit 0; fi
+
 HOUR=$(TZ=America/New_York date +%H)
 MIN=$(TZ=America/New_York date +%M)
 DATE=$(TZ=America/New_York date +%Y%m%d)

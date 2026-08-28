@@ -50,3 +50,10 @@ Greeks, bid/ask quotes, and exit marks from Public.com while Alpaca remains the 
 broker. This requires a personal Public API secret and account ID in environment variables; the
 adapter is read-only and never submits Public orders. See `SETUP.md` for the credential flow and
 `harness/public_marketdata.py` for the boundary.
+
+## Dashboard
+
+The supplied daylight dashboard is implemented under `dashboard/` and served by the always-on
+`harness.dashboard_server` process. It is read-only, token protected, and defaults to paper trading
+disarmed. Set a 32+ character `OA_DASHBOARD_TOKEN`; enable `OA_TRADING_ENABLED` only after the
+deployment verification sequence in `SETUP.md`.

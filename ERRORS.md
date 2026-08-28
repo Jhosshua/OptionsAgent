@@ -22,6 +22,14 @@ credential must fail the data call closed rather than silently switching provide
 Individual API is personal-use only, so its market data must not be redistributed through a
 public dashboard or relay without permission.
 
+## Dashboard and cron safety gates
+
+The dashboard is intentionally separate from order execution. Its data APIs require
+`OA_DASHBOARD_TOKEN`, its broker snapshot is refreshed off-request, and its process must not be
+used as a trading healthcheck. Cron reads `OA_TRADING_ENABLED` and `ALPACA_PAPER` from `.env`; both
+must be exactly `true` before entry, exit, or scalp scripts can act. The entrypoint removes stale
+allowlisted variables from `.env` when they are absent and writes the file mode `0600`.
+
 ## Historical replay limitation: realized-fill filtering is not a full backtest
 
 The 2026-08-27 study uses the archived scalp registry and decision log. It can

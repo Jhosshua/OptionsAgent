@@ -22,6 +22,7 @@ import os, sys
 env_file = sys.argv[1]
 secret_keys = [
     "ALPACA_API_KEY", "ALPACA_SECRET_KEY", "ALPACA_PAPER",
+    "OA_TRADING_ENABLED", "OA_DASHBOARD_TOKEN",
     "ANTHROPIC_API_KEY", "OA_ANTHROPIC_MODEL", "OA_MAX_TOKENS",
     "DISCORD_WEBHOOK_URL",
     # 0DTE ORB scalper (isolated). Master switch + tighten-only rail overrides +
@@ -40,22 +41,22 @@ try:
     lines = open(env_file).read().splitlines()
 except OSError:
     lines = []
-present = {}
-for i, ln in enumerate(lines):
-    if "=" in ln and not ln.lstrip().startswith("#"):
-        present[ln.split("=", 1)[0].strip()] = i
+filtered = []
+for ln in lines:
+    key = ln.split("=", 1)[0].strip() if "=" in ln and not ln.lstrip().startswith("#") else ""
+    if key not in secret_keys:
+        filtered.append(ln)
+lines = filtered
 injected = []
 for key in secret_keys:
     val = os.environ.get(key)
-    if val is None or val == "":
-        continue
-    line = f"{key}={val}"
-    if key in present:
-        lines[present[key]] = line
-    else:
-        lines.append(line)
-    injected.append(key)
-open(env_file, "w").write("\n".join(lines) + "\n")
+    if val is not None and val != "":
+        lines.append(f"{key}={val}")
+        injected.append(key)
+os.makedirs(os.path.dirname(env_file), exist_ok=True)
+with open(env_file, "w") as fh:
+    fh.write("\n".join(lines) + "\n")
+os.chmod(env_file, 0o600)
 print("[entrypoint] injected secrets:", ", ".join(injected) if injected else "(none set)")
 PY
 
@@ -72,14 +73,38 @@ ln -sfn "$APP/data/logs" "$APP/logs"
 
 # --- 4. Install cron schedule + run cron in the foreground ---
 install -m 0644 -o root -g root "$APP/cron/crontab.railway" /etc/cron.d/optionsagent
+
+# Dashboard is supervised independently of cron. It is intentionally not a
+# Railway healthcheck: a dashboard crash must not bounce cron mid-trade.
+if [ -n "${OA_DASHBOARD_TOKEN:-}" ] && [ "${#OA_DASHBOARD_TOKEN}" -ge 32 ]; then
+  dashboard_loop() {
+    while true; do
+      python3 -m harness.dashboard_server >> "$APP/data/logs/dashboard.log" 2>&1 || true
+      if [ -f "$APP/data/logs/dashboard.log" ] && [ "$(wc -c < "$APP/data/logs/dashboard.log")" -gt 2097152 ]; then
+        tail -c 1048576 "$APP/data/logs/dashboard.log" > "$APP/data/logs/dashboard.log.tmp" || true
+        mv "$APP/data/logs/dashboard.log.tmp" "$APP/data/logs/dashboard.log" 2>/dev/null || true
+      fi
+      sleep 5
+    done
+  }
+  dashboard_loop &
+  echo "[entrypoint] dashboard supervisor started on port ${PORT:-8080}."
+else
+  echo "[entrypoint] OA_DASHBOARD_TOKEN missing/short — dashboard supervisor disabled."
+fi
+
 echo "[entrypoint] cron schedule installed; handing off to cron (foreground)."
 
 # --- 4b. Shared market-data relay (background). Only starts when OA_RELAY_TOKEN is
 # set (read-only, token-gated GET server serving data/marketdata/<date>.jsonl to
 # other bots). A crash here never affects trading — it's a separate process. ---
 if [ -n "${OA_RELAY_TOKEN:-}" ]; then
-  echo "[entrypoint] starting market-data relay on port ${OA_RELAY_PORT:-8399}"
-  python3 -m harness.marketdata_relay >> "$APP/data/logs/marketdata_relay.log" 2>&1 &
+  if [ "${OA_RELAY_PORT:-8399}" = "${PORT:-8080}" ]; then
+    echo "[entrypoint] relay port equals public dashboard PORT — relay disabled to avoid collision"
+  else
+    echo "[entrypoint] starting market-data relay on internal port ${OA_RELAY_PORT:-8399}"
+    python3 -m harness.marketdata_relay >> "$APP/data/logs/marketdata_relay.log" 2>&1 &
+  fi
 fi
 
 # Announce the deploy in Discord if the webhook is configured. Never fatal.

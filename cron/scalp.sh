@@ -10,6 +10,11 @@
 set -u
 cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)" || exit 1
 
+TRADING_ENABLED=$(grep -E '^OA_TRADING_ENABLED=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d ' "')
+if [ "${TRADING_ENABLED:-}" != "true" ]; then exit 0; fi
+PAPER_MODE=$(grep -E '^ALPACA_PAPER=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d ' "')
+if [ "${PAPER_MODE:-}" != "true" ]; then echo "[scalp] paper gate failed — skipping"; exit 0; fi
+
 # --- 1. master switch (read from .env, which entrypoint.sh populates) ---
 SCALP_ENABLED=$(grep -E '^OA_SCALP_ENABLED=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '"'"'"' ')
 if [ "${SCALP_ENABLED:-}" != "true" ]; then exit 0; fi
@@ -23,6 +28,7 @@ if [ "$HOUR" = "09" ] && [ "$MIN" -lt 33 ]; then exit 0; fi
 # --- 3. atomic run-lock (mkdir) so overlapping ticks are a no-op ---
 LOCK="$PWD/data/.locks/scalp_running"
 mkdir -p "$PWD/data/.locks" 2>/dev/null
+find "$LOCK" -maxdepth 0 -type d -mmin +10 -exec rmdir {} \; 2>/dev/null || true
 if ! mkdir "$LOCK" 2>/dev/null; then exit 0; fi
 trap 'rmdir "$LOCK" 2>/dev/null' EXIT
 
