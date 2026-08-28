@@ -1,10 +1,13 @@
 """Chain-snapshot capture — the backtesting prerequisite (BotResearch run
 20260708-0015, "parked" section).
 
-The bot pays for a full option-chain snapshot (quotes, IV, greeks) every
-cycle and used to throw it away, which is why no backtester can exist. This
-module persists one snapshot per underlying per entry cycle to the Railway
-volume so a chain-replay harness / IV-rank signal becomes possible later.
+The bot captures an option-chain snapshot every cycle and used to throw it
+away, which is why no backtester can exist. This module persists one snapshot
+per underlying per entry cycle to the Railway volume so a chain-replay harness
+/ IV-rank signal becomes possible later. Fields are provider-specific: the
+Alpaca adapter includes its available Greeks, while the optional Public raw
+chain capture provides chain quotes and contract metadata without the
+selector's per-contract quote/Greeks enrichment.
 
 Layout: data/chain_snapshots/YYYY-MM-DD/<UNDERLYING>.jsonl.gz — one JSON row
 per contract. Written atomically (tmp then rename). Always on (NOT gated on

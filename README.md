@@ -42,3 +42,11 @@ thresholds, exit targets). The rails in `harness/risk_rails.py` (conviction floo
 DTE close, and the historical credit-spread winner profile) live in code by design. Sizing is full-deploy per operator decision 2026-07-03:
 conviction-scaled fraction of available buying power, no percentage caps — `OA_MAX_POSITION_USD`
 env var is the tighten-only emergency brake.
+
+## Optional Public market-data sidecar
+
+The default provider is Alpaca. Set `OA_OPTIONS_DATA_PROVIDER=public` to source option chains,
+Greeks, bid/ask quotes, and exit marks from Public.com while Alpaca remains the paper execution
+broker. This requires a personal Public API secret and account ID in environment variables; the
+adapter is read-only and never submits Public orders. See `SETUP.md` for the credential flow and
+`harness/public_marketdata.py` for the boundary.

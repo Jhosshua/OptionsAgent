@@ -40,6 +40,28 @@ hard-coded credit-spread winner profile documented in `OVERFIT_ANALYSIS.md`.
 | `OA_MAX_POSITION_USD` | (unset) | OPTIONAL tighten-only emergency brake: absolute $ ceiling per position |
 | `OA_MAX_TOKENS` | (unset, default 4096) | Proposer output ceiling |
 
+## Optional Public market-data sidecar
+
+The default `OA_OPTIONS_DATA_PROVIDER=alpaca` uses Alpaca market data. To avoid relying on
+Alpaca's paid market-data tier for the options chain, create a personal Public API secret in
+Public settings and set:
+
+- `OA_OPTIONS_DATA_PROVIDER=public`
+- `PUBLIC_API_SECRET=<your Public personal API secret>`
+- `PUBLIC_ACCOUNT_ID=<your Public brokerage account ID>` (optional; the adapter can discover the first brokerage account)
+
+The adapter exchanges the secret for a short-lived Public access token, reads option expirations,
+chains, and per-contract quotes/Greeks, then returns the same `OptionQuote` shape used by the
+deterministic selector. It has no Public order methods; all paper orders, account state, and
+positions remain Alpaca. Public's official flow is documented at its
+[API quickstart](https://public.com/api/docs/quickstart), [option-chain guide](https://public.com/api/docs/templates/place-options-order),
+and [quote endpoint](https://public.com/api/docs/resources/market-data/get-quotes).
+
+Start with `PUBLIC_OPTIONS_DTE_MIN=30` and `PUBLIC_OPTIONS_DTE_MAX=45` for the current seller.
+The first live check should be read-only: verify authentication, retrieve one chain, and compare
+timestamps/bid/ask/delta against Alpaca before enabling the provider in a paper cycle. Never put
+either broker's secrets in config JSON, source control, Discord, or a dashboard.
+
 ⚠️ **3-touch-point rule (fleet gotcha):** a NEW env var must be added in (1) code/config,
 (2) Railway variables, AND (3) the `secret_keys` allowlist in `entrypoint.sh` — cron jobs read
 `.env`, which the entrypoint writes from that allowlist. Missing (3) = the var silently never

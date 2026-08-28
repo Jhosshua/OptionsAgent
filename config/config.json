@@ -12,6 +12,10 @@
     "credit_spreads_only": ["credit_spread"],
     "all": ["csp", "covered_call", "credit_spread", "debit_spread", "long_call", "long_put", "long_straddle", "covered_straddle"]
   },
+  "market_data": {
+    "provider": "alpaca",
+    "_comment": "Set OA_OPTIONS_DATA_PROVIDER=public to use the read-only Public.com sidecar for option chains/quotes while Alpaca remains the paper execution broker. Public credentials are environment-only; this JSON cannot enable the sidecar by itself."
+  },
   "screener": {
     "universe_file": "config/universe.txt"
   },

@@ -30,6 +30,11 @@ secret_keys = [
     "OA_SCALP_PER_TRADE_USD", "OA_SCALP_MAX_TRADES", "OA_SCALP_DAILY_LOSS_USD",
     # Shared market-data feed: publisher switch + relay token/port.
     "OA_MARKETDATA_ENABLED", "OA_RELAY_TOKEN", "OA_RELAY_PORT",
+    # Optional read-only Public.com market-data sidecar. Alpaca remains the
+    # account/order broker; these values are only copied into the cron .env.
+    "OA_OPTIONS_DATA_PROVIDER", "PUBLIC_API_SECRET", "PUBLIC_API_SECRET_KEY",
+    "PUBLIC_ACCOUNT_ID", "PUBLIC_OPTIONS_DTE_MIN", "PUBLIC_OPTIONS_DTE_MAX",
+    "PUBLIC_QUOTE_BATCH_SIZE", "PUBLIC_API_TIMEOUT_SECONDS",
 ]
 try:
     lines = open(env_file).read().splitlines()

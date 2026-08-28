@@ -106,6 +106,11 @@ DeepSeek session hung without output and a direct API fallback reset the
 connection. No DeepSeek recommendation was received or represented as fact;
 `DEEPSEEK_CREDIT_SPREAD_PROMPT.md` contains the exact independent-review prompt.
 
+The optional Public.com read-only market-data sidecar was added after the replay. It can supply
+option chain bid/ask and per-contract Greeks while Alpaca remains execution-only; it is disabled
+by default and has not been live-smoke-tested because no Public credentials were available in the
+repository environment.
+
 This repository remains **not deployed**. The original Railway project,
 volume, broker keys, LLM key, and Discord webhook were deleted on 2026-08-02;
 restarting requires a new paper account and a new Railway deployment target.

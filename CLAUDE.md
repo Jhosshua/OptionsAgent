@@ -20,6 +20,10 @@
 > in-sample winner profile in the same module. This is local and not deployed. Do not claim a
 > restart or deployment: the old Railway target and credentials were deleted.
 
+> **2026-08-27 Public data update:** `harness/public_marketdata.py` is an optional, read-only
+> market-data sidecar. It is disabled by default; Alpaca remains the paper execution/account
+> broker. It must not be enabled until a new deployment target and valid credentials are created.
+
 > Read this first every session. Then read `MEMORY.md` and `ERRORS.md`.
 
 ## What this is

@@ -14,6 +14,14 @@ three records. It was requested despite the tiny sample. This is not a full back
 reject all future candidates or select a coincidental pattern; do not relax it until a
 prospective sample is collected.
 
+## Public.com is an optional read-only data sidecar
+
+Public API credentials must stay in environment variables. The adapter never submits Public
+orders, and `OA_OPTIONS_DATA_PROVIDER` defaults to `alpaca`; a missing or malformed Public
+credential must fail the data call closed rather than silently switching providers. Public's
+Individual API is personal-use only, so its market data must not be redistributed through a
+public dashboard or relay without permission.
+
 ## Historical replay limitation: realized-fill filtering is not a full backtest
 
 The 2026-08-27 study uses the archived scalp registry and decision log. It can

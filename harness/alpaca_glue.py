@@ -12,7 +12,7 @@ the sibling bots' (`da-`, `sa-`, etc.).
 from __future__ import annotations
 
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from harness.contracts import OptionQuote
@@ -84,6 +84,17 @@ class PaperClient:
 
     key_id: str
     secret_key: str
+    _public_data: Any = field(default=None, init=False, repr=False, compare=False)
+
+    def _public_market_data(self):
+        """Return the optional read-only Public data sidecar, if enabled."""
+        if (env("OA_OPTIONS_DATA_PROVIDER", "alpaca") or "alpaca").lower() != "public":
+            return None
+        if self._public_data is None:
+            from harness.public_marketdata import PublicMarketDataClient
+
+            object.__setattr__(self, "_public_data", PublicMarketDataClient.from_env())
+        return self._public_data
 
     def _ensure_paper(self) -> None:
         if (env("ALPACA_PAPER", "true") or "true").lower() != "true":
@@ -146,6 +157,10 @@ class PaperClient:
         alpaca-py's OptionsSnapshot carries NO strike/expiry/right fields
         (verified on 0.43.4: only symbol/latest_trade/latest_quote/IV/greeks)
         — all three must be parsed from the OCC symbol via harness/occ.py."""
+        public = self._public_market_data()
+        if public is not None:
+            return public.option_chain(underlying)
+
         from alpaca.data.requests import OptionChainRequest
 
         client = self._option_historical_client()
@@ -163,6 +178,10 @@ class PaperClient:
         indicative feed hasn't computed them — the probe confirmed this, and the lean
         option_chain() would drop those rows). Returns [{symbol, strike, right, bid,
         ask, mid, spread_pct}, ...]. Empty list on error or nothing listed."""
+        public = self._public_market_data()
+        if public is not None:
+            return public.option_chain_0dte(underlying, right=right, spot=spot, strike_pct=strike_pct)
+
         from datetime import date
 
         from alpaca.data.requests import OptionChainRequest
@@ -219,6 +238,10 @@ class PaperClient:
         stays the lean trading adapter; this one exists because the dropped
         fields (IV, gamma/theta/vega) are exactly what a future replay
         harness / IV-rank signal needs and cannot be recovered later."""
+        public = self._public_market_data()
+        if public is not None:
+            return public.option_chain_raw(underlying)
+
         from alpaca.data.requests import OptionChainRequest
 
         client = self._option_historical_client()
@@ -337,6 +360,10 @@ class PaperClient:
 
     def option_quotes(self, option_symbols: list[str]) -> dict[str, dict[str, float]]:
         """Latest bid/ask per OCC symbol — the exit sweep's mark source."""
+        public = self._public_market_data()
+        if public is not None:
+            return public.option_quotes(option_symbols)
+
         from alpaca.data.requests import OptionLatestQuoteRequest
 
         if not option_symbols:
