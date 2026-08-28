@@ -6,6 +6,7 @@ tighten-only), the exit-decision priority order, and the state/registry stores.
 """
 
 import sys
+import json
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -148,8 +149,8 @@ def test_budget_predicate():
 
 
 def test_trade_count_predicate():
-    assert scalp_trade_count_ok(2, R)[0]
-    assert not scalp_trade_count_ok(3, R)[0]
+    assert scalp_trade_count_ok(1, R)[0]
+    assert not scalp_trade_count_ok(2, R)[0]
 
 
 def test_daily_loss_predicate():
@@ -169,11 +170,17 @@ def test_one_at_a_time_predicate():
 
 
 def test_entry_window_and_flatten():
-    assert scalp_entry_window_ok("14:29", R)[0]
-    assert not scalp_entry_window_ok("14:30", R)[0]
+    assert scalp_entry_window_ok("11:29", R)[0]
+    assert not scalp_entry_window_ok("11:30", R)[0]
     assert not scalp_must_flatten("15:49", R)
     assert scalp_must_flatten("15:50", R)
     assert scalp_must_flatten("15:59", R)
+
+
+def test_config_mirrors_hard_scalp_rails():
+    cfg = json.loads((Path(__file__).resolve().parent.parent / "config" / "config.json").read_text())
+    assert cfg["scalp"]["entry_cutoff_et"] == R.entry_cutoff_et
+    assert cfg["scalp"]["max_trades_per_day"] == R.max_trades_per_day
 
 
 def test_env_overrides_tighten_only(monkeypatch):

@@ -1,5 +1,18 @@
 # Options bot research — Phase 1 (in progress)
 
+## 2026-08-27 — archived trade replay
+
+The archived live-paper history is analyzed in `OVERFIT_ANALYSIS.md` and can
+be reproduced with `python3 research_scalp_history.py`. The replay found a
+strong but small-sample timing split in the isolated 0DTE scalper: all 12
+realized entries at/after 11:30 ET lost (-$681), while the 24 earlier entries
+returned +$314. Combining a hard 11:30 ET cutoff with a two-entry daily cap
+retained 23 known trades and returned +$345 in-sample. These are now hard
+scalp rails, but this is a conditional replay of realized fills, not a full
+option-chain backtest, and no other feature was promoted. The credit-spread
+seller's mixed 8-trade realized sample did not justify fitting new entry or
+exit parameters.
+
 Status: **Pass 1 + Pass 2 complete.** Ready to move to architecture design (pending confirmation).
 
 Target: deterministic (rules-based) options trading bot on Alpaca, "left brain / right brain" hybrid

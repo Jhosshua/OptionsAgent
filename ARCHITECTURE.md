@@ -1,5 +1,10 @@
 # ARCHITECTURE.md — OptionsAgent (original design, 2026-07-03)
 
+> **Research update 2026-08-27:** The archived 0DTE scalp replay supports a
+> hard 11:30 ET entry cutoff and two-entry daily cap, now implemented in `ScalpRails`. See
+> `OVERFIT_ANALYSIS.md`. This is a local research change only; the bot is
+> retired and has no deployment target.
+
 > ⚠️ **PARTIALLY SUPERSEDED — read CLAUDE.md for current truth.** This document is the original
 > design and its rationale; it's kept because every threshold number traces back to RESEARCH.md
 > through it. Two sections were overridden by operator decisions later the same day:

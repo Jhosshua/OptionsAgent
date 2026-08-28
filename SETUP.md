@@ -1,5 +1,11 @@
 # SETUP.md — OptionsAgent deployment runbook
 
+> **RETIRED / NOT DEPLOYED (2026-08-27).** The Railway project, volume,
+> paper-account keys, LLM key, and Discord webhook described below were deleted
+> on 2026-08-02. This file is historical. A restart requires creating a new
+> Railway project/service/volume and supplying new paper credentials and a new
+> webhook; no restart or deployment was performed by the historical analysis.
+
 Everything operational: where it runs, the env vars, how to redeploy, watch, and stop it.
 
 ## Where it runs

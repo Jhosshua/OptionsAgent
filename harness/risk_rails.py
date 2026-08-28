@@ -184,14 +184,21 @@ def apply_opened_position(
 @dataclass(frozen=True)
 class ScalpRails:
     per_trade_usd_cap: float = 250.0     # hard absolute budget per scalp
-    max_trades_per_day: int = 3
+    # Conditional replay of archived fills: cutoff<11:30 plus two entries/day
+    # retained 23 known trades and improved in-sample P/L to +$345. This remains
+    # a hypothesis and must be held unchanged for the next sample.
+    max_trades_per_day: int = 2
     daily_loss_stop_usd: float = 0.0     # 0 = DISABLED (operator 2026-07-10, paper account, max
-                                         # learning: let all max_trades_per_day setups play out).
+                                         # learning: the two-trade cap is now a research gate).
                                          # Worst-case daily loss is then bounded only by
-                                         # max_trades_per_day * per_trade_usd_cap ($750). A positive
+                                         # max_trades_per_day * per_trade_usd_cap ($500). A positive
                                          # OA_SCALP_DAILY_LOSS_USD re-enables the halt at that value.
     max_concurrent_scalps: int = 1       # one position at a time
-    entry_cutoff_et: str = "14:30"       # no NEW entries after this ET time
+    # Historical replay (2026-07-10 through 2026-07-31) found 12/12 realized
+    # entries after 11:30 ET were losers. This is deliberately a hard rail: the
+    # config copy is documentation only, and an operator can still tighten it
+    # in code or by a future explicit policy change.
+    entry_cutoff_et: str = "11:30"       # no NEW entries at/after this ET time
     eod_flatten_et: str = "15:50"        # MANDATORY force-close by this ET time
 
 

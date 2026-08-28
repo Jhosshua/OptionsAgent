@@ -5,12 +5,11 @@ deterministic Python picks the actual contract, sizes it, and executes. See `CLA
 full picture, `ARCHITECTURE.md` for the design rationale, `RESEARCH.md` for the research it's built
 on.
 
-## Status (2026-07-03)
+## Status (2026-08-27)
 
-**DEPLOYED and armed.** All 8 strategies enabled, running on Railway (project `OptionsAgent`),
-Alpaca paper account funded ($5k), Discord `#options-agent` wired, cron scheduled. First live
-entry window: Monday 2026-07-06 10:15 ET. See `CLAUDE.md` for the authoritative current state
-and `SETUP.md` for the deployment runbook.
+**RETIRED and not deployed.** The archived bot history was analyzed and the 0DTE scalp hard
+entry cutoff was tightened to 11:30 ET. The original Railway project, paper account, and webhook
+were deleted on 2026-08-02; see `CLAUDE.md` and `OVERFIT_ANALYSIS.md` before any restart.
 
 ## Docs map
 
@@ -21,6 +20,7 @@ and `SETUP.md` for the deployment runbook.
 | `ERRORS.md` | Approaches that failed and what worked instead |
 | `ARCHITECTURE.md` | The original design + rationale (superseded parts are banner-marked) |
 | `RESEARCH.md` | The 3-pass deep research every threshold number traces back to |
+| `OVERFIT_ANALYSIS.md` | Archived per-day/per-trade replay and the validated narrow strategy change |
 | `SETUP.md` | Railway deployment runbook: env vars, redeploy, logs, kill knobs |
 
 ## Local dev

@@ -1,5 +1,14 @@
 # ERRORS.md — OptionsAgent
 
+## Historical replay limitation: realized-fill filtering is not a full backtest
+
+The 2026-08-27 study uses the archived scalp registry and decision log. It can
+measure how old realized P/L slices by entry time, RVOL, direction, and
+underlying, but it cannot reconstruct historical option bid/ask paths or fills
+for trades that were skipped. Treat the 11:30 ET cutoff as a prospective
+hypothesis supported by a small sample, not proof of a durable edge. Require a
+fresh sample before further tuning.
+
 ## `railway ssh "... | base64"` silently truncates a large stream (11 MB came back as 353 KB)
 
 **What did not work:** backing up the Railway volume in one shot —

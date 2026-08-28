@@ -1,5 +1,27 @@
 # MEMORY.md — OptionsAgent
 
+## 2026-08-27 — ARCHIVED TRADE STUDY; SCALP CUTOFF TIGHTENED LOCALLY
+
+The archived volume was analyzed with `research_scalp_history.py`. It contains
+37 scalp registry pairs across 15 trading days, 36 with realized P/L and one
+vanished position with unknown P/L. Realized scalp P/L was **-$367**, 10/36
+winners. Twelve entries at or after 11:30 ET were 0/12 and **-$681**; the 24
+entries before 11:30 ET were 10/24 and **+$314**. Capping the pre-cutoff
+history at two entries per day retained 23 known trades, 10 winners, and
+**+$345**. These two gates were promoted; underlying, direction, and high-RVOL
+slices were too small or did not separate cleanly.
+
+`ScalpRails.entry_cutoff_et` and `max_trades_per_day` plus their config
+documentation mirrors were changed from 14:30/3 to **11:30 ET/2**. No seller
+logic, sizing, stop, or RVOL rule was changed. This is a conditional replay of realized fills, not a complete option
+backtest; require at least 30 new prospective scalp round-trips before another
+tuning decision.
+
+The seller archive had 8 filled structures with non-zero realized P/L totaling
+-$644 (3 wins, 5 losses), plus incomplete/unknown records. No seller change was
+justified. The bot remains retired and not deployed because its original Railway
+project, volume, paper credentials, and Discord webhook were deleted on 2026-08-02.
+
 ## 2026-08-02 — SHUT DOWN. Railway off, Discord off, data archived.
 
 **Operator instruction:** turn the agent completely off in Railway, kill the Discord side, he is

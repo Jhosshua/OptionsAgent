@@ -259,6 +259,24 @@ def test_try_entry_live_opens_position_and_counts_trade():
     assert fc.orders[-1]["prefix"] == "oas-" and fc.orders[-1]["side"] == "buy"
 
 
+def test_try_entry_hard_cutoff_blocks_at_1130_et():
+    blk = _fresh_blk()
+    state = {"date": DATE, "trades_today": 0, "realized_pnl_usd": 0.0, "halted": False,
+             "underlyings": {"SPY": blk}}
+    fc = _entry_client()
+    _te(fc, blk, state, dry=False, now_hhmm="11:30", bars=_confirmed_breakout_bars())
+    assert fc.orders == []
+
+
+def test_try_entry_daily_cap_blocks_when_two_trades_used():
+    blk = _fresh_blk()
+    state = {"date": DATE, "trades_today": 2, "realized_pnl_usd": 0.0, "halted": False,
+             "underlyings": {"SPY": blk}}
+    fc = _entry_client()
+    _te(fc, blk, state, dry=False, now_hhmm="11:29", bars=_confirmed_breakout_bars())
+    assert fc.orders == []
+
+
 def test_try_entry_rejects_next_bar_breakout_failure():
     blk = _fresh_blk()
     state = {"date": DATE, "trades_today": 0, "realized_pnl_usd": 0.0, "halted": False,

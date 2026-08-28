@@ -1,5 +1,9 @@
 # OptionsAgent shared market-data relay
 
+> **RETIRED NOTICE (2026-08-27):** The original Railway service and its
+> market-data relay were deleted on 2026-08-02. The instructions below describe
+> the old deployment only; the relay is not currently reachable.
+
 OptionsAgent fetches SIP 1-minute bars for SPY/QQQ and computes intraday signals.
 This relay makes that data available to the **other bots** over a token-gated,
 read-only HTTPS GET — the same pattern DTA uses for its orderflow relay, so a

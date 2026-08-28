@@ -91,9 +91,9 @@
     "_rvol_comment": "Breakout bar volume must be >= rvol_min x the session's average 1-min volume so far (volume-surge confirmation).",
     "per_trade_usd": 250,
     "_per_trade_comment": "Small fixed per-trade budget so a scalp can never starve the seller's spreads. Options BP is shared; probe showed only ~$1,579 available.",
-    "max_trades_per_day": 3,
+    "max_trades_per_day": 2,
     "daily_loss_stop_usd": 0,
-    "_daily_loss_comment": "0 = DISABLED (operator 2026-07-10, paper account, max learning). NOTE: the effective daily-loss halt is the hard rail in harness/risk_rails.py (ScalpRails.daily_loss_stop_usd), which is what run_scalp.py enforces via active_scalp_rails(); this config key is documentation-only. Re-enable via OA_SCALP_DAILY_LOSS_USD env (positive $) or by setting the code default. Worst-case daily loss without the halt = max_trades_per_day * per_trade_usd = 3 * 250 = $750.",
+    "_daily_loss_comment": "0 = DISABLED. NOTE: the effective daily-loss halt is the hard rail in harness/risk_rails.py (ScalpRails.daily_loss_stop_usd), which is what run_scalp.py enforces via active_scalp_rails(); this config key is documentation-only. Re-enable via OA_SCALP_DAILY_LOSS_USD env (positive $) or by setting the code default. The hard two-trade/day cap bounds the scalp budget to 2 * $250 = $500 before exits.",
     "stop_loss_pct": 0.30,
     "thesis_intact_stop_loss_pct": 0.60,
     "_thesis_stop_comment": "While the underlying remains outside the opening range and on the matching side of VWAP, suppress the normal 30% stop/time cut but retain this catastrophic premium-loss stop.",
@@ -102,8 +102,8 @@
     "_theta_comment": "If the option hasn't hit target within N minutes, cut it only after the underlying also loses the opening-range/VWAP thesis.",
     "max_spread_pct": 0.15,
     "_spread_comment": "Skip a 0DTE contract whose (ask-bid)/mid exceeds this (liquidity guard; OI is not exposed by Alpaca so spread is the only guard).",
-    "entry_cutoff_et": "14:30",
-    "_entry_cutoff_comment": "No NEW entries after this ET time (a 0DTE bought late has all theta, no runway).",
+    "entry_cutoff_et": "11:30",
+    "_entry_cutoff_comment": "Documentation mirror of the hard ScalpRails cutoff. Historical replay found 12/12 realized entries after 11:30 ET lost; no new entries at/after 11:30 ET. This is not a runtime override.",
     "eod_flatten_et": "15:50",
     "_eod_flatten_comment": "MANDATORY: force-close any open scalp by this ET time. An ITM 0DTE left to expiry auto-exercises into 100 shares (~$75k on SPY) on a $5k account. Non-negotiable."
   }
