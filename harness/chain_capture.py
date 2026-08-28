@@ -6,8 +6,8 @@ away, which is why no backtester can exist. This module persists one snapshot
 per underlying per entry cycle to the Railway volume so a chain-replay harness
 / IV-rank signal becomes possible later. Fields are provider-specific: the
 Alpaca adapter includes its available Greeks, while the optional Public raw
-chain capture provides chain quotes and contract metadata without the
-selector's per-contract quote/Greeks enrichment.
+chain capture provides quotes, contract metadata, and any Greeks returned by
+the chain endpoint without selector-sized per-contract quote fan-out.
 
 Layout: data/chain_snapshots/YYYY-MM-DD/<UNDERLYING>.jsonl.gz — one JSON row
 per contract. Written atomically (tmp then rename). Always on (NOT gated on

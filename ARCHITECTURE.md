@@ -1,5 +1,10 @@
 # ARCHITECTURE.md — OptionsAgent (original design, 2026-07-03)
 
+> **CURRENT IMPLEMENTATION NOTE — 2026-08-28:** The active runtime is local
+> paper trading. Claude Code CLI is the proposal boundary; no Anthropic API key
+> is used. Public.com remains read-only market data and Alpaca remains the
+> paper-only account/order boundary. The Railway design below is historical.
+
 > **Research update 2026-08-27:** The archived 0DTE scalp replay supports a
 > hard 11:30 ET entry cutoff and two-entry daily cap, now implemented in `ScalpRails`. The
 > requested multi-day credit-spread overfit is implemented as a hard post-selection winner
@@ -209,14 +214,14 @@ Mirrors DA's "rails live in code" philosophy — config can only tighten these, 
 
 - Python 3, `alpaca-py`, PAPER endpoint only for v1 (same `make_client()` refusal-of-live pattern).
 - Persistence: flat JSONL under `data/` (`decisions.jsonl`, matching DA — no DB).
-- Module layout mirrors DA's `harness/`: `proposer.py` (LLM call), `contracts.py` (new — the
+- Module layout mirrors DA's `harness/`: `proposer.py` (Claude Code CLI call), `contracts.py` (new — the
   contract-selection rail), `risk_rails.py` (hard floors, code not config), `execution.py` (Alpaca
   order submission incl. mleg/equity-leg sequencing), `exits.py` (the LLM-free rails sweep),
   `notify.py` (Discord), `epistemics.py`, `env.py`.
   Self-learning loops (autoresearch/postmortem-style tuning) deferred to after a paper track record
   exists — not part of v1.
-  LLM: default to whatever the sibling bots currently run as control, swap-compatible the same way.
-- Deployment: own Railway project, own Discord channel (already decided). The
+  LLM: use the operator's authenticated local Claude Code CLI; no Anthropic API key.
+- Runtime: local user crontab and local dashboard. The
   dashboard is a local-only, read-only observer on `$PORT`; it uses a
   background-cached broker snapshot and never imports execution modules. Its
   `/healthz` endpoint is for manual/external probes only and is not configured

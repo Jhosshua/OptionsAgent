@@ -5,7 +5,18 @@ deterministic Python picks the actual contract, sizes it, and executes. See `CLA
 full picture, `ARCHITECTURE.md` for the design rationale, `RESEARCH.md` for the research it's built
 on.
 
-## Status (2026-08-27)
+> **CURRENT OPERATING MODE — 2026-08-28:** This is a local paper-trading
+> robot. Claude Code CLI supplies proposals through the operator's existing
+> authenticated CLI login; no `ANTHROPIC_API_KEY` is configured or required.
+> Public.com is read-only market data and Alpaca remains paper execution. The
+> local `.env` plus user crontab are authoritative; Railway is not used.
+
+## Status (2026-08-28)
+
+**ACTIVE LOCALLY, PAPER ONLY.** Public market data and the Claude Code CLI proposer are enabled
+locally. Alpaca remains paper-only execution. The archived Railway deployment is not used.
+
+### Historical status (2026-08-27)
 
 **RETIRED and not deployed.** The archived bot history was analyzed, the 0DTE scalp hard entry
 cutoff was tightened to 11:30 ET, and the multi-day credit-spread seller was intentionally
@@ -24,16 +35,16 @@ and webhook were deleted on 2026-08-02; see `CLAUDE.md` and `OVERFIT_ANALYSIS.md
 | `OVERFIT_ANALYSIS.md` | Archived per-day/per-trade replay and the documented local research changes |
 | `research_credit_spread_history.py` | Replays the archived multi-day credit-spread ledger and winner profile |
 | `DEEPSEEK_CREDIT_SPREAD_PROMPT.md` | Read-only prompt for an independent DeepSeek/claude-ds review |
-| `SETUP.md` | Railway deployment runbook: env vars, redeploy, logs, kill knobs |
+| `SETUP.md` | Local setup, scheduler, Claude Code CLI, logs, and paper-trading gates |
 
 ## Local dev
 
 1. `pip install -r requirements.txt`
-2. `python3 -m pytest tests/` — all tests pass with no network access or keys needed.
-3. For a future recreated deployment only: copy `.env.example` to `.env`, fill in new paper
-   credentials, and run `python3 run_cycle.py`. The historical Railway production target is
-   deleted; do not run a local cycle against an account unless a new deployment/account has been
-   explicitly provisioned.
+2. Ensure the authenticated `claude` CLI is on PATH (or set `OA_CLAUDE_CLI`).
+3. Copy `.env.example` to `.env` and fill in paper credentials plus the read-only Public secret.
+4. `python3 -m pytest tests/` — all tests pass without broker or model calls.
+5. The local user crontab runs `cron/entry.sh` and `cron/exits.sh`; run `python3 run_cycle.py`
+   manually only when intentionally performing a paper entry cycle.
 
 ## Config
 
@@ -57,4 +68,4 @@ The supplied daylight dashboard is implemented under `dashboard/` and served by 
 `harness.dashboard_server` process. It is read-only, local-only by default, and defaults to paper
 trading disarmed. Run `zsh deploy/install_local_dashboard.sh` to keep it available at
 `http://127.0.0.1:8765`; enable `OA_TRADING_ENABLED` only after the deployment verification
-sequence in `SETUP.md`.
+sequence in `SETUP.md` (the current sequence is local, not Railway).

@@ -1,6 +1,16 @@
 # CLAUDE.md — OptionsAgent
 
-> ## ⛔ RETIRED 2026-08-02 — this bot is OFF and does not trade.
+> **CURRENT OPERATING MODE — 2026-08-28:** OptionsAgent is reactivated as a
+> **local paper-trading robot**. The proposal analyst uses the operator's
+> authenticated Claude Code CLI (`claude -p`) with no `ANTHROPIC_API_KEY`.
+> Public.com is read-only market data; Alpaca is paper-only execution. The
+> local `.env` and user crontab are authoritative. Do not use Railway for this
+> bot or link it to `tqqq-qqq-paperbot`.
+
+The retirement and Railway notes below are historical and no longer describe
+the active local setup.
+
+> ## HISTORICAL RETIREMENT 2026-08-02 — superseded by the local reactivation note above.
 >
 > Shut down at the operator's instruction. **The Railway project is deleted** (`e312c619`, purge
 > scheduled 2026-08-04) along with its volume, every app env var (Alpaca, Anthropic, Discord) is
@@ -13,21 +23,21 @@
 > the bot back. Read `MEMORY.md` 2026-08-02 first — it lists exactly what has to be re-created.
 > Everything below describes how the bot worked while it was live.
 
-> **2026-08-27 research update:** `OVERFIT_ANALYSIS.md`,
+> **HISTORICAL 2026-08-27 research update:** `OVERFIT_ANALYSIS.md`,
 > `research_scalp_history.py`, and `research_credit_spread_history.py` document the archived
 > trade study. The 0DTE hard entry cutoff (11:30 ET) and two-trade daily cap remain in
 > `harness/risk_rails.py`; the multi-day seller now has an explicitly requested, hard
 > in-sample winner profile in the same module. This is local and not deployed. Do not claim a
 > restart or deployment: the old Railway target and credentials were deleted.
 
-> **2026-08-27 Public data update:** `harness/public_marketdata.py` is an optional, read-only
-> market-data sidecar. It is disabled by default; Alpaca remains the paper execution/account
-> broker. It must not be enabled until a new deployment target and valid credentials are created.
+> **HISTORICAL 2026-08-27 Public data update:** `harness/public_marketdata.py` is an optional,
+> read-only market-data sidecar. It is now enabled locally; Alpaca remains the paper
+> execution/account broker. Its secret stays in the local `.env` only.
 
 > **2026-08-27 dashboard update:** `dashboard/` and `harness/dashboard_server.py` are a
 > local-only, read-only observer. It uses a background cache and a separate supervisor;
-> `OA_TRADING_ENABLED` defaults false and must be verified from the generated `.env` before paper
-> cron may act. Never link or deploy this repo to `tqqq-qqq-paperbot`.
+> `OA_TRADING_ENABLED` defaults false in templates and is verified from the local `.env` before
+> paper cron may act. Never link or deploy this repo to `tqqq-qqq-paperbot`.
 
 > Read this first every session. Then read `MEMORY.md` and `ERRORS.md`.
 
@@ -48,11 +58,11 @@ Full design rationale: `RESEARCH.md` (3 research passes, verified findings + exp
   adapters, a verifier per module).
 - **Broker:** Alpaca paper via `alpaca-py`. PAPER ONLY — `make_client()` refuses any non-paper
   endpoint. Order prefix `oa-`.
-- **LLM:** Anthropic, model `claude-fable-5` by default (`OA_ANTHROPIC_MODEL` to override) —
-  matches the sibling bots' current control model. Temperature 0. Offline/no-key path returns no
-  proposals (conservative, not a guess) so the whole cycle is testable without a live key.
+- **LLM:** the operator's authenticated Claude Code CLI, invoked non-interactively with structured
+  JSON output (`OA_CLAUDE_CLI`, `OA_CLAUDE_MODEL`). No Anthropic API key is required. CLI/auth/parse
+  failure returns no proposals (conservative, not a guess).
 - **Persistence:** flat JSONL under `data/` (`decisions.jsonl`), no DB — matches DA.
-- **Deployment:** own Railway project + own Discord channel, both named `OptionsAgent`.
+- **Runtime:** local user crontab + local read-only dashboard; no Railway deployment.
 
 ## Permanent constraints (apply every session, flag before breaking)
 
@@ -168,7 +178,7 @@ What was added on top of the wheel build:
   ⚠️ entrypoint.sh `secret_keys` allowlist = the fleet's known 3-touch-point gotcha; a new key
   must be added to code, Railway vars, AND that list.
 
-## ⭐ CURRENT STATUS (2026-07-03 end of day) — DEPLOYED, ARMED FOR MONDAY — supersedes everything below
+## ⭐ HISTORICAL STATUS (2026-07-03 end of day) — superseded by the local operating mode above
 
 - **LIVE on Railway**: project `OptionsAgent` (e312c619-5ac9-4edb-9d57-6ec4d1252ddd), container
   Online, volume at `/Users/mo/OptionsAgent/data`, verified from INSIDE the container (auth +
@@ -214,8 +224,8 @@ Done and unit-tested (36 tests, no network/keys needed):
   chain adapter and positions both depend on it because alpaca-py snapshots expose no
   strike/expiry/right fields.
 
-Written but **not yet integration-tested against a live paper account** (needs
-`ALPACA_API_KEY`/`ALPACA_SECRET_KEY`/`ANTHROPIC_API_KEY`/`DISCORD_WEBHOOK_URL` in `.env`):
+Written but **not yet integration-tested against a live paper account** (historical note; the
+current local integration uses Alpaca/Public credentials and Claude Code CLI authentication):
 - `harness/alpaca_glue.py`, `harness/proposer.py`, `harness/execution.py`, `harness/notify.py`.
 - `run_cycle.py` — execution IS now wired (CSP + covered-call-on-owned-shares), sizing skips
   below one contract, covered calls clamp to owned share lots, outcomes are truthful

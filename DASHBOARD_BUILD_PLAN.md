@@ -1,5 +1,10 @@
 # OptionsAgent dashboard build plan
 
+> **CURRENT RUNTIME NOTE — 2026-08-28:** The dashboard is local-only and read-only. Trading runs from
+> the local user crontab, proposals use the authenticated Claude Code CLI, Public.com is read-only
+> market data, and Alpaca is paper-only execution. Railway deployment requirements below are
+> historical and must not override this local setup.
+
 ## Goal
 
 Build the supplied OptionsAgent dashboard as a production-safe, always-on web

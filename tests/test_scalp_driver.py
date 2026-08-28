@@ -376,6 +376,9 @@ def test_load_state_corrupt_file_returns_fresh(tmp_path, monkeypatch):
 def test_option_chain_0dte_filters_adjusted_and_zero_quote(monkeypatch):
     from harness.alpaca_glue import PaperClient
 
+    # Keep this Alpaca adapter test independent of a developer's local
+    # OptionsAgent .env, which may enable the optional Public provider.
+    monkeypatch.setenv("OA_OPTIONS_DATA_PROVIDER", "alpaca")
     today = date.today().strftime("%y%m%d")
     valid = f"SPY{today}C00752000"
     adjusted = f"SPY7{today}C00752000"   # root SPY7 -> not tradable

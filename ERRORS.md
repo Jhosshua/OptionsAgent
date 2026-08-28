@@ -1,5 +1,16 @@
 # ERRORS.md — OptionsAgent
 
+## 2026-08-28 — Proposer moved to local Claude Code CLI
+
+The local runtime no longer checks `ANTHROPIC_API_KEY` or imports the Anthropic Python SDK.
+`harness/proposer.py` invokes the authenticated `claude` executable with structured JSON output,
+no tools, no session persistence, and `--safe-mode`. The CLI connection and the OptionsAgent
+proposer boundary were tested successfully. The unavailable-CLI path remains fail-closed with zero
+proposals. When a local proposal call fails, check `claude --version`, `OA_CLAUDE_CLI`, and the
+local Claude Code login instead of looking for an API key.
+
+Railway references later in this file are historical and do not describe the active runtime.
+
 ## DeepSeek/claude-ds review attempt (2026-08-27)
 
 The local `claude-ds` shell wrapper and headless `/Users/mo/ManualTrading2/bin/ds` shim were

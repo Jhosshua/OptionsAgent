@@ -1,5 +1,9 @@
 # OptionsAgent historical analysis — 2026-08-27
 
+> **CURRENT RUNTIME NOTE — 2026-08-28:** This is an historical research report. The bot is now
+> operated locally in Alpaca paper mode, with proposals supplied by the authenticated Claude Code
+> CLI and market data supplied read-only by Public.com. The old Railway deployment is not active.
+
 This report is based on the archived Railway volume in `data/` and is
 reproducible with:
 

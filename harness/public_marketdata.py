@@ -8,9 +8,10 @@ Public API flow:
   personal secret -> short-lived access token -> account ID -> option chain
   -> per-contract quotes/Greeks.
 
-The chain endpoint supplies contract metadata and bid/ask. The quote endpoint
-supplies the Greeks needed by the deterministic selector. Raw snapshots keep
-the chain endpoint's quote fields and deliberately do not fan out into a
+The chain endpoint supplies contract metadata, bid/ask, and (when available)
+Greeks. The quote endpoint supplies the freshest bid/ask and may omit
+``optionDetails``/Greeks, so chain Greeks are retained as the fallback. Raw
+snapshots keep the chain endpoint's quote fields and do not fan out into a
 second quote request for every contract.
 """
 
@@ -47,6 +48,30 @@ def _float(value: Any) -> float | None:
 
 def _date_today() -> date:
     return datetime.now(EASTERN).date()
+
+
+def _greeks(raw: Any) -> dict[str, float]:
+    """Extract the numeric Greeks Public includes in optionDetails."""
+    if not isinstance(raw, dict):
+        return {}
+    details = raw.get("optionDetails") or {}
+    values = details.get("greeks") if isinstance(details, dict) else None
+    if not isinstance(values, dict):
+        return {}
+    names = {
+        "delta": "delta",
+        "gamma": "gamma",
+        "theta": "theta",
+        "vega": "vega",
+        "rho": "rho",
+        "impliedVolatility": "implied_volatility",
+    }
+    parsed: dict[str, float] = {}
+    for source, target in names.items():
+        value = _float(values.get(source))
+        if value is not None:
+            parsed[target] = value
+    return parsed
 
 
 class PublicMarketDataClient:
@@ -205,22 +230,25 @@ class PublicMarketDataClient:
                         continue
                     bid = _float(raw.get("bid"))
                     ask = _float(raw.get("ask"))
-                    rows.append(
-                        {
-                            "symbol": option_symbol,
-                            "underlying": symbol,
-                            "right": right,
-                            "strike": parts.strike,
-                            "expiry": expiry.isoformat(),
-                            "dte": (expiry - _date_today()).days,
-                            "bid": bid,
-                            "ask": ask,
-                            "last": _float(raw.get("last")),
-                            "bid_size": _float(raw.get("bidSize")),
-                            "ask_size": _float(raw.get("askSize")),
-                            "quote_ts": raw.get("bidTimestamp") or raw.get("lastTimestamp"),
-                        }
-                    )
+                    row = {
+                        "symbol": option_symbol,
+                        "underlying": symbol,
+                        "right": right,
+                        "strike": parts.strike,
+                        "expiry": expiry.isoformat(),
+                        "dte": (expiry - _date_today()).days,
+                        "bid": bid,
+                        "ask": ask,
+                        "last": _float(raw.get("last")),
+                        "bid_size": _float(raw.get("bidSize")),
+                        "ask_size": _float(raw.get("askSize")),
+                        "quote_ts": raw.get("bidTimestamp") or raw.get("lastTimestamp"),
+                    }
+                    # Public's quote endpoint currently returns bid/ask for
+                    # options but often omits optionDetails. Keep the chain
+                    # Greeks so the selector still has the delta it requires.
+                    row.update(_greeks(raw))
+                    rows.append(row)
         self._chain_cache[symbol] = rows
         return list(rows)
 
@@ -249,8 +277,7 @@ class PublicMarketDataClient:
         enriched: list[dict[str, Any]] = []
         for row in rows:
             quote = quotes.get(row["symbol"], {})
-            details = quote.get("optionDetails") or {}
-            greeks = details.get("greeks") or {}
+            quote_greeks = _greeks(quote)
             merged = dict(row)
 
             def prefer(primary: Any, fallback: Any) -> Any:
@@ -264,12 +291,14 @@ class PublicMarketDataClient:
                 bid_size=prefer(quote.get("bidSize"), row.get("bid_size")),
                 ask_size=prefer(quote.get("askSize"), row.get("ask_size")),
                 quote_ts=quote.get("bidTimestamp") or quote.get("lastTimestamp") or row.get("quote_ts"),
-                delta=_float(greeks.get("delta")),
-                gamma=_float(greeks.get("gamma")),
-                theta=_float(greeks.get("theta")),
-                vega=_float(greeks.get("vega")),
-                rho=_float(greeks.get("rho")),
-                implied_volatility=_float(greeks.get("impliedVolatility")),
+                delta=quote_greeks.get("delta", row.get("delta")),
+                gamma=quote_greeks.get("gamma", row.get("gamma")),
+                theta=quote_greeks.get("theta", row.get("theta")),
+                vega=quote_greeks.get("vega", row.get("vega")),
+                rho=quote_greeks.get("rho", row.get("rho")),
+                implied_volatility=quote_greeks.get(
+                    "implied_volatility", row.get("implied_volatility")
+                ),
             )
             enriched.append(merged)
         return enriched

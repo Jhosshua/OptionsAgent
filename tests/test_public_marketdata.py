@@ -100,6 +100,50 @@ def test_option_chain_normalizes_public_chain_and_quote_greeks(monkeypatch):
     assert session.post_calls[0][1]["json"]["secret"] == "test-secret"
 
 
+def test_option_chain_falls_back_to_chain_greeks_when_quote_omits_details(monkeypatch):
+    monkeypatch.setattr("harness.public_marketdata._date_today", lambda: date(2026, 8, 27))
+    session = FakeSession(
+        responses=[
+            {"expirations": ["2026-09-30"]},
+            {
+                "puts": [
+                    {
+                        "instrument": {"symbol": CCL_PUT},
+                        "bid": "0.40",
+                        "ask": "0.45",
+                        "optionDetails": {
+                            "greeks": {
+                                "delta": "-0.25",
+                                "gamma": "0.02",
+                                "theta": "-0.01",
+                                "vega": "0.10",
+                                "rho": "-0.03",
+                                "impliedVolatility": "0.35",
+                            }
+                        },
+                    }
+                ],
+                "calls": [],
+            },
+            {"quotes": [{"instrument": {"symbol": CCL_PUT}, "bid": "0.41", "ask": "0.46"}]},
+            {"quotes": [{"instrument": {"symbol": CCL_PUT}, "bid": "0.41", "ask": "0.46"}]},
+        ]
+    )
+
+    client = _client(session)
+    enriched = client._enriched_rows("CCL")
+
+    assert len(enriched) == 1
+    assert enriched[0]["delta"] == -0.25
+    assert enriched[0]["bid"] == 0.41
+    assert enriched[0]["gamma"] == 0.02
+    assert enriched[0]["implied_volatility"] == 0.35
+
+    # The selector-facing adapter accepts the chain delta even though the
+    # quote response omitted optionDetails entirely.
+    assert len(client.option_chain("CCL")) == 1
+
+
 def test_raw_chain_does_not_make_quote_fanout_request(monkeypatch):
     monkeypatch.setattr("harness.public_marketdata._date_today", lambda: date(2026, 8, 27))
     session = FakeSession(

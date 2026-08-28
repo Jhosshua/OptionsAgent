@@ -1,5 +1,21 @@
 # MEMORY.md — OptionsAgent
 
+## 2026-08-28 — REACTIVATED LOCALLY; CLAUDE CODE CLI PROPOSER
+
+Operator clarified that OptionsAgent is a local paper-trading robot, not a Railway deployment. The
+proposal path was changed from the Anthropic Python SDK/API-key requirement to the locally
+authenticated Claude Code CLI (`claude -p`). The CLI is invoked with structured JSON output,
+`--safe-mode`, no tools, and no session persistence; any failure fails closed to no trade.
+
+Verified: `claude --version` reports 2.1.250; a direct authenticated CLI probe succeeded; the
+OptionsAgent proposer boundary returned valid structured output without `ANTHROPIC_API_KEY`.
+Public.com read-only market data and Alpaca paper authentication also passed. Full tests after the
+CLI change: **163 passed**.
+
+The local user crontab is authoritative: `cron/entry.sh` runs every five minutes in the 10:15–10:27
+ET entry window, and `cron/exits.sh` runs every 20 minutes during market hours. Do not link or deploy
+this repo to `tqqq-qqq-paperbot` or infer that Railway is required.
+
 ## 2026-08-27 — ARCHIVED TRADE STUDY; SELLER OVERFIT LOCALLY; NO DEPLOYMENT
 
 The archived volume was analyzed with `research_scalp_history.py`. It contains

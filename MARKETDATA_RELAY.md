@@ -1,5 +1,9 @@
 # OptionsAgent shared market-data relay
 
+> **CURRENT RUNTIME NOTE — 2026-08-28:** OptionsAgent is local and paper-only. The Public.com API
+> sidecar is read-only and feeds the local bot; the Railway relay instructions below are historical
+> and are not needed for today's local run.
+
 > **RETIRED NOTICE (2026-08-27):** The original Railway service and its
 > market-data relay were deleted on 2026-08-02. The instructions below describe
 > the old deployment only; the relay is not currently reachable.

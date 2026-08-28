@@ -1,5 +1,9 @@
 # Options bot research — Phase 1 (in progress)
 
+> **CURRENT RUNTIME NOTE — 2026-08-28:** Research is consumed by the local paper robot. Claude Code
+> CLI proposes only direction/strategy; deterministic Python still selects contracts, sizes, and
+> executes through Alpaca paper. No Anthropic API key or Railway deployment is part of the runtime.
+
 ## 2026-08-27 — archived trade replay
 
 The archived live-paper history is analyzed in `OVERFIT_ANALYSIS.md` and can
