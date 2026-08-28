@@ -672,3 +672,21 @@ no Discord channel, no cron schedule, no GitHub repo yet.
 2. Wire `run_exits.py`'s open-positions builder (the TODO stub).
 3. GitHub repo + Railway project + Discord channel creation.
 4. Once phase 1 has a paper track record: unlock phase 2 (spreads).
+
+## 2026-08-28 — verified current state + operator explainer PDF
+
+Most mds above are historical. Verified from code + live runtime today:
+
+- Runtime is LOCAL, not Railway: user crontab runs `cron/entry.sh` (self-gated 10:15-10:27 ET,
+  once/day lock) and `cron/exits.sh` (every 20 min, 9-16h). Scalp and marketdata publishers are
+  OFF (no OA_SCALP_ENABLED / OA_MARKETDATA_ENABLED in .env, no cron lines).
+- Paper account was RE-FUNDED to $100,000 today (equity and options BP both 100k via
+  `account_state()`). The $5k-era book had drawn down to ~$4,920.
+- Phase remains credit_spreads_only; every credit spread must pass the hard in-sample winner
+  profile (CCL/SOFI bullish put, F bearish call) in `harness/risk_rails.py`.
+- Aug 28 cycle: Claude (sonnet via local CLI) proposed 8 spreads, rails vetoed all 8
+  (3 no matching contract, 5 failed winner profile); exit sweep closed July's SOFI spread +$26.58.
+- Dashboard: local LaunchAgent `com.optionsagent.dashboard`, 127.0.0.1:8765, read-only.
+- NEW: `OptionsAgent-Explained.pdf` (8 pages: how it works + FAQ + 6 live dashboard shots).
+  Regen source: `data/pdf_assets/` (explainer.html + CDP capture/print scripts; print via the
+  debug-Chrome CDP path, headless CLI hangs on this machine).
