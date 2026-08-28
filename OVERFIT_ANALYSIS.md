@@ -5,6 +5,7 @@ reproducible with:
 
 ```bash
 python3 research_scalp_history.py
+python3 research_credit_spread_history.py
 ```
 
 ## Scope and limits
@@ -68,24 +69,42 @@ RVOL, quantity, P/L, and exit reason. The raw source of truth is
 `data/scalp_positions.jsonl`, joined to entry metadata in
 `data/scalp_decisions.jsonl`.
 
-## Seller results
+## Multi-day credit-spread seller results
 
 The credit-spread seller had **-$644 realized across 8 filled structures with
 non-zero P/L**: 3 winners and 5 losers. The realized results were CCL -$306,
 MARA -$25, AAL -$57, VZ -$221, CCL +$45, SOFI +$40, AAL -$165, and F +$45.
-The sample is too small and structurally mixed (legacy stop-loss behavior,
-changed width, changed exit policy, and one still-open structure) to safely
-fit a new seller rule. The existing defined-risk and 21-DTE rails remain in
-place.
+There are 5 distinct entry days, one never-filled order at $0, and one still-
+open structure with unknown P/L. This is a conditional registry replay, not a
+full quote/fill backtest.
+
+At the operator's explicit request to maximize in-sample P/L, the hard
+historical-winner profile is:
+
+| Underlying | Direction | Width | Minimum credit | Archived result |
+|---|---|---:|---:|---:|
+| CCL | bullish put | >= $1.50 | >= $0.29 | +$45 |
+| SOFI | bullish put | >= $1.00 | >= $0.23 | +$40 |
+| F | bearish call | <= $0.50 | >= $0.06 | +$45 |
+
+Conditional replay of those 3 realized records is **+$130, 3/3 wins**. Every
+other known non-zero record is rejected by the profile. That 100% result is
+selection-biased and has no statistical significance; it is the requested
+overfit, not a claim that these symbols or thresholds have a durable edge.
 
 ## Implemented change
 
 `ScalpRails.entry_cutoff_et` is now **11:30 ET** and
-`ScalpRails.max_trades_per_day` is now **2**; the documentation mirrors in
-`config/config.json` match them. The change is intentionally narrow: it does
-not change position size, stop loss, RVOL, direction, underlying, or seller
-behavior. Future results should be scored prospectively against both gates,
-with at least 30 new round-trips before another parameter change.
+`ScalpRails.max_trades_per_day` is now **2**. The credit-spread seller now
+also applies `credit_spread_overfit_decision()` as a hard post-selection gate
+in `run_cycle.py`; the config mirror documents the profile but cannot loosen
+it. The profile must remain unchanged for a prospective sample of at least 30
+credit-spread round-trips before it is relaxed or refit.
+
+The local `claude-ds` wrapper was found and attempted, but the requested
+DeepSeek session hung without output and a direct API fallback reset the
+connection. No DeepSeek recommendation was received or represented as fact;
+`DEEPSEEK_CREDIT_SPREAD_PROMPT.md` contains the exact independent-review prompt.
 
 This repository remains **not deployed**. The original Railway project,
 volume, broker keys, LLM key, and Discord webhook were deleted on 2026-08-02;

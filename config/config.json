@@ -40,7 +40,7 @@
     "score_min": 0.0
   },
   "spreads": {
-    "_comment": "RESEARCH.md: short strike 15-30 delta, 30-45 DTE, 50% profit / 21 DTE exit (best-verified rule in the research). max_width_usd bounds defined risk per spread.",
+    "_comment": "RESEARCH.md: short strike 15-30 delta, 30-45 DTE, 50% profit / 21 DTE exit (best-verified rule in the research). A hard historical-winner overfit profile in harness/risk_rails.py currently admits only CCL bullish put, SOFI bullish put, and F bearish call profiles; it is documentation-only here and cannot be broadened by JSON edits.",
     "_width_comment": "2.0 since 2026-07-08 (was 5.0): GLM-skeptic survival condition on a $5k account — max loss per spread ~$200 minus credit (~4% of account) instead of ~$500 (~10%), so one overnight gap through several spreads stays survivable.",
     "short_delta_min": 0.15,
     "short_delta_max": 0.30,

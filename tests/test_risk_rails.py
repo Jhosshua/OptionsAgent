@@ -10,6 +10,7 @@ from harness.risk_rails import (
     active_rails,
     apply_opened_position,
     conviction_to_size_frac,
+    credit_spread_overfit_decision,
     evaluate_proposal,
 )
 
@@ -144,3 +145,42 @@ def test_floor_conviction_fills_leave_room_for_more():
         account = apply_opened_position(account, underlying=f"SYM{i}", collateral_usd=d.position_cap_usd)
     assert approved == 4
     assert account.available_options_buying_power_usd > 0
+
+
+def test_credit_spread_overfit_accepts_archived_winner_profiles():
+    assert credit_spread_overfit_decision(
+        underlying="CCL", direction="bullish", width=1.5, net_credit=0.29
+    )[0]
+    assert credit_spread_overfit_decision(
+        underlying="SOFI", direction="bullish", width=1.0, net_credit=0.23
+    )[0]
+    assert credit_spread_overfit_decision(
+        underlying="F", direction="bearish", width=0.5, net_credit=0.06
+    )[0]
+
+
+def test_credit_spread_overfit_rejects_archived_loser_profiles_and_unknowns():
+    assert not credit_spread_overfit_decision(
+        underlying="CCL", direction="bullish", width=1.0, net_credit=0.17
+    )[0]
+    assert not credit_spread_overfit_decision(
+        underlying="AAL", direction="bullish", width=1.0, net_credit=0.19
+    )[0]
+    assert not credit_spread_overfit_decision(
+        underlying="SOFI", direction="bullish", width=0.5, net_credit=0.11
+    )[0]
+    assert not credit_spread_overfit_decision(
+        underlying="F", direction="bullish", width=0.5, net_credit=0.06
+    )[0]
+
+
+def test_credit_spread_overfit_fails_closed_on_non_finite_inputs():
+    assert not credit_spread_overfit_decision(
+        underlying="CCL", direction="bullish", width=float("nan"), net_credit=0.29
+    )[0]
+    assert not credit_spread_overfit_decision(
+        underlying="CCL", direction="bullish", width=1.5, net_credit=float("inf")
+    )[0]
+    assert not credit_spread_overfit_decision(
+        underlying="SOFI", direction="bullish", width=0.0, net_credit=0.23
+    )[0]

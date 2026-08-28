@@ -1,5 +1,19 @@
 # ERRORS.md — OptionsAgent
 
+## DeepSeek/claude-ds review attempt (2026-08-27)
+
+The local `claude-ds` shell wrapper and headless `/Users/mo/ManualTrading2/bin/ds` shim were
+found. Both accepted the request but remained silent until stopped; a direct request to the
+DeepSeek Anthropic-compatible endpoint reset the connection. No model output was used as a
+recommendation. The read-only prompt is preserved in `DEEPSEEK_CREDIT_SPREAD_PROMPT.md`.
+
+## Credit-spread winner profile is deliberately overfit
+
+The current seller gate matches only three historical winner shapes and replayed +$130 across
+three records. It was requested despite the tiny sample. This is not a full backtest and may
+reject all future candidates or select a coincidental pattern; do not relax it until a
+prospective sample is collected.
+
 ## Historical replay limitation: realized-fill filtering is not a full backtest
 
 The 2026-08-27 study uses the archived scalp registry and decision log. It can

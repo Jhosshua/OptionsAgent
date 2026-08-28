@@ -1,9 +1,10 @@
 # ARCHITECTURE.md — OptionsAgent (original design, 2026-07-03)
 
 > **Research update 2026-08-27:** The archived 0DTE scalp replay supports a
-> hard 11:30 ET entry cutoff and two-entry daily cap, now implemented in `ScalpRails`. See
-> `OVERFIT_ANALYSIS.md`. This is a local research change only; the bot is
-> retired and has no deployment target.
+> hard 11:30 ET entry cutoff and two-entry daily cap, now implemented in `ScalpRails`. The
+> requested multi-day credit-spread overfit is implemented as a hard post-selection winner
+> profile in `credit_spread_overfit_decision()`. See `OVERFIT_ANALYSIS.md`. These are local
+> research changes only; the bot is retired and has no deployment target.
 
 > ⚠️ **PARTIALLY SUPERSEDED — read CLAUDE.md for current truth.** This document is the original
 > design and its rationale; it's kept because every threshold number traces back to RESEARCH.md

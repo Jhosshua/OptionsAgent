@@ -11,9 +11,18 @@ retained 23 known trades and returned +$345 in-sample. These are now hard
 scalp rails, but this is a conditional replay of realized fills, not a full
 option-chain backtest, and no other feature was promoted. The credit-spread
 seller's mixed 8-trade realized sample did not justify fitting new entry or
-exit parameters.
+exit parameters on statistical grounds; the operator nevertheless explicitly
+requested an in-sample overfit, which is documented and implemented below.
 
-Status: **Pass 1 + Pass 2 complete.** Ready to move to architecture design (pending confirmation).
+The multi-day credit-spread ledger has 10 records across 5 entry days; 8
+non-zero quote-based closes total -$644. The requested in-sample overfit keeps
+only three recorded winner profiles (CCL bullish put >= 1.50 width / >= .29
+credit; SOFI bullish put >= 1.00 / >= .23; F bearish call <= .50 / >= .06),
+which replays to +$130 across 3 wins. This is implemented as a hard
+fail-closed rail, not a configurable JSON filter. It must be prospectively
+validated before any broadening.
+
+Status: **Pass 1 + Pass 2 complete; archived replay and requested overfit are local only.**
 
 Target: deterministic (rules-based) options trading bot on Alpaca, "left brain / right brain" hybrid
 (LLM proposes, rules engine disposes), same pattern as DeterministicAgent/LiveSwingAgent. Paper trading

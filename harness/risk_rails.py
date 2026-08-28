@@ -24,6 +24,7 @@ ceiling per position, same pattern as DA's DA_MAX_ORDER_USD kill knob).
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+import math
 import os
 
 
@@ -86,6 +87,58 @@ class RailDecision:
     reason: str
     size_frac: float = 0.0
     position_cap_usd: float = 0.0  # this position's budget (fraction of available BP)
+
+
+# Historical credit-spread replay (2026-07-08 through 2026-07-31) found three
+# realized winners: CCL bullish put width >= $1.50 for >= $0.29 credit, SOFI
+# bullish put width >= $1.00 for >= $0.23 credit, and F bearish call width <=
+# $0.50 for >= $0.06 credit. This is intentionally an IN-SAMPLE overfit, not
+# a claim of a durable edge. It is hard-coded here so config edits cannot
+# silently broaden the live candidate set. The bot is retired until a new
+# deployment is explicitly created.
+_CREDIT_SPREAD_OVERFIT_RULES = (
+    ("CCL", "bullish", 0.29, 1.50, None),
+    ("SOFI", "bullish", 0.23, 1.00, None),
+    ("F", "bearish", 0.06, None, 0.50),
+)
+
+
+def credit_spread_overfit_decision(
+    *, underlying: str, direction: str, width: float, net_credit: float
+) -> tuple[bool, str]:
+    """Apply the deliberately overfit historical winner profile.
+
+    Returns (approved, reason). Unknown symbols, directions, widths, and
+    credits fail closed. The caller should run this only for credit spreads;
+    other strategy families are unaffected.
+    """
+    symbol = str(underlying).upper()
+    side = str(direction).lower()
+    if not math.isfinite(width) or width <= 0:
+        return False, f"overfit_profile invalid width {width!r}"
+    if not math.isfinite(net_credit) or net_credit <= 0:
+        return False, f"overfit_profile invalid net credit {net_credit!r}"
+    for rule_symbol, rule_side, min_credit, min_width, max_width in _CREDIT_SPREAD_OVERFIT_RULES:
+        if symbol != rule_symbol or side != rule_side:
+            continue
+        if net_credit < min_credit:
+            return False, (
+                f"overfit_profile credit {net_credit:.2f} below {rule_symbol} minimum "
+                f"{min_credit:.2f}"
+            )
+        if min_width is not None and width < min_width:
+            return False, (
+                f"overfit_profile width {width:.2f} below {rule_symbol} minimum "
+                f"{min_width:.2f}"
+            )
+        if max_width is not None and width > max_width:
+            return False, (
+                f"overfit_profile width {width:.2f} above {rule_symbol} maximum "
+                f"{max_width:.2f}"
+            )
+        return True, f"overfit_profile matched {rule_symbol} {rule_side}"
+
+    return False, f"overfit_profile no historical winner rule for {symbol} {side}"
 
 
 def conviction_to_size_frac(conviction: float, rails: Rails) -> float:

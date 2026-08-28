@@ -1,6 +1,6 @@
 # MEMORY.md — OptionsAgent
 
-## 2026-08-27 — ARCHIVED TRADE STUDY; SCALP CUTOFF TIGHTENED LOCALLY
+## 2026-08-27 — ARCHIVED TRADE STUDY; SELLER OVERFIT LOCALLY; NO DEPLOYMENT
 
 The archived volume was analyzed with `research_scalp_history.py`. It contains
 37 scalp registry pairs across 15 trading days, 36 with realized P/L and one
@@ -12,15 +12,25 @@ history at two entries per day retained 23 known trades, 10 winners, and
 slices were too small or did not separate cleanly.
 
 `ScalpRails.entry_cutoff_et` and `max_trades_per_day` plus their config
-documentation mirrors were changed from 14:30/3 to **11:30 ET/2**. No seller
-logic, sizing, stop, or RVOL rule was changed. This is a conditional replay of realized fills, not a complete option
+documentation mirrors were changed from 14:30/3 to **11:30 ET/2**. No scalp
+sizing, stop, or RVOL rule was changed. This is a conditional replay of realized fills, not a complete option
 backtest; require at least 30 new prospective scalp round-trips before another
 tuning decision.
 
-The seller archive had 8 filled structures with non-zero realized P/L totaling
--$644 (3 wins, 5 losses), plus incomplete/unknown records. No seller change was
-justified. The bot remains retired and not deployed because its original Railway
-project, volume, paper credentials, and Discord webhook were deleted on 2026-08-02.
+The seller archive has 10 credit-spread records across 5 entry days. Eight
+filled structures have non-zero quote-based P/L totaling -$644 (3 wins, 5
+losses), plus one never-filled order and one still-open structure. Per the
+operator's explicit instruction to overfit even on tiny data, a hard winner
+profile was added to `harness/risk_rails.py`: CCL bullish put width >= 1.50 and
+credit >= .29; SOFI bullish put width >= 1.00 and credit >= .23; F bearish call
+width <= .50 and credit >= .06. Conditional replay is +$130 across 3/3 winners.
+This is selection-biased in-sample research, not evidence of an edge; hold it
+unchanged for at least 30 prospective credit-spread round-trips.
+
+The local `claude-ds` wrapper was invoked but hung without a response; the raw
+DeepSeek fallback reset its connection. No external recommendation was received.
+The bot remains retired and not deployed because its original Railway project,
+volume, paper credentials, and Discord webhook were deleted on 2026-08-02.
 
 ## 2026-08-02 — SHUT DOWN. Railway off, Discord off, data archived.
 

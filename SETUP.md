@@ -6,9 +6,11 @@
 > Railway project/service/volume and supplying new paper credentials and a new
 > webhook; no restart or deployment was performed by the historical analysis.
 
-Everything operational: where it runs, the env vars, how to redeploy, watch, and stop it.
+Everything operational for the historical deployment: where it ran, the env vars, how to
+redeploy, watch, and stop it. The current code also contains an intentionally overfit,
+hard-coded credit-spread winner profile documented in `OVERFIT_ANALYSIS.md`.
 
-## Where it runs
+## Where the historical deployment ran
 
 - **Railway** project `OptionsAgent` (`e312c619-5ac9-4edb-9d57-6ec4d1252ddd`), single service
   `OptionsAgent`, region sfo, deployed from GitHub `Jhosshua/OptionsAgent` branch `main`
@@ -19,7 +21,7 @@ Everything operational: where it runs, the env vars, how to redeploy, watch, and
 - Container runs Linux cron in the foreground (see `Dockerfile`, `entrypoint.sh`,
   `cron/crontab.railway`). System TZ is America/New_York.
 
-## Schedule
+## Historical schedule
 
 | Job | When | Guards |
 |---|---|---|

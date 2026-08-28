@@ -13,10 +13,11 @@
 > the bot back. Read `MEMORY.md` 2026-08-02 first — it lists exactly what has to be re-created.
 > Everything below describes how the bot worked while it was live.
 
-> **2026-08-27 research update:** `OVERFIT_ANALYSIS.md` and
-> `research_scalp_history.py` document the archived trade study. The only
-> promoted changes are the 0DTE hard entry cutoff (11:30 ET) and two-trade daily cap in
-> `harness/risk_rails.py`. This is a local, not-deployed change. Do not claim a
+> **2026-08-27 research update:** `OVERFIT_ANALYSIS.md`,
+> `research_scalp_history.py`, and `research_credit_spread_history.py` document the archived
+> trade study. The 0DTE hard entry cutoff (11:30 ET) and two-trade daily cap remain in
+> `harness/risk_rails.py`; the multi-day seller now has an explicitly requested, hard
+> in-sample winner profile in the same module. This is local and not deployed. Do not claim a
 > restart or deployment: the old Railway target and credentials were deleted.
 
 > Read this first every session. Then read `MEMORY.md` and `ERRORS.md`.

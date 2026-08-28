@@ -35,7 +35,12 @@ from harness.execution import (
 from harness.exits import LONG_TYPES
 from harness.positions import build_account_state
 from harness.proposer import propose
-from harness.risk_rails import active_rails, apply_opened_position, evaluate_proposal
+from harness.risk_rails import (
+    active_rails,
+    apply_opened_position,
+    credit_spread_overfit_decision,
+    evaluate_proposal,
+)
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("optionsagent.run_cycle")
@@ -123,6 +128,14 @@ def _select_and_price(proposal, chain, cfg, positions_raw, conviction_size_frac)
             structures.Leg(pair.long.symbol, "long", pair.long.right, pair.long.strike, _expiry_iso(pair.long.dte)),
         ]
         if st == "credit_spread":
+            overfit_ok, overfit_reason = credit_spread_overfit_decision(
+                underlying=proposal.underlying,
+                direction=proposal.direction,
+                width=pair.width,
+                net_credit=pair.net_credit,
+            )
+            if not overfit_ok:
+                return None, None, None, 0, 0, None, overfit_reason
             return legs, {"legs": pair}, execute_credit_spread, pair.width * 100, pair.net_credit, None, None
         net_debit = pair.long.ask - pair.short.bid
         return legs, {"legs": pair}, execute_debit_spread, net_debit * 100, net_debit, None, None

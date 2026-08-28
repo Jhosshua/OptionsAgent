@@ -9,6 +9,11 @@ This relay makes that data available to the **other bots** over a token-gated,
 read-only HTTPS GET — the same pattern DTA uses for its orderflow relay, so a
 consumer written for one works for the other.
 
+The multi-day credit-spread seller is a separate pipeline from this 0DTE relay.
+Its current archived-winner overfit is applied in `run_cycle.py` after option
+contract selection and does not use relay data. The relay remains historical and
+not deployed with the retired Railway service.
+
 ## What it serves
 
 `data/marketdata/<YYYY-MM-DD>.jsonl` on the OptionsAgent Railway volume — one JSON
@@ -25,7 +30,7 @@ line per underlying per minute:
 - `vwap` — session VWAP; `opening_range` — the frozen 09:30–09:33 ET high/low;
   `rvol_latest` — latest bar volume / session average; `breakout` — `"up"`/`"down"`/`null`.
 
-## Turning it on (OptionsAgent side)
+## Turning it on in a newly recreated service
 
 Two independent switches (both off by default), set as Railway env vars:
 
@@ -33,7 +38,7 @@ Two independent switches (both off by default), set as Railway env vars:
 - `OA_RELAY_TOKEN=<random-secret>` — starts the relay HTTP server (serves the jsonl).
   Optional `OA_RELAY_PORT` (default `8399`); expose that port with a Railway domain.
 
-Both keys are already in `entrypoint.sh`'s secret allowlist (the 3-touch-point rule).
+Those keys were in the historical `entrypoint.sh` secret allowlist (the 3-touch-point rule).
 
 ## Consuming it (any other bot)
 
