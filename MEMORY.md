@@ -690,3 +690,17 @@ Most mds above are historical. Verified from code + live runtime today:
 - NEW: `OptionsAgent-Explained.pdf` (8 pages: how it works + FAQ + 6 live dashboard shots).
   Regen source: `data/pdf_assets/` (explainer.html + CDP capture/print scripts; print via the
   debug-Chrome CDP path, headless CLI hangs on this machine).
+
+## 2026-08-28 (later) — 0DTE scalper ARMED + SIP data-key split
+
+- OptionsAgent's own trading keys have NO real-time SIP (bars 15 min stale, latest-trade 403s).
+  Fixed with an eyes/hands split: `OA_DATA_KEY_ID`/`OA_DATA_SECRET_KEY` in `.env` point at MT4's
+  SIP-entitled paper key (acct PA3Y17SSOEYM); `PaperClient._data_credentials()` uses them ONLY
+  for stock bars/latest-trade. Orders stay on OptionsAgent's own paper key. Verified real-time:
+  last bar = current minute, SIP spot live. Public.com sidecar remains options-only (no equity
+  endpoints exist on its gateway).
+- Scalper enabled: `OA_SCALP_ENABLED=true` + crontab `* 9-15 * * 1-5 cron/scalp.sh`. One real
+  tick ran clean 12:25 ET. First live entry window Monday 09:33 ET. 163 tests green.
+- Explainer PDF updated throughout (scalper strip, key numbers, FAQ, ARMED chip).
+- Other SIP-entitled keys on this machine (SIP-403 test 08-28): AKZZZ5 (MTEdge1, LIVE key, avoid),
+  PKA6ON (DriftShort, also serves SwingNotifications), PKSJHP (MT1 eyes), PKDJRT (MT4, now dual-use).

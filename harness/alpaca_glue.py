@@ -96,6 +96,19 @@ class PaperClient:
             object.__setattr__(self, "_public_data", PublicMarketDataClient.from_env())
         return self._public_data
 
+    def _data_credentials(self) -> tuple[str, str]:
+        """Credentials for STOCK market-data REST calls (bars / latest trade).
+
+        The trading key's user may lack real-time SIP entitlement (the local
+        reactivation keys 403 on recent SIP data, leaving bars 15 min stale —
+        fatal for the 0DTE scalper). OA_DATA_KEY_ID / OA_DATA_SECRET_KEY let an
+        entitled READ key do the looking while orders stay on this account's
+        own paper key (same eyes/hands split as ~/ManualTrading). Defaults to
+        the trading pair, so absence changes nothing."""
+        key = env("OA_DATA_KEY_ID", "") or self.key_id
+        secret = env("OA_DATA_SECRET_KEY", "") or self.secret_key
+        return key, secret
+
     def _ensure_paper(self) -> None:
         if (env("ALPACA_PAPER", "true") or "true").lower() != "true":
             raise RuntimeError("ALPACA_PAPER is not 'true'. Refusing to construct any client.")
@@ -446,7 +459,7 @@ class PaperClient:
 
         et = ZoneInfo("America/New_York")
         data_feed = DataFeed.IEX if str(feed).lower() == "iex" else DataFeed.SIP
-        client = StockHistoricalDataClient(self.key_id, self.secret_key)
+        client = StockHistoricalDataClient(*self._data_credentials())
         start = datetime.now(timezone.utc) - timedelta(minutes=lookback_minutes)
         req = StockBarsRequest(
             symbol_or_symbols=symbol,
@@ -488,7 +501,7 @@ class PaperClient:
         from alpaca.data.requests import StockLatestTradeRequest
 
         data_feed = DataFeed.IEX if str(feed).lower() == "iex" else DataFeed.SIP
-        client = StockHistoricalDataClient(self.key_id, self.secret_key)
+        client = StockHistoricalDataClient(*self._data_credentials())
         try:
             req = StockLatestTradeRequest(symbol_or_symbols=symbol, feed=data_feed)
             tr = client.get_stock_latest_trade(req)

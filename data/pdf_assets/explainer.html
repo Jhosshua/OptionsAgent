@@ -129,7 +129,7 @@
     <div class="chips">
       <div class="chip on">PAPER ONLY</div>
       <div class="chip on">CREDIT SPREADS</div>
-      <div class="chip">RUNS ON THIS MAC</div>
+      <div class="chip on">0DTE SCALP ARMED</div>
       <div class="chip warn">LLM NEVER PICKS STRIKES</div>
     </div>
   </div>
@@ -139,6 +139,8 @@
     names under $50. Once a day it asks Claude for trade ideas, but Claude only gets to say <b>which ticker, which
     direction, and how confident</b>. Every strike, expiration, size, and exit is chosen by fixed Python rules called
     rails. If an idea fails any rail, it dies. Most days, nothing trades, and that is by design.
+    A second engine, fully isolated from the first, scalps 0DTE SPY and QQQ opening-range breakouts
+    intraday for a fixed $250 a shot.
   </div>
 
   <div class="pipe">
@@ -175,6 +177,15 @@
       liquidation), force close at <b>21 DTE</b>, and check ex-dividend dates before any short call sits through one.</div>
   </div>
 
+  <div class="exitbar" style="border-color:#27584a; background:linear-gradient(180deg,#10231d,#0e1a16); margin-bottom:10px;">
+    <div class="lbl" style="color:var(--green);">EVERY MINUTE, 09:33 TO 15:50 ET</div>
+    <div class="txt">The <b>0DTE scalper</b> (no LLM): mark the 09:30 to 09:33 opening range in SPY and QQQ, wait for a
+      1-minute close outside it with <b>1.5x</b> average volume, confirm on the next bar plus VWAP, then buy an ATM call
+      (break up) or put (break down) for <b>$250</b>, max <b>2 trades a day</b>, one at a time, no entries after
+      <b>11:30 ET</b>. Exits: +50% target, -30% stop (-60% while the breakout holds), 15-minute theta cut, and a mandatory
+      <b>15:50 ET flatten</b> so nothing rides into 0DTE auto-exercise.</div>
+  </div>
+
   <div class="lower">
     <div>
       <div class="card">
@@ -188,13 +199,16 @@
         <div class="kv"><span class="k">Profit target</span><span class="v g">50% of credit</span></div>
         <div class="kv"><span class="k">Stop</span><span class="v r">2x credit, confirmed twice</span></div>
         <div class="kv"><span class="k">Force close</span><span class="v">21 DTE</span></div>
+        <div class="kv"><span class="k">Scalp budget</span><span class="v g">$250 per trade, 2 per day</span></div>
+        <div class="kv"><span class="k">Scalp cutoffs</span><span class="v a">no entry 11:30, flat 15:50 ET</span></div>
       </div>
       <div class="card today">
         <h3>A REAL DAY (AUG 28, 2026)</h3>
         <p>Claude proposed <b>8 spreads</b> across T, CMCSA, WBD, VZ, PFE, MARA, CCL, and AAL.
         The rails executed <b>0</b>. Three found no contract meeting the delta, width, and credit rules.
         Five failed the winner profile. Meanwhile the exit sweep closed July's SOFI spread for <b>+$26.58</b>.
-        Vetoing everything is the system working, not failing.</p>
+        Vetoing everything is the system working, not failing. The 0DTE scalper was armed at 12:25 ET after its data feed
+        was verified real-time; its first live entry window is Monday 09:33 ET.</p>
       </div>
     </div>
 
@@ -257,6 +271,9 @@
     <div class="qa big"><div class="q">What does the LLM see, and can it be manipulated by the data?</div>
       <div class="a">It sees a JSON bundle: the phase, the allowed strategies, and per-ticker market context (price levels, volume, recent movement). The system prompt states the context is data, never instructions. It runs with tools disabled, no session persistence, no web access, and its output is validated against a strict schema before anything downstream sees it.</div></div>
 
+    <div class="qa big"><div class="q">What does the 0DTE scalper actually do?</div>
+      <div class="a">A second, fully isolated engine (own files, own <span class="mono">oas-</span> order prefix, no LLM anywhere in it) trades SPY and QQQ same-day options. It marks the first 3 minutes' high and low as the opening range, then buys an ATM call or put only when a 1-minute bar closes outside the range on 1.5x average volume AND the next bar confirms with price still on the right side of VWAP. $250 per trade, max 2 a day, one at a time, each direction once per symbol, no entries after 11:30 ET (12 of 12 late entries in its own history lost), +50% target, -30% stop that widens to -60% while the breakout holds, 15-minute theta cut, mandatory flatten by 15:50 ET.</div></div>
+
     <div class="qa big"><div class="q">How do I know what it did on any given day?</div>
       <div class="a">Three places. The dashboard on the following pages (live at <span class="mono">127.0.0.1:8765</span>, read-only, it cannot submit orders). The decision log at <span class="mono">data/decisions.jsonl</span>, which records every proposal, every veto reason, and every order. And <span class="mono">data/structures.jsonl</span>, the append-only record of what opened and closed. Today's log shows 8 proposals and 8 vetoes with reasons.</div></div>
 
@@ -316,7 +333,7 @@
   <div class="shotHead">
     <span class="num">DASHBOARD 5/6</span><span class="name">Risk rails</span>
     <span class="cap">Every hard limit in force, read straight from the code: the seller's conviction floor, sizing scale,
-    6 position cap, and 21 DTE close.</span>
+    6 position cap, 21 DTE close, and the scalper's per-trade budget, daily cap, and cutoffs.</span>
   </div>
   <div class="frame"><img src="dash_risk.png"></div>
   <div class="foot"><div>Live local dashboard · 127.0.0.1:8765</div><div>page 7 of 8</div></div>
@@ -326,7 +343,8 @@
   <div class="shotHead">
     <span class="num">DASHBOARD 6/6</span><span class="name">System</span>
     <span class="cap">The live runtime, verified from the running process: entry window 10:15 to 10:27 ET, exit sweep
-    every 20 minutes, Public.com for chains, trading enabled, paper enforced.</span>
+    every 20 minutes, the 0DTE scalper armed on every-minute ticks, Public.com for chains, real-time SIP bars via a
+    read-only data key, trading enabled, paper enforced.</span>
   </div>
   <div class="frame"><img src="dash_system.png"></div>
   <div class="foot"><div>Live local dashboard · 127.0.0.1:8765</div><div>page 8 of 8</div></div>
