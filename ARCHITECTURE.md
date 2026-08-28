@@ -217,7 +217,7 @@ Mirrors DA's "rails live in code" philosophy — config can only tighten these, 
   exists — not part of v1.
   LLM: default to whatever the sibling bots currently run as control, swap-compatible the same way.
 - Deployment: own Railway project, own Discord channel (already decided). The
-  dashboard is a read-only, token-authenticated observer on `$PORT`; it uses a
+  dashboard is a local-only, read-only observer on `$PORT`; it uses a
   background-cached broker snapshot and never imports execution modules. Its
   `/healthz` endpoint is for manual/external probes only and is not configured
   as Railway's container healthcheck, so dashboard failure cannot restart cron.

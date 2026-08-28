@@ -9,9 +9,6 @@ import pytest
 import harness.dashboard_server as dashboard
 
 
-TOKEN = "t" * 40
-
-
 class FakeStore:
     def get(self):
         return {
@@ -27,7 +24,7 @@ class FakeStore:
 @pytest.fixture
 def http_server():
     server = dashboard.DashboardHTTPServer(
-        ("127.0.0.1", 0), dashboard.DashboardHandler, store=FakeStore(), token=TOKEN
+        ("127.0.0.1", 0), dashboard.DashboardHandler, store=FakeStore()
     )
     import threading
 
@@ -50,15 +47,9 @@ def _request(server, method, path, headers=None):
     return response.status, body
 
 
-def test_health_is_fixed_and_data_api_requires_bearer_token(http_server):
+def test_health_and_data_api_are_available_locally(http_server):
     assert _request(http_server, "GET", "/healthz") == (200, b'{"status":"ok"}')
     status, body = _request(http_server, "GET", "/api/summary")
-    assert status == 401
-    assert body == b"unauthorized"
-
-    status, body = _request(
-        http_server, "GET", "/api/summary", {"Authorization": f"Bearer {TOKEN}"}
-    )
     assert status == 200
     assert json.loads(body)["paper"] is True
 
@@ -66,7 +57,7 @@ def test_health_is_fixed_and_data_api_requires_bearer_token(http_server):
 def test_dashboard_rejects_write_methods_and_unknown_paths(http_server):
     assert _request(http_server, "POST", "/api/summary")[0] == 405
     assert _request(http_server, "GET", "/data/.env")[0] == 404
-    assert _request(http_server, "GET", "/api/summary/../../.env", {"Authorization": f"Bearer {TOKEN}"})[0] == 404
+    assert _request(http_server, "GET", "/api/summary/../../.env")[0] == 404
 
 
 def test_dashboard_static_module_has_no_order_or_execution_imports():

@@ -22,7 +22,7 @@ import os, sys
 env_file = sys.argv[1]
 secret_keys = [
     "ALPACA_API_KEY", "ALPACA_SECRET_KEY", "ALPACA_PAPER",
-    "OA_TRADING_ENABLED", "OA_DASHBOARD_TOKEN",
+    "OA_TRADING_ENABLED", "OA_DASHBOARD_HOST",
     "ANTHROPIC_API_KEY", "OA_ANTHROPIC_MODEL", "OA_MAX_TOKENS",
     "DISCORD_WEBHOOK_URL",
     # 0DTE ORB scalper (isolated). Master switch + tighten-only rail overrides +
@@ -74,24 +74,20 @@ ln -sfn "$APP/data/logs" "$APP/logs"
 # --- 4. Install cron schedule + run cron in the foreground ---
 install -m 0644 -o root -g root "$APP/cron/crontab.railway" /etc/cron.d/optionsagent
 
-# Dashboard is supervised independently of cron. It is intentionally not a
+# Dashboard is supervised independently from cron. It is intentionally not a
 # Railway healthcheck: a dashboard crash must not bounce cron mid-trade.
-if [ -n "${OA_DASHBOARD_TOKEN:-}" ] && [ "${#OA_DASHBOARD_TOKEN}" -ge 32 ]; then
-  dashboard_loop() {
-    while true; do
-      python3 -m harness.dashboard_server >> "$APP/data/logs/dashboard.log" 2>&1 || true
-      if [ -f "$APP/data/logs/dashboard.log" ] && [ "$(wc -c < "$APP/data/logs/dashboard.log")" -gt 2097152 ]; then
-        tail -c 1048576 "$APP/data/logs/dashboard.log" > "$APP/data/logs/dashboard.log.tmp" || true
-        mv "$APP/data/logs/dashboard.log.tmp" "$APP/data/logs/dashboard.log" 2>/dev/null || true
-      fi
-      sleep 5
-    done
-  }
-  dashboard_loop &
-  echo "[entrypoint] dashboard supervisor started on port ${PORT:-8080}."
-else
-  echo "[entrypoint] OA_DASHBOARD_TOKEN missing/short — dashboard supervisor disabled."
-fi
+dashboard_loop() {
+  while true; do
+    python3 -m harness.dashboard_server >> "$APP/data/logs/dashboard.log" 2>&1 || true
+    if [ -f "$APP/data/logs/dashboard.log" ] && [ "$(wc -c < "$APP/data/logs/dashboard.log")" -gt 2097152 ]; then
+      tail -c 1048576 "$APP/data/logs/dashboard.log" > "$APP/data/logs/dashboard.log.tmp" || true
+      mv "$APP/data/logs/dashboard.log.tmp" "$APP/data/logs/dashboard.log" 2>/dev/null || true
+    fi
+    sleep 5
+  done
+}
+dashboard_loop &
+echo "[entrypoint] dashboard supervisor started on ${OA_DASHBOARD_HOST:-127.0.0.1}:${PORT:-8080}."
 
 echo "[entrypoint] cron schedule installed; handing off to cron (foreground)."
 

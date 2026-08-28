@@ -40,7 +40,7 @@ hard-coded credit-spread winner profile documented in `OVERFIT_ANALYSIS.md`.
 | `OA_MAX_POSITION_USD` | (unset) | OPTIONAL tighten-only emergency brake: absolute $ ceiling per position |
 | `OA_MAX_TOKENS` | (unset, default 4096) | Proposer output ceiling |
 | `OA_TRADING_ENABLED` | `false` | Explicit cron trading gate; enable only after paper/deployment verification |
-| `OA_DASHBOARD_TOKEN` | (unset) | 32+ byte secret required for dashboard data APIs; never commit it |
+| `OA_DASHBOARD_HOST` | `127.0.0.1` | Dashboard bind address; keep loopback for local-only access |
 
 ## Optional Public market-data sidecar
 
@@ -64,18 +64,25 @@ The first live check should be read-only: verify authentication, retrieve one ch
 timestamps/bid/ask/delta against Alpaca before enabling the provider in a paper cycle. Never put
 either broker's secrets in config JSON, source control, Discord, or a dashboard.
 
-## Always-on dashboard
+## Always-on local dashboard
 
-The dashboard listens on Railway's `$PORT` and is supervised independently from cron. It serves a
-static shell plus token-authenticated read-only APIs; `/healthz` returns only a fixed liveness JSON
-response. `railway.json` intentionally has no `healthcheckPath`, so a dashboard failure cannot
-restart the cron container during a trading session. The market-data relay, when enabled, stays on
-its separate internal `OA_RELAY_PORT`.
+Install it as a per-user macOS `launchd` service:
+
+```bash
+zsh deploy/install_local_dashboard.sh
+open http://127.0.0.1:8765
+```
+
+It starts at login, restarts after a crash, binds to loopback, and serves read-only APIs without
+an access token. The dashboard and trading scheduler remain separate processes; dashboard
+availability never enables trading. `/healthz` returns a fixed liveness JSON response.
+
+The Railway entrypoint can also supervise the dashboard when used in a container, but the local
+launchd service is the supported always-on setup for this retired repository.
 
 The trading gate is separate from dashboard availability. Cron reads `OA_TRADING_ENABLED` from the
 generated `.env` because cron does not inherit the container environment. Keep it `false` while
-deploying and verify the new OptionsAgent Railway target, `ALPACA_PAPER=true`, the cron file,
-dashboard `/healthz`, and unauthenticated API `401`; only then set it to `true` and redeploy.
+running the dashboard; the local dashboard cannot submit orders.
 
 ⚠️ **3-touch-point rule (fleet gotcha):** a NEW env var must be added in (1) code/config,
 (2) Railway variables, AND (3) the `secret_keys` allowlist in `entrypoint.sh` — cron jobs read

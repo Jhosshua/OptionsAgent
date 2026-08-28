@@ -31,12 +31,9 @@ operations surface; it must never place, cancel, or modify orders.
    Never import execution modules or touch the trading lock directory. Add a
    static test that dashboard imports contain no `submit_`, `cancel_order`, or
    `harness.execution` references.
-4. Require `Authorization: Bearer <OA_DASHBOARD_TOKEN>` for every data API;
-   `/healthz` is fixed and unauthenticated, while the static shell contains no
-   account data and may render a token-entry state. Validate a minimum 32-byte
-   token, compare with `hmac.compare_digest`, return 401 without details, and
-   apply a small per-IP failure backoff. The UI keeps a supplied token only in
-   session storage, never in the static bundle. The token is environment-only.
+4. Keep the server bound to loopback for local-only access; all data APIs are
+   read-only and unauthenticated by design. `/healthz` remains a fixed liveness
+   endpoint and the static shell contains no account data before its API loads.
 5. Keep broker/API calls bounded and fail closed. A single background refresher
    updates a process-local snapshot every 30 seconds with a 10-second broker
    timeout; request handlers only read the last snapshot and never call Alpaca.
@@ -82,8 +79,8 @@ operations surface; it must never place, cancel, or modify orders.
   paper credentials and the new OptionsAgent target are verified.
 - Dashboard is read-only and defaults to offline-safe placeholders when broker
   credentials are absent.
-- Add `OA_DASHBOARD_TOKEN` to the code/config/entrypoint allowlist and require
-  it for any non-health dashboard request.
+- Add `OA_DASHBOARD_HOST` to the code/config/entrypoint allowlist and default it
+  to loopback.
 - Do not deploy to the currently linked `tqqq-qqq-paperbot` service. A new
   OptionsAgent Railway project/service/volume must be explicitly created and
   verified with `railway status` before deployment.
@@ -94,8 +91,7 @@ operations surface; it must never place, cancel, or modify orders.
   process, and paper broker mode independently after start.
 - Read `OA_TRADING_ENABLED` from `.env` inside every cron script (cron does not
   inherit the container environment), and add it to `entrypoint.sh`'s allowlist.
-- The UI clears session storage and returns to token entry on any API 401, with
-  a visible clear-token control.
+- The UI loads directly without a login step or token control.
 - Before enabling `OA_TRADING_ENABLED=true`, verify in order: `railway status`
   names the new OptionsAgent service (never `tqqq-qqq-paperbot`), in-container
   `ALPACA_PAPER=true`, `/etc/cron.d/optionsagent` exists, dashboard process is

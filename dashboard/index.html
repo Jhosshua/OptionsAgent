@@ -8,19 +8,7 @@
   <link rel="stylesheet" href="/app.css">
 </head>
 <body>
-  <div id="auth-screen" class="auth-screen" role="dialog" aria-modal="true" aria-labelledby="auth-title">
-    <form id="auth-form" class="auth-card">
-      <div class="brand-mark small-mark" aria-hidden="true">↗</div>
-      <h1 id="auth-title">OptionsAgent</h1>
-      <p>Enter the dashboard token to view paper-account data.</p>
-      <label for="token-input">Dashboard token</label>
-      <input id="token-input" type="password" autocomplete="off" required minlength="32">
-      <button class="button primary" type="submit">Unlock dashboard</button>
-      <div id="auth-error" class="auth-error" role="alert"></div>
-    </form>
-  </div>
-
-  <div id="app" class="app-shell" hidden>
+  <div id="app" class="app-shell">
     <aside class="sidebar">
       <div class="brand-block">
         <div class="brand-row"><div class="brand-mark" aria-hidden="true">↗</div><div class="brand-name">OptionsAgent</div></div>
@@ -41,7 +29,7 @@
     <main class="main-content">
       <header class="topbar">
         <div><h2 id="page-date">OptionsAgent</h2><span id="page-year" class="muted"></span></div>
-        <div class="top-controls"><div class="pill">◉ <span>Paper account</span></div><div id="clock" class="pill">◷ —</div><button id="clear-token" class="pill button quiet">Clear token</button></div>
+        <div class="top-controls"><div class="pill">◉ <span>Paper account</span></div><div id="clock" class="pill">◷ —</div></div>
       </header>
 
       <section id="warning" class="warning-banner" hidden>

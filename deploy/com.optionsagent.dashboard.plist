@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.optionsagent.dashboard</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/zsh</string>
+		<string>/Users/mo/OptionsAgent/deploy/run_local_dashboard.sh</string>
+	</array>
+	<key>WorkingDirectory</key>
+	<string>/Users/mo/OptionsAgent</string>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
+	<key>ProcessType</key>
+	<string>Background</string>
+	<key>ThrottleInterval</key>
+	<integer>5</integer>
+	<key>LimitLoadToSessionType</key>
+	<string>Aqua</string>
+	<key>StandardOutPath</key>
+	<string>/Users/mo/OptionsAgent/data/logs/dashboard-local.out.log</string>
+	<key>StandardErrorPath</key>
+	<string>/Users/mo/OptionsAgent/data/logs/dashboard-local.err.log</string>
+</dict>
+</plist>

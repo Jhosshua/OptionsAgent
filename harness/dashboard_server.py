@@ -2,8 +2,8 @@
 
 The web process is deliberately narrower than the trading process. It exposes
 fixed GET/HEAD routes, reads a cached broker snapshot refreshed in a background
-thread, and never imports the order execution modules. The dashboard token is
-required for all data APIs; /healthz is a deliberately fixed liveness probe.
+thread, and never imports the order execution modules. The local server binds
+to loopback by default; /healthz is a deliberately fixed liveness probe.
 """
 
 from __future__ import annotations
@@ -11,7 +11,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-import hmac
 import json
 import logging
 import math
@@ -34,8 +33,6 @@ STRUCTURES_PATH = DATA_DIR / "structures.jsonl"
 DECISIONS_PATH = DATA_DIR / "decisions.jsonl"
 MAX_ARCHIVE_BYTES = 2 * 1024 * 1024
 MAX_ARCHIVE_ROWS = 5000
-MAX_AUTH_TOKEN_FAILURES = 5
-AUTH_BACKOFF_SECONDS = 5.0
 STALE_AFTER_SECONDS = 120
 REFRESH_INTERVAL_SECONDS = 30
 BROKER_TIMEOUT_SECONDS = 10
@@ -405,35 +402,9 @@ class DashboardHTTPServer(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
 
-    def __init__(self, address, handler, *, store: SnapshotStore, token: str):
+    def __init__(self, address, handler, *, store: SnapshotStore):
         super().__init__(address, handler)
         self.store = store
-        self.token = token
-        self.auth_failures: dict[str, tuple[int, float]] = {}
-        self.auth_lock = threading.Lock()
-
-    def authorized(self, ip: str, header: str | None) -> bool:
-        now = time.monotonic()
-        with self.auth_lock:
-            if len(self.auth_failures) > 1024:
-                self.auth_failures = {
-                    key: value
-                    for key, value in sorted(self.auth_failures.items(), key=lambda item: item[1][1], reverse=True)[:512]
-                }
-            failures, blocked_until = self.auth_failures.get(ip, (0, 0.0))
-            if blocked_until > now:
-                return False
-            presented = header[len("Bearer ") :] if header and header.startswith("Bearer ") else ""
-            ok = bool(presented) and hmac.compare_digest(presented, self.token)
-            if ok:
-                self.auth_failures.pop(ip, None)
-                return True
-            failures += 1
-            if failures >= MAX_AUTH_TOKEN_FAILURES:
-                self.auth_failures[ip] = (0, now + AUTH_BACKOFF_SECONDS)
-            else:
-                self.auth_failures[ip] = (failures, 0.0)
-            return False
 
 
 class DashboardHandler(BaseHTTPRequestHandler):
@@ -472,9 +443,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._send(HTTPStatus.OK, target.read_bytes(), content_type)
             return
         if path.startswith("/api/"):
-            if not self.server.authorized(self.client_address[0], self.headers.get("Authorization")):
-                self._send(HTTPStatus.UNAUTHORIZED, b"unauthorized", "text/plain", no_store=True)
-                return
             if path not in {"/api/summary", "/api/positions", "/api/trades", "/api/research", "/api/risk", "/api/system"}:
                 self._send(HTTPStatus.NOT_FOUND, b"not found", "text/plain", no_store=True)
                 return
@@ -497,10 +465,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    token = env("OA_DASHBOARD_TOKEN") or ""
-    if len(token.encode("utf-8")) < 32:
-        log.error("OA_DASHBOARD_TOKEN missing or shorter than 32 bytes; dashboard refuses to start")
-        return
     try:
         port = int(env("PORT", "8080") or "8080")
     except ValueError:
@@ -508,8 +472,9 @@ def main() -> None:
         return
     store = SnapshotStore()
     store.start()
-    httpd = DashboardHTTPServer(("0.0.0.0", port), DashboardHandler, store=store, token=token)
-    log.info("dashboard listening on :%d", port)
+    host = env("OA_DASHBOARD_HOST", "127.0.0.1") or "127.0.0.1"
+    httpd = DashboardHTTPServer((host, port), DashboardHandler, store=store)
+    log.info("dashboard listening on %s:%d", host, port)
     httpd.serve_forever()
 
 

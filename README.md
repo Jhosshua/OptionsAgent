@@ -54,6 +54,7 @@ adapter is read-only and never submits Public orders. See `SETUP.md` for the cre
 ## Dashboard
 
 The supplied daylight dashboard is implemented under `dashboard/` and served by the always-on
-`harness.dashboard_server` process. It is read-only, token protected, and defaults to paper trading
-disarmed. Set a 32+ character `OA_DASHBOARD_TOKEN`; enable `OA_TRADING_ENABLED` only after the
-deployment verification sequence in `SETUP.md`.
+`harness.dashboard_server` process. It is read-only, local-only by default, and defaults to paper
+trading disarmed. Run `zsh deploy/install_local_dashboard.sh` to keep it available at
+`http://127.0.0.1:8765`; enable `OA_TRADING_ENABLED` only after the deployment verification
+sequence in `SETUP.md`.
