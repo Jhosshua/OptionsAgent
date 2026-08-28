@@ -559,20 +559,20 @@
           <div class="logo-badge">OA</div>
           <div class="p1-title-text">
             <h1>OptionsAgent</h1>
-            <p>Automated options execution system running two deterministic engines</p>
+            <p>Automated trading system running two deterministic engines on Alpaca paper</p>
           </div>
         </div>
         <div class="p1-pills">
-          <span class="pill"><span class="dot dot-green"></span>$100,000 Paper Account</span>
-          <span class="pill"><span class="dot dot-coral"></span>Credit Seller (10:15 ET)</span>
-          <span class="pill"><span class="dot dot-teal"></span>0DTE Scalper (Armed)</span>
-          <span class="pill"><span class="dot dot-green"></span>Deterministic Rails</span>
+          <span class="pill"><span class="dot dot-green"></span>PAPER ONLY</span>
+          <span class="pill"><span class="dot dot-green"></span>TWO ENGINES</span>
+          <span class="pill"><span class="dot dot-teal"></span>RUNS ON THIS MAC</span>
+          <span class="pill"><span class="dot dot-coral"></span>LLM ONLY ADVISES ENGINE 1</span>
         </div>
       </div>
 
       <!-- Lede -->
       <div class="p1-lede">
-        Two distinct engines run side by side on a single $100,000 Alpaca paper account. Claude proposes candidate trade ideas while deterministic Python code enforces every risk gate, sizing rule, and order parameter. Most days nothing trades, and that is by design.
+        Two engines run on one $100,000 Alpaca paper account. Engine 1 sells credit spreads after Claude proposes and deterministic rails dispose. Engine 2 trades SPY and QQQ shares intraday on two frozen, data-mined rules, with no LLM anywhere.
       </div>
 
       <!-- Two Engine Cards -->
@@ -629,25 +629,25 @@
           <div>
             <div class="engine-header">
               <div>
-                <div class="engine-name">Engine 2, 0DTE Scalper</div>
-                <div class="engine-timing">Every minute 09:33 to 15:59 ET (Entries cut off at 11:30 ET)</div>
+                <div class="engine-name">Engine 2, Equity Intraday Scalper</div>
+                <div class="engine-timing">Entries at 10:15 and 13:00 ET (Mon-Fri, all flat by 15:50 ET)</div>
               </div>
-              <span class="pill pill-teal">Intraday Momentum</span>
+              <span class="pill pill-teal">Intraday Shares</span>
             </div>
 
             <ul class="engine-bullets scalper-bullets">
-              <li>Zero LLM dependency; pure deterministic opening range breakout (ORB) on SPY and QQQ same-day contracts.</li>
-              <li>Enters on 1-min close outside 09:30 to 09:33 range with 1.5x volume, confirmed by next bar and VWAP.</li>
-              <li>Strict caps: $250 fixed per trade, max 2 trades daily, one open at a time, no entries at/after 11:30 ET.</li>
-              <li>Fast exits: +50% target, -30% to -60% trailing stop, 15-min theta cut, and mandatory 15:50 ET flat.</li>
+              <li>0DTE option scalper retired after 6-month study (125 sessions, 16,384 combos, zero positive expectancy); replaced by share trading.</li>
+              <li>Morning fade (10:15 ET, SPY/QQQ): short if above VWAP and 15-min opening-range high; long if below both (+$23.6 in-sample, 60% win).</li>
+              <li>Gap follow (13:00 ET, QQQ only): if open gap > 0.8%, hold with gap to ~15:00 (+$34.3 in-sample, 64% win, OOS t=+3.1).</li>
+              <li>Risk controls: $20,000 notional per position, max 2 trades a day, max 2 open, 0.7% stop, 120-min exit, orphan adoption.</li>
             </ul>
           </div>
 
           <div>
             <div class="stat-tiles">
               <div class="stat-tile">
-                <div class="stat-value">$250</div>
-                <div class="stat-label">Fixed Risk</div>
+                <div class="stat-value">$20,000</div>
+                <div class="stat-label">Notional / Pos</div>
               </div>
               <div class="stat-tile">
                 <div class="stat-value">2 / Day</div>
@@ -662,10 +662,10 @@
             <div class="pipeline-container">
               <div class="pipeline-title">Execution Lifecycle</div>
               <div class="pipeline-steps">
-                <div class="pipeline-step">1. 3m Range</div>
-                <div class="pipeline-step">2. VWAP Break</div>
-                <div class="pipeline-step">3. $250 ATM Buy</div>
-                <div class="pipeline-step">4. Fast Exits</div>
+                <div class="pipeline-step">1. 10:15 / 13:00</div>
+                <div class="pipeline-step">2. Share Order</div>
+                <div class="pipeline-step">3. 0.7% / 120m Exit</div>
+                <div class="pipeline-step">4. 15:50 Flat</div>
               </div>
             </div>
           </div>
@@ -681,15 +681,15 @@
         <div class="today-lines">
           <div class="today-line">
             <span class="today-line-dot"></span>
-            <span>Claude proposed 8 spreads; the rails executed 0 (3 no matching contract, 5 failed the winner profile). Vetoing everything is the system working.</span>
+            <span>Claude proposed 8 spreads, the rails executed 0 (three had no matching contract, five failed the winner profile). Vetoing everything is the system working.</span>
           </div>
           <div class="today-line">
             <span class="today-line-dot"></span>
-            <span>The exit sweep closed July's SOFI spread for +$26.58.</span>
+            <span>A 6-month study retired the 0DTE option scalper (no positive expectancy) and armed its share-based replacement for Monday.</span>
           </div>
           <div class="today-line">
             <span class="today-line-dot"></span>
-            <span>The scalper was armed at 12:25 ET after its data feed was verified real-time to the minute.</span>
+            <span>The scalper's first live windows are Monday 10:15 and 13:00 ET.</span>
           </div>
         </div>
       </div>
@@ -742,8 +742,8 @@
           <ul class="rules-list">
             <li><span class="rule-tag">Invariant</span> Never let model output pick a strike, delta, or expiration.</li>
             <li><span class="rule-tag">Invariant</span> Never loosen a rail by editing config (env vars may only tighten).</li>
-            <li><span class="rule-tag">Invariant</span> Never place a live-money order.</li>
-            <li><span class="rule-tag">Invariant</span> Never buy options after an extended move (anti-chase rule).</li>
+            <li><span class="rule-tag">Invariant</span> Never place a live-money order (Alpaca paper only).</li>
+            <li><span class="rule-tag">Invariant</span> Never hold equity scalp positions overnight (all flat by 15:50 ET).</li>
           </ul>
         </div>
       </div>
@@ -753,73 +753,73 @@
         <!-- Q1 -->
         <div class="faq-card">
           <div class="faq-q">1. Is this real money?</div>
-          <div class="faq-a">No, Alpaca paper only. The code refuses non-paper endpoints at startup and connection time.</div>
+          <div class="faq-a">No, Alpaca paper only; the broker client refuses non-paper endpoints.</div>
         </div>
 
         <!-- Q2 -->
         <div class="faq-card">
           <div class="faq-q">2. What exactly does the LLM control?</div>
-          <div class="faq-a">The idea only (ticker, direction, conviction, thesis). Output is schema-checked; malformed data is dropped. The scalper uses no LLM at all.</div>
+          <div class="faq-a">The idea only (ticker, direction, conviction, thesis) for the seller. The equity scalper uses no LLM at all.</div>
         </div>
 
         <!-- Q3 -->
         <div class="faq-card">
           <div class="faq-q">3. Why credit spreads?</div>
-          <div class="faq-a">Day one a MARA long put lost 37.6% of its premium in a session. The bot pivoted to selling defined-risk premium with a width-capped worst case.</div>
+          <div class="faq-a">Day one a MARA long put lost 37.6% of premium; pivot to selling defined-risk premium with a width-capped worst case.</div>
         </div>
 
         <!-- Q4 -->
         <div class="faq-card">
-          <div class="faq-q">4. How does sizing work?</div>
-          <div class="faq-a">Conviction-scaled share of free buying power; 30% at the 0.60 floor to 100% at 0.85+. If sizing falls below one contract, the trade is skipped.</div>
+          <div class="faq-q">4. How does the seller size?</div>
+          <div class="faq-a">Conviction-scaled share of free buying power; 30% at the 0.60 floor to 100% at 0.85+; skips below one contract.</div>
         </div>
 
         <!-- Q5 -->
         <div class="faq-card">
           <div class="faq-q">5. 100% of buying power sounds aggressive.</div>
-          <div class="faq-a">Deliberate policy. The brakes are the $2 width cap, 6 positions, broker margin rejection, and a tighten-only kill switch (OA_MAX_POSITION_USD).</div>
+          <div class="faq-a">Deliberate policy; brakes = $2 width cap, 6 positions, broker rejection, tighten-only kill switch OA_MAX_POSITION_USD.</div>
         </div>
 
         <!-- Q6 -->
         <div class="faq-card">
           <div class="faq-q">6. What is the winner profile gate?</div>
-          <div class="faq-a">Three replayed winners (CCL put spread, SOFI put spread, F call spread), hard-coded and fail-closed. A frozen in-sample profile held unchanged to collect honest out-of-sample evidence.</div>
+          <div class="faq-a">Three replayed winners (CCL/SOFI bullish puts, F bearish calls), hard-coded, fail closed, frozen in-sample profile.</div>
         </div>
 
         <!-- Q7 -->
         <div class="faq-card">
-          <div class="faq-q">7. Walk me through the exits.</div>
-          <div class="faq-a">Seller: 50% profit, 2x credit stop confirmed across two sweeps starting 10:00 ET, 21 DTE close, dividend check. Scalper: +50% target, -30% or -60% stop, 15-minute theta cut, 15:50 flatten.</div>
+          <div class="faq-q">7. What does the equity scalper actually do?</div>
+          <div class="faq-a">Two rules on SPY/QQQ: Morning Fade at 10:15 ET and Gap Follow on QQQ at 13:00 ET. Exits: 0.7% stop, 120-min exit, 15:50 flatten, -$300 daily halt. Sizing: $20,000 notional (max 2/day, max 2 open). These rules are in-sample overfits, deliberately frozen; live trading is the out-of-sample test.</div>
         </div>
 
         <!-- Q8 -->
         <div class="faq-card">
-          <div class="faq-q">8. Assignment and overnight gap risk?</div>
-          <div class="faq-a">Verticals are defined risk; max loss is width minus credit. The stop is loss control, not a guarantee. Worst day near $1,200. The scalper never holds overnight.</div>
+          <div class="faq-q">8. Why shares instead of 0DTE options?</div>
+          <div class="faq-a">The 6-month study found real but tiny underlying edges (10 to 18bp); long 0DTE theta plus spread costs are 3 to 10x that, so every option configuration lost. Shares cost ~1.3bp round trip, leaving the edge.</div>
         </div>
 
         <!-- Q9 -->
         <div class="faq-card">
-          <div class="faq-q">9. Is there a daily loss limit?</div>
-          <div class="faq-a">The seller has none, relying on structural position brakes. The scalper is bounded at 2 x $250 before exits, with an optional emergency halt switch.</div>
+          <div class="faq-q">9. Walk me through the exits.</div>
+          <div class="faq-a">Seller: 50% profit, 2x credit stop confirmed twice, 21 DTE close, dividend check. Equity scalper: 0.7% stop, 120-minute time exit, 15:50 flatten, -$300 daily halt.</div>
         </div>
 
         <!-- Q10 -->
         <div class="faq-card">
-          <div class="faq-q">10. What does the 0DTE scalper actually do?</div>
-          <div class="faq-a">Watches SPY and QQQ 09:30 to 09:33 range. Enters on 1-minute close outside range on 1.5x volume, confirmed by next bar and VWAP. Buys $250 ATM contracts, exiting on targets, stops, 15-minute theta, or 15:50 ET.</div>
+          <div class="faq-q">10. Overnight risk?</div>
+          <div class="faq-a">The seller holds defined-risk spreads (max loss = width minus credit, about $200 each, worst day near $1,200). The equity scalper never holds overnight: everything flattens by 15:50 ET.</div>
         </div>
 
         <!-- Q11 -->
         <div class="faq-card">
           <div class="faq-q">11. How do I know what it did on any given day?</div>
-          <div class="faq-a">Read-only local dashboard at 127.0.0.1:8765, plus data/decisions.jsonl and data/structures.jsonl for the seller, data/scalp_decisions.jsonl and data/scalp_positions.jsonl for the scalper.</div>
+          <div class="faq-a">Read-only dashboard at 127.0.0.1:8765; decisions in data/decisions.jsonl and structures.jsonl (seller); equity scalper in data/equity_scalp_decisions.jsonl and equity_scalp_state/.</div>
         </div>
 
         <!-- Q12 -->
         <div class="faq-card">
           <div class="faq-q">12. What stops a bug from doing something catastrophic?</div>
-          <div class="faq-a">Rails hard-coded in Python, env may only tighten. Broker client refuses non-paper, entry windows are locked, sweeps reconcile live registries, and the scalper force-flattens at 15:50 ET and re-adopts orphans.</div>
+          <div class="faq-a">Rails hard-coded in Python, env may only tighten; broker client refuses non-paper; one locked entry window a day for the seller; the equity scalper adopts orphaned positions, flattens everything by 15:50 ET, and halts at -$300. Stock data uses a read-only SIP key; option chains use Public.com sidecar; orders stay on the paper key.</div>
         </div>
       </div>
     </div>
@@ -837,7 +837,7 @@
       <div class="p-dash-header">
         <div class="dash-caption-group">
           <h1>Overview &amp; Portfolio State</h1>
-          <p>Real-time account balance, daily P&amp;L curve, engine status badges, and capital utilization.</p>
+          <p>Real-time account balance, flat $100k equity reset (Aug 28 activation date, empty history by design), and engine status badges.</p>
         </div>
         <span class="dash-view-pill">Dashboard View 1 of 6</span>
       </div>
@@ -859,7 +859,7 @@
       <div class="p-dash-header">
         <div class="dash-caption-group">
           <h1>Active Positions Registry</h1>
-          <p>Open credit spreads and intraday scalps with mark-to-market prices, credit collected, and DTE tracking.</p>
+          <p>Open credit spreads and intraday equity scalps with mark-to-market prices, credit collected, and DTE tracking.</p>
         </div>
         <span class="dash-view-pill">Dashboard View 2 of 6</span>
       </div>
@@ -881,7 +881,7 @@
       <div class="p-dash-header">
         <div class="dash-caption-group">
           <h1>Trade History &amp; Executions</h1>
-          <p>Historical audit ledger of filled combo orders, realized gains and losses, fill prices, and automated exit triggers.</p>
+          <p>Historical audit ledger of filled combo orders, equity scalp shares, realized gains and losses, and automated exit triggers.</p>
         </div>
         <span class="dash-view-pill">Dashboard View 3 of 6</span>
       </div>
@@ -947,7 +947,7 @@
       <div class="p-dash-header">
         <div class="dash-caption-group">
           <h1>System Health, Cron &amp; Feed Status</h1>
-          <p>Feed latency monitors, cron execution timers, Alpaca API heartbeat, sidecar connectivity, and event audit trails.</p>
+          <p>SIP real-time stock feed key, Public.com sidecar quotes, runtime flags, cron execution timers, and paper API status.</p>
         </div>
         <span class="dash-view-pill">Dashboard View 6 of 6</span>
       </div>
