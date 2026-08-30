@@ -746,3 +746,19 @@ Broadened the hunt per operator (mine ANY formula, overfit to the window):
 - Codex review: 3 P1s fixed (orphan routing with 0-entry-price, fail-closed
   broker read, intrabar stops), 4 P2s fixed (rule slot reservation, retry on
   failed entry, BOTH pooling, config wiring). 177 tests green.
+
+## 2026-08-30 — data eyes repointed: MT4's key retired, now on ADMS's SIP key (PKSJHP…)
+
+MT4 was shut down 08-30 and its Alpaca account is being removed, so `OA_DATA_KEY_ID`/
+`OA_DATA_SECRET_KEY` in `.env` were repointed from MT4's PKDJRT… key to the ADMS bot's
+PKSJHP… key (paper acct PA30WJX0NW6F, same key ~/ManualTrading already borrows as its
+data eyes). SIP verified live through `PaperClient` itself: `_data_credentials()` returns
+PKSJHP…, `stock_latest_price("SPY", feed="sip")` = 769.35 (matches a direct curl), 797
+minute bars with the last bar at Friday 19:59 ET. Orders are untouched (still this
+account's own PK4UIM… paper key).
+
+Why no conflict: Alpaca's one-connection-per-account limit (the 406) applies only to
+websocket STREAMS. ADMS, MT1's running processes, and OptionsAgent are all REST-only on
+this key, sharing the ~200 req/min budget at ~10-15/min worst case. Timing dovetails:
+ADMS's burst is 09:15-09:33 and the scalper self-gates to 09:33-15:59. Rule stands: if
+anything ever opens a stream on PKSJHP…, it owns the account's only stream slot.
