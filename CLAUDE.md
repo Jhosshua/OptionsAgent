@@ -6,8 +6,9 @@
 > 10:15-10:27 ET) and (2) the EQUITY intraday scalper (run_scalp_equity.py,
 > mined rules, shares only, every minute 09:45-15:55 ET, cron/equity_scalp.sh).
 > The 0DTE OPTION scalper was RETIRED tonight on 6-month evidence (no positive
-> expectancy in 16,384 configs). Stock data runs through a read-only
-> SIP-entitled key (OA_DATA_*); Public.com is options-only sidecar data; Alpaca
+> expectancy in 16,384 configs). Stock data runs through the hosted AlpacaRelay
+> proxy (OA_DATA_URL; OA_DATA_KEY_ID is a relay token, no direct SIP from this
+> repo — 2026-08-31); Public.com is options-only sidecar data; Alpaca
 > is paper-only execution. Local .env + user crontab are authoritative. The
 > dashboard was reset to the 08-28 activation date. See RESEARCH_SCALP_6MO.md.
 > Do not use Railway for this bot.
