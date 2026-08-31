@@ -99,32 +99,37 @@ def _submit_market(client, *, symbol: str, side: str, qty: int, decision_id: str
     return {"id": str(order.id), "client_order_id": coid}
 
 
-def _flatten_position(client, pos, *, reason: str, dry: bool):
+def _flatten_position(client, symbol: str, pos, *, reason: str, dry: bool):
     """Close (buy back a short / sell a long). Returns ("closed", pnl-or-None)
-    on a CONFIRMED close, or None to stay in trade and retry next minute."""
+    on a CONFIRMED close, or None to stay in trade and retry next minute.
+
+    `symbol` is passed in because the state block is stored UNDER the symbol in
+    state["symbols"] and never carries a "symbol" field of its own. Reading it
+    from the block raised KeyError and broke every exit path — stop, time exit
+    and the mandatory EOD flatten alike (2026-08-31)."""
     close_side = "buy" if pos["side"] == "short" else "sell"
     if dry:
-        _post(f"WOULD CLOSE {pos['symbol']} {pos['side']} x{pos['qty']} ({reason})")
+        _post(f"WOULD CLOSE {symbol} {pos['side']} x{pos['qty']} ({reason})")
         return ("closed", None)
-    res = _submit_market(client, symbol=pos["symbol"], side=close_side,
+    res = _submit_market(client, symbol=symbol, side=close_side,
                          qty=int(pos["qty"]), decision_id=pos["trade_id"])
     confirmed = _confirm_fill(client, res["id"])
     if confirmed is None:
-        _post(f"{pos['symbol']} close NOT confirmed ({reason}) — retrying next minute")
+        _post(f"{symbol} close NOT confirmed ({reason}) — retrying next minute")
         return None
     _, exit_price = confirmed
     entry = float(pos.get("entry_price") or 0)
     if entry <= 0:
-        _post(f"Closed adopted orphan {pos['symbol']} ({reason}) — P&L unknown")
-        _log({"kind": "eq_close", "symbol": pos["symbol"], "reason": f"{reason}_orphan",
+        _post(f"Closed adopted orphan {symbol} ({reason}) — P&L unknown")
+        _log({"kind": "eq_close", "symbol": symbol, "reason": f"{reason}_orphan",
               "exit": exit_price, "qty": int(pos["qty"]), "pnl_usd": None,
               "ts": decision_log.now_iso()})
         return ("closed", None)
     direction = -1.0 if pos["side"] == "short" else 1.0
     pnl = (exit_price - entry) * direction * int(pos["qty"])
-    _post(f"Closed {pos['symbol']} {pos['side']} x{pos['qty']} ({reason}) "
+    _post(f"Closed {symbol} {pos['side']} x{pos['qty']} ({reason}) "
           f"P&L {'+' if pnl >= 0 else '-'}${abs(pnl):.2f}")
-    _log({"kind": "eq_close", "symbol": pos["symbol"], "reason": reason,
+    _log({"kind": "eq_close", "symbol": symbol, "reason": reason,
           "entry": entry, "exit": exit_price, "qty": int(pos["qty"]),
           "pnl_usd": round(pnl, 2), "ts": decision_log.now_iso()})
     return ("closed", pnl)
@@ -237,7 +242,7 @@ def run() -> None:
                     entry_bar_index=entry_i, last_bar_index=len(session) - 1,
                     now_et_hhmm=now_hhmm, rails=rails)
                 if decision.should_close:
-                    result = _flatten_position(client, blk, reason=decision.reason, dry=dry)
+                    result = _flatten_position(client, symbol, blk, reason=decision.reason, dry=dry)
                     if result is not None:
                         _, pnl = result
                         if pnl is not None:

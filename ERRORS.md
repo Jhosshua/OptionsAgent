@@ -238,3 +238,26 @@ transient proposer failure silently costs the entire trading day. `propose()`
 now retries `OA_CLAUDE_ATTEMPTS` (default 3) times with linear backoff before
 degrading to no-trade. Root cause of the exit-1 itself is still UNKNOWN; the
 next occurrence will log the CLI's own stdout error.
+
+## 2026-08-31 — Equity scalper could open positions but never close them
+
+**What did not work:** `_flatten_position` read `pos["symbol"]`, but the state
+blocks in `state["symbols"]` are keyed BY symbol and never carry a "symbol"
+field — neither the `_open_position` writer nor the orphan-adoption writer sets
+it. Every exit raised `KeyError: 'symbol'`, so the 0.7% stop, the 120-minute
+time exit AND the mandatory 15:50 EOD flatten all failed identically. Caught
+live: today's 10:15 SPY entry hit its 12:15 time exit and retried the same crash
+every minute, leaving a real position unmanaged.
+
+**What worked instead:** pass the symbol explicitly
+(`_flatten_position(client, symbol, blk, ...)`). The one call site already has
+it as the loop variable.
+
+**Note for next time:** 177 tests passed with this bug live because every exit
+test covered only the pure `evaluate_equity_exit` decision, never the code that
+ACTS on the decision. A "should_close" test proves nothing about whether the
+close can execute. Regression tests now build the state block exactly as the two
+writers produce it and drive `_flatten_position` end to end; reintroducing the
+bug fails 4 of them. Note the failure mode: the runner catches per-symbol
+exceptions and logs "step failed (continuing)", so the tick line kept printing a
+healthy-looking `halted=False` while no exit could ever run.

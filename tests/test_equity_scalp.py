@@ -5,6 +5,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from harness.equity_scalp import (
@@ -156,3 +158,102 @@ def test_orphan_short_qty_sign():
     orphans = orphan_equity_positions(
         [{"symbol": "SPY", "asset_class": "us_equity", "qty": -15}], {"symbols": {}})
     assert orphans and orphans[0]["side"] == "short" and orphans[0]["qty"] == -15
+
+
+# --- regression: the exit path must work against the REAL state-block shape ---
+# 2026-08-31: _flatten_position read pos["symbol"], but state["symbols"] blocks
+# are keyed BY symbol and never carry that field. Every exit raised KeyError, so
+# the stop, the time exit and the mandatory 15:50 flatten all silently failed and
+# a live position could never be closed. These tests build the block exactly the
+# way run_scalp_equity writes it, so the shapes cannot drift apart again.
+
+def _state_block_as_written_by_open():
+    """Mirrors the blk.update(...) in run_scalp_equity._open_position."""
+    return {
+        "trade_id": "d-1", "rule": "morning_fade", "side": "long",
+        "qty": 26, "entry_price": 765.84,
+        "entry_ts": "2026-08-31T14:15:00+00:00", "entry_bar_time": None,
+    }
+
+
+def _orphan_block_as_written_by_adoption():
+    """Mirrors the orphan adoption branch in run_scalp_equity.run."""
+    return {
+        "trade_id": "orphan-SPY-2026-08-31", "rule": "orphan", "side": "long",
+        "qty": 26, "entry_price": 0.0,
+        "entry_ts": "2026-08-31T14:15:00+00:00", "entry_bar_time": None,
+    }
+
+
+def test_state_block_has_no_symbol_key():
+    """Guards the premise of the bug: the block genuinely lacks 'symbol'."""
+    assert "symbol" not in _state_block_as_written_by_open()
+    assert "symbol" not in _orphan_block_as_written_by_adoption()
+
+
+def test_flatten_dry_run_does_not_need_symbol_in_block():
+    import run_scalp_equity as rse
+    result = rse._flatten_position(
+        None, "SPY", _state_block_as_written_by_open(), reason="time_exit", dry=True
+    )
+    assert result == ("closed", None)
+
+
+def test_flatten_live_submits_close_for_the_right_symbol(monkeypatch):
+    import run_scalp_equity as rse
+    sent = {}
+
+    def fake_submit(client, *, symbol, side, qty, decision_id):
+        sent.update(symbol=symbol, side=side, qty=qty, decision_id=decision_id)
+        return {"id": "o-1", "client_order_id": "c-1"}
+
+    monkeypatch.setattr(rse, "_submit_market", fake_submit)
+    monkeypatch.setattr(rse, "_confirm_fill", lambda client, oid: (26, 766.84))
+    monkeypatch.setattr(rse, "_post", lambda *a, **k: None)
+    monkeypatch.setattr(rse, "_log", lambda *a, **k: None)
+
+    status, pnl = rse._flatten_position(
+        None, "SPY", _state_block_as_written_by_open(), reason="time_exit", dry=False
+    )
+    assert status == "closed"
+    assert sent["symbol"] == "SPY"
+    assert sent["side"] == "sell"      # closing a long
+    assert sent["qty"] == 26
+    assert pnl == pytest.approx((766.84 - 765.84) * 26)
+
+
+def test_flatten_live_closes_a_short_by_buying(monkeypatch):
+    import run_scalp_equity as rse
+    sent = {}
+
+    def fake_submit(client, *, symbol, side, qty, decision_id):
+        sent.update(symbol=symbol, side=side)
+        return {"id": "o-1"}
+
+    monkeypatch.setattr(rse, "_submit_market", fake_submit)
+    monkeypatch.setattr(rse, "_confirm_fill", lambda client, oid: (26, 760.00))
+    monkeypatch.setattr(rse, "_post", lambda *a, **k: None)
+    monkeypatch.setattr(rse, "_log", lambda *a, **k: None)
+
+    blk = _state_block_as_written_by_open()
+    blk["side"] = "short"
+    status, pnl = rse._flatten_position(None, "SPY", blk, reason="stop_loss", dry=False)
+    assert status == "closed"
+    assert sent["side"] == "buy"
+    assert pnl == pytest.approx((765.84 - 760.00) * 26)
+
+
+def test_flatten_adopted_orphan_reports_unknown_pnl(monkeypatch):
+    import run_scalp_equity as rse
+    monkeypatch.setattr(rse, "_submit_market",
+                        lambda client, **kw: {"id": "o-1"})
+    monkeypatch.setattr(rse, "_confirm_fill", lambda client, oid: (26, 766.00))
+    monkeypatch.setattr(rse, "_post", lambda *a, **k: None)
+    monkeypatch.setattr(rse, "_log", lambda *a, **k: None)
+
+    status, pnl = rse._flatten_position(
+        None, "SPY", _orphan_block_as_written_by_adoption(),
+        reason="eod_flatten", dry=False,
+    )
+    assert status == "closed"
+    assert pnl is None   # entry price unknown for an adopted orphan
