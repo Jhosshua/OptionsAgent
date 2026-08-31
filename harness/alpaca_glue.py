@@ -109,6 +109,15 @@ class PaperClient:
         secret = env("OA_DATA_SECRET_KEY", "") or self.secret_key
         return key, secret
 
+    def _data_url(self) -> str | None:
+        """Optional base-URL override for ALL market-data clients.
+
+        OA_DATA_URL points them at the hosted AlpacaRelay proxy (which
+        forwards /data/* to data.alpaca.markets with its own entitled key;
+        OA_DATA_KEY_ID then holds the relay token). Unset = direct Alpaca.
+        Trading clients never read this."""
+        return env("OA_DATA_URL", "") or None
+
     def _ensure_paper(self) -> None:
         if (env("ALPACA_PAPER", "true") or "true").lower() != "true":
             raise RuntimeError("ALPACA_PAPER is not 'true'. Refusing to construct any client.")
@@ -126,7 +135,10 @@ class PaperClient:
             from alpaca.data.historical.option import OptionHistoricalDataClient
         except ImportError as e:  # pragma: no cover
             raise RuntimeError("alpaca-py not installed. pip install alpaca-py before live calls.") from e
-        return OptionHistoricalDataClient(self.key_id, self.secret_key)
+        # Data credentials + optional relay override, same eyes/hands split
+        # as the stock-data clients: the trading key never does the looking.
+        return OptionHistoricalDataClient(*self._data_credentials(),
+                                          url_override=self._data_url())
 
     # -- account / positions ------------------------------------------------
 
@@ -420,7 +432,8 @@ class PaperClient:
 
         if not symbols:
             return {}
-        client = StockHistoricalDataClient(self.key_id, self.secret_key)
+        client = StockHistoricalDataClient(*self._data_credentials(),
+                                           url_override=self._data_url())
         start = datetime.now(timezone.utc) - timedelta(days=lookback_days)
         req = StockBarsRequest(
             symbol_or_symbols=symbols,
@@ -459,7 +472,8 @@ class PaperClient:
 
         et = ZoneInfo("America/New_York")
         data_feed = DataFeed.IEX if str(feed).lower() == "iex" else DataFeed.SIP
-        client = StockHistoricalDataClient(*self._data_credentials())
+        client = StockHistoricalDataClient(*self._data_credentials(),
+                                           url_override=self._data_url())
         start = datetime.now(timezone.utc) - timedelta(minutes=lookback_minutes)
         req = StockBarsRequest(
             symbol_or_symbols=symbol,
@@ -501,7 +515,8 @@ class PaperClient:
         from alpaca.data.requests import StockLatestTradeRequest
 
         data_feed = DataFeed.IEX if str(feed).lower() == "iex" else DataFeed.SIP
-        client = StockHistoricalDataClient(*self._data_credentials())
+        client = StockHistoricalDataClient(*self._data_credentials(),
+                                           url_override=self._data_url())
         try:
             req = StockLatestTradeRequest(symbol_or_symbols=symbol, feed=data_feed)
             tr = client.get_stock_latest_trade(req)

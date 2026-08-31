@@ -54,7 +54,8 @@ def pull(sym: str) -> None:
             if "=" in line and not line.startswith("#"):
                 k, v = line.split("=", 1)
                 env[k.strip()] = v.strip().strip('"').strip("'")
-    client = StockHistoricalDataClient(env["OA_DATA_KEY_ID"], env["OA_DATA_SECRET_KEY"])
+    client = StockHistoricalDataClient(env["OA_DATA_KEY_ID"], env["OA_DATA_SECRET_KEY"],
+                                       url_override=env.get("OA_DATA_URL") or None)
     all_rows: list[tuple] = []
     cursor_start = START
     while cursor_start < END:

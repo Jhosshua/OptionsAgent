@@ -762,3 +762,20 @@ websocket STREAMS. ADMS, MT1's running processes, and OptionsAgent are all REST-
 this key, sharing the ~200 req/min budget at ~10-15/min worst case. Timing dovetails:
 ADMS's burst is 09:15-09:33 and the scalper self-gates to 09:33-15:59. Rule stands: if
 anything ever opens a stream on PKSJHP…, it owns the account's only stream slot.
+
+## 2026-08-31 — market data via AlpacaRelay proxy (data path only)
+All alpaca-py data clients in harness/alpaca_glue.py now take
+`url_override=self._data_url()` (new OA_DATA_URL env var → the relay /data
+proxy) and ALL of them use `_data_credentials()` — this also fixes two
+pre-existing inconsistencies where stock_daily_bars and the option client
+authenticated with the TRADING key. `.env`: OA_DATA_KEY_ID = relay token,
+OA_DATA_SECRET_KEY dummy, OA_DATA_URL set. research_scalp_6mo_pull.py gained
+the same url_override. Trading unchanged: ALPACA_API_KEY pair, paper=True
+hardcoded, _ensure_paper guard intact. Options chains still come from
+Public.com when OA_OPTIONS_DATA_PROVIDER=public; the Alpaca fallback path now
+rides the relay (OPRA verified working on the relay key). Verified: latest
+price, minute bars, daily bars via relay; pytest 177 passed. Cron picks up
+.env fresh each run — no restart needed.
+**Codex review fix:** OA_DATA_URL added to entrypoint.sh's env allowlist so
+the Docker/Railway deployment path propagates the relay URL (local cron reads
+.env directly and was unaffected).
