@@ -1,5 +1,24 @@
 # MEMORY.md — OptionsAgent
 
+## 2026-08-31 — TRADING KEY DIED OVER THE WEEKEND; NEW KEY + NEW PAPER ACCOUNT
+
+Pre-market check found the trading key (PK4UIM…) returning 401 from
+paper-api.alpaca.markets, confirmed three independent ways (curl, the bot's own
+`make_client().market_is_open()` path, and Python reading `.env` directly). The
+bot traded normally through Friday 08-28 15:55, so the key died over the
+weekend, most likely collateral from the 08-30 dashboard session that retired
+MT4's key. Every cron wrapper fail-closes on the broker clock, so the bot would
+have silently skipped all of today with no errors and no trades.
+
+Operator supplied a fresh key pair (PKT3XD…) at ~08:45 ET; `.env` updated.
+The new key maps to a NEW paper account **PA371G5THNUO**: status ACTIVE,
+equity exactly $100,000.00, cash $100,000.00, 0 positions, 0 open orders, no
+blocks. Friday's equity-scalp P/L lives in the old account's book, so broker
+history now spans two accounts (journal remains the continuous record; do not
+join broker fills across the boundary). Data path unaffected: OA_DATA_* still
+rides the AlpacaRelay proxy (verified 200 pre-market). Dashboard LaunchAgent
+restarted after the swap.
+
 ## 2026-08-28 — REACTIVATED LOCALLY; CLAUDE CODE CLI PROPOSER
 
 Operator clarified that OptionsAgent is a local paper-trading robot, not a Railway deployment. The
