@@ -25,6 +25,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import time
 from typing import Any
 
 from harness.env import env
@@ -162,9 +163,14 @@ def _propose_with_claude_cli(bundle: dict[str, Any]) -> list[Proposal]:
         check=False,
     )
     if completed.returncode != 0:
-        stderr_tail = (completed.stderr or "").strip()[-2000:]
+        # --output-format json makes the CLI report its own failures on STDOUT
+        # (e.g. {"is_error":true,...}); stderr is usually empty. Report both or
+        # the failure is undiagnosable in the logs.
+        stderr_tail = (completed.stderr or "").strip()[-1000:]
+        stdout_tail = (completed.stdout or "").strip()[-2000:]
         raise RuntimeError(
-            f"Claude Code CLI exited with status {completed.returncode}: {stderr_tail or '(no stderr captured)'}"
+            f"Claude Code CLI exited with status {completed.returncode}: "
+            f"stderr={stderr_tail or '(empty)'} stdout={stdout_tail or '(empty)'}"
         )
     try:
         response = json.loads(completed.stdout)
@@ -212,11 +218,22 @@ def stub_proposals() -> list[Proposal]:
 def propose(bundle: dict[str, Any]) -> list[Proposal]:
     """bundle: {"phase": str, "allowed_strategies": [str], "watchlist": [
     {"underlying": str, "context": {...}}, ...]}"""
-    try:
-        return _propose_with_claude_cli(bundle)
-    except Exception:
-        # Fail-closed: any CLI/auth/parse error degrades to no trade, never a guess.
-        # Log it (with traceback) so a broken LLM call is distinguishable in the
-        # logs from a genuine "model proposed nothing".
-        log.exception("Claude Code CLI proposal call failed — degrading to no trade")
-        return stub_proposals()
+    # The entry cycle runs ONCE per day, so a single transient CLI failure costs
+    # the whole trading day (observed 08-28 and 08-31). Retry a bounded number of
+    # times before degrading. Retries are safe: the proposer is read-only and
+    # places no orders.
+    attempts = max(1, int(env("OA_CLAUDE_ATTEMPTS", "3") or "3"))
+    for attempt in range(1, attempts + 1):
+        try:
+            return _propose_with_claude_cli(bundle)
+        except Exception:
+            # Fail-closed: any CLI/auth/parse error degrades to no trade, never a
+            # guess. Log it (with traceback) so a broken LLM call is
+            # distinguishable in the logs from a genuine "model proposed nothing".
+            log.exception(
+                "Claude Code CLI proposal call failed (attempt %d/%d)", attempt, attempts
+            )
+            if attempt < attempts:
+                time.sleep(5 * attempt)
+    log.error("Claude Code CLI proposal call failed all %d attempts — degrading to no trade", attempts)
+    return stub_proposals()

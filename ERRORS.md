@@ -216,3 +216,25 @@ reflects genuine per-claim votes even when `result.findings` doesn't.
 templated, generic, or suspiciously short given the `agent_count`/`tool_uses` stats, don't report it
 to the user at face value — inspect the journal before drawing any conclusion about what the
 research did or didn't find.
+
+## 2026-08-31 — Proposer CLI failure was undiagnosable because stdout was discarded
+
+**What did not work:** Reading the entry log to find why the Claude Code CLI
+proposer exited 1. The error said `status 1: (no stderr captured)` on both
+08-28 and 08-31. Reproducing the exact call by hand (real 13-underlying bundle,
+same flags) returned rc=0 and valid proposals, as did runs under a cron-like
+minimal env (`env -i`), with stdin from /dev/null, and with stdin closed. None
+of those reproduced it, so the environment is NOT the cause.
+
+**What worked instead:** Noticing that `--output-format json` makes the CLI
+report its own failures on **stdout** (`{"is_error":true,...}`), while
+`_propose_with_claude_cli` only put stderr in the RuntimeError and threw stdout
+away. The failure text was there the whole time and was being deleted.
+
+**Note for next time:** When a subprocess wrapper reports "(no stderr
+captured)", check which stream that tool actually writes errors to before
+hunting the environment. Also: the entry cycle runs ONCE per day, so any single
+transient proposer failure silently costs the entire trading day. `propose()`
+now retries `OA_CLAUDE_ATTEMPTS` (default 3) times with linear backoff before
+degrading to no-trade. Root cause of the exit-1 itself is still UNKNOWN; the
+next occurrence will log the CLI's own stdout error.
