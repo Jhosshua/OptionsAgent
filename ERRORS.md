@@ -396,9 +396,11 @@ element ref; and treat a nav that disappears on scroll as a finding.
 
 ## 2026-09-01 — `railway variable delete` has no `--skip-deploys`
 
-`railway variable set ... --skip-deploys` works; `railway variable delete KEY` rejects the flag
-and triggers a redeploy per key. Delete stale vars AFTER the code deploy, not before, or the
-old image redeploys once per deleted key.
+`railway variable set ... --skip-deploys` works; `railway variable delete KEY` rejects the flag.
+Observed: deleting three vars did NOT trigger a redeploy (deployment ID unchanged), so the
+running container's `.env` keeps the old values until the next `railway up`. Harmless here
+(nothing reads `OA_CLAUDE_*` under `OA_LLM_PROVIDER=deepseek`), but a deleted SECRET is not
+gone from the box until you redeploy. Delete, then redeploy, then verify inside the container.
 
 ## 2026-09-01 — One bad journal row took down every dashboard endpoint behind a green /healthz
 
