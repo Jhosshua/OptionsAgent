@@ -928,3 +928,37 @@ price, minute bars, daily bars via relay; pytest 177 passed. Cron picks up
 **Codex review fix:** OA_DATA_URL added to entrypoint.sh's env allowlist so
 the Docker/Railway deployment path propagates the relay URL (local cron reads
 .env directly and was unaffected).
+
+## 2026-09-01 — Deployed to Railway (project OptionsAgent); dashboard now public
+
+**What was decided:** run on Railway. The Dockerfile, entrypoint and Railway
+cron schedule had been written earlier but never deployed; they are live now.
+
+**The defect that would have made this a silent no-op:** `harness/proposer.py`
+shells out to the Claude Code CLI, and its unavailable-CLI path returns "no
+proposals" — a fail-closed no-trade. `OA_CLAUDE_CLI` pointed at a `/Users/...`
+path that does not exist in a container, so the deploy would have come up green
+and never traded. The Dockerfile now installs Node 22 +
+`@anthropic-ai/claude-code`, and the build asserts `claude --version` runs, so a
+broken install fails the BUILD instead of a trading day. Headless auth is
+`CLAUDE_CODE_OAUTH_TOKEN` (same Anthropic account StrategyS uses).
+
+**Why the build asserts rather than trusting the install:** the first attempt
+hand-symlinked `cli.js`, which the package no longer ships at that path. The
+symlink dangled and clobbered npm's own working shim.
+
+**Container settings that differ from the Mac:** `OA_DASHBOARD_HOST=0.0.0.0`
+(Railway must reach it) and `OA_CLAUDE_CLI=/usr/bin/claude`.
+
+**Dashboard:** https://optionsagent-production.up.railway.app (HTTP 200). It was
+`127.0.0.1:8765` on the Mac, reachable only from that machine.
+
+**State:** volume at `data/`. decisions/scalp history migrated and row counts
+verified (20 decisions, 6 equity-scalp decisions).
+
+**Verified in the container:** all 15 secrets injected, and a real `claude -p`
+call returned a completion — the CLI authenticates, it is not merely present.
+
+**Rejected:** rewriting the proposer onto the Anthropic API. It would have
+changed the model path, the prompt handling and the billing account, to solve a
+packaging problem.

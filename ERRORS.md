@@ -315,3 +315,23 @@ writers produce it and drive `_flatten_position` end to end; reintroducing the
 bug fails 4 of them. Note the failure mode: the runner catches per-symbol
 exceptions and logs "step failed (continuing)", so the tick line kept printing a
 healthy-looking `halted=False` while no exit could ever run.
+
+## 2026-09-01 — Hand-symlinking the Claude CLI produced a dangling link
+
+**What did not work:** installing the CLI in the Dockerfile with
+`npm install -g @anthropic-ai/claude-code` and then
+`ln -sf "$(npm root -g)/@anthropic-ai/claude-code/cli.js" /usr/local/bin/claude`.
+The package no longer ships `cli.js` at that path, so the link dangled AND
+clobbered the working shim npm had just installed. The build died on
+`chmod: cannot operate on dangling symlink '/usr/local/bin/claude'`.
+
+**What worked instead:** let npm install its own bin shim and do not touch it.
+The RUN step now ends with `command -v claude && claude --version`, so a broken
+install fails the BUILD.
+
+**Note for next time:** this one was loud only by luck — `chmod` happened to
+error. Had the symlink been created without the chmod, the image would have
+built clean and `harness/proposer.py` would have hit its unavailable-CLI branch,
+which returns "no proposals". That is a fail-closed NO-TRADE: green container,
+green logs, no orders, forever. Any dependency whose absence is fail-closed
+needs an assertion in the build, not a hope in the install.
