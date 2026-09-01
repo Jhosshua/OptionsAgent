@@ -335,3 +335,25 @@ built clean and `harness/proposer.py` would have hit its unavailable-CLI branch,
 which returns "no proposals". That is a fail-closed NO-TRADE: green container,
 green logs, no orders, forever. Any dependency whose absence is fail-closed
 needs an assertion in the build, not a hope in the install.
+
+## 2026-09-01 — OptionsAgent's trading ran from the USER CRONTAB, not launchd
+
+**What did not work:** auditing `launchctl list` and `~/Library/LaunchAgents/`,
+disabling every OptionsAgent plist (there was only one — the dashboard),
+confirming no processes were running, and concluding the Mac was clean. The
+entry, exit and equity-scalp jobs kept firing from `crontab -l`, duplicating the
+Railway container on the same paper account for ~25 minutes.
+
+**Why it was easy to miss:** `crontab -l` here is ~46 lines and mostly a
+commented `# [railway-cutover 2026-06-27]` block from an earlier migration. It
+skims as "all commented out". The three live lines sat underneath it.
+
+**What worked instead:** `crontab -l | grep -vE '^\s*#|^\s*$'` — never a skim.
+
+**Second trap in the same fix:** a sed pattern anchored on `^\*/` commented
+`*/5 …` and `*/20 …` and silently missed `* 9-15 …` (space, not slash). Match on
+the PATH plus "not already commented", never on cron schedule syntax.
+
+**Note for next time:** this bot is the odd one out in the fleet — one launchd
+job (the dashboard), all trading from cron. Scheduler choice is not consistent
+across bots, so check BOTH for every one.
