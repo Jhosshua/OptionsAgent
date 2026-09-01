@@ -8,16 +8,18 @@
 
 # ARCHITECTURE.md — OptionsAgent (original design, 2026-07-03)
 
-> **CURRENT IMPLEMENTATION NOTE — 2026-08-28:** The active runtime is local
-> paper trading. Claude Code CLI is the proposal boundary; no Anthropic API key
-> is used. Public.com remains read-only market data and Alpaca remains the
-> paper-only account/order boundary. The Railway design below is historical.
+> **CURRENT IMPLEMENTATION NOTE — 2026-09-01:** The active runtime is a Railway
+> container (see SETUP.md). Claude Code CLI is still the proposal boundary; no
+> Anthropic API key is used. Public.com remains read-only options data and Alpaca
+> remains the paper-only account/order boundary. The Railway design below is
+> once again the live one.
 
 > **Research update 2026-08-27:** The archived 0DTE scalp replay supports a
 > hard 11:30 ET entry cutoff and two-entry daily cap, now implemented in `ScalpRails`. The
 > requested multi-day credit-spread overfit is implemented as a hard post-selection winner
 > profile in `credit_spread_overfit_decision()`. See `OVERFIT_ANALYSIS.md`. These are local
-> research changes only; the bot is retired and has no deployment target.
+> research changes only. (The "no deployment target" note that stood here was true
+> between 2026-08-02 and 2026-09-01; the bot is deployed on Railway again.)
 
 > ⚠️ **PARTIALLY SUPERSEDED — read CLAUDE.md for current truth.** This document is the original
 > design and its rationale; it's kept because every threshold number traces back to RESEARCH.md

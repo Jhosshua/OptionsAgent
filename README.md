@@ -1,19 +1,30 @@
 # OptionsAgent
 
+> **Where this runs (since 2026-09-01):** Railway, project `OptionsAgent`, not this Mac.
+> Linux cron in the container is the scheduler; state lives on the volume at `data/`.
+> The image carries the Claude Code CLI, because `harness/proposer.py` fails CLOSED
+> without it — a container missing it comes up green and never trades.
+> Dashboard: https://optionsagent-production.up.railway.app (public, no password).
+> Alerts: Discord `#options-agent`. Redeploy: `railway up --service OptionsAgent`.
+> The Mac's launchd plist and its three user-crontab lines are disabled.
+
 A deterministic options-trading bot on Alpaca (paper first). LLM proposes a direction and strategy;
 deterministic Python picks the actual contract, sizes it, and executes. See `CLAUDE.md` for the
 full picture, `ARCHITECTURE.md` for the design rationale, `RESEARCH.md` for the research it's built
 on.
 
-> **CURRENT OPERATING MODE — 2026-08-28:** This is a local paper-trading
-> robot. Claude Code CLI supplies proposals through the operator's existing
-> authenticated CLI login; no `ANTHROPIC_API_KEY` is configured or required.
-> Public.com is read-only market data and Alpaca remains paper execution. The
-> local `.env` plus user crontab are authoritative; Railway is not used.
+> **OPERATING MODE — 2026-09-01:** A paper-trading robot on Railway. Claude Code
+> CLI supplies proposals, authenticated headlessly with `CLAUDE_CODE_OAUTH_TOKEN`;
+> no `ANTHROPIC_API_KEY` is configured or required. Public.com is read-only options
+> data, AlpacaRelay serves stock bars, Alpaca remains paper execution. **Railway
+> variables are authoritative** — `entrypoint.sh` writes them into `.env` at boot,
+> because cron does not inherit the container environment.
+> (Until 2026-09-01 this ran locally, with the Mac `.env` and user crontab
+> authoritative. Those crontab lines are now commented out.)
 
-## Status (2026-08-28, night)
+## Status (2026-09-01)
 
-**ACTIVE LOCALLY, PAPER ONLY, TWO ENGINES on a $100,000 Alpaca paper account.**
+**ACTIVE ON RAILWAY, PAPER ONLY, TWO ENGINES on a $100,000 Alpaca paper account.**
 - Engine 1, credit-spread seller: Claude Code CLI proposes, deterministic rails
   dispose, once daily 10:15-10:27 ET (cron/entry.sh), exits every 20 min
   (cron/exits.sh). Winner-profile gated; most days it vetoes everything.
@@ -25,8 +36,9 @@ on.
   125 sessions found no positive-expectancy configuration (RESEARCH_SCALP_6MO.md).
 - Stock data runs through a read-only SIP-entitled key (OA_DATA_* in .env);
   option chains/quotes via the Public.com sidecar; execution paper-only.
-- Dashboard: local LaunchAgent, 127.0.0.1:8765, read-only, reset to the 08-28
-  activation date. Operator explainer PDF: OptionsAgent-Explained.pdf.
+- Dashboard: https://optionsagent-production.up.railway.app — read-only, reset to
+  the 08-28 activation date. (Was a local LaunchAgent on 127.0.0.1:8765 until
+  2026-09-01; it is now public to anyone with the link, with no password.) Operator explainer PDF: OptionsAgent-Explained.pdf.
 
 ## Docs map
 
@@ -69,8 +81,13 @@ adapter is read-only and never submits Public orders. See `SETUP.md` for the cre
 
 ## Dashboard
 
-The supplied daylight dashboard is implemented under `dashboard/` and served by the always-on
-`harness.dashboard_server` process. It is read-only, local-only by default, and defaults to paper
-trading disarmed. Run `zsh deploy/install_local_dashboard.sh` to keep it available at
-`http://127.0.0.1:8765`; enable `OA_TRADING_ENABLED` only after the deployment verification
-sequence in `SETUP.md` (the current sequence is local, not Railway).
+The supplied daylight dashboard is implemented under `dashboard/` and served by the
+`harness.dashboard_server` process, which the Railway entrypoint supervises alongside cron.
+It is read-only and defaults to paper trading disarmed.
+
+**Live at https://optionsagent-production.up.railway.app.** In the container it binds
+`0.0.0.0` on Railway's `$PORT` (`OA_DASHBOARD_HOST=0.0.0.0`), so unlike the old
+loopback-only setup it is reachable by anyone with the URL and has no password.
+A dashboard crash never bounces cron mid-trade — it is deliberately not the healthcheck.
+
+Enable `OA_TRADING_ENABLED` only after the deployment verification sequence in `SETUP.md`.

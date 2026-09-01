@@ -9,12 +9,25 @@
 > expectancy in 16,384 configs). Stock data runs through the hosted AlpacaRelay
 > proxy (OA_DATA_URL; OA_DATA_KEY_ID is a relay token, no direct SIP from this
 > repo — 2026-08-31); Public.com is options-only sidecar data; Alpaca
-> is paper-only execution. Local .env + user crontab are authoritative. The
-> dashboard was reset to the 08-28 activation date. See RESEARCH_SCALP_6MO.md.
-> Do not use Railway for this bot.
+> is paper-only execution. The dashboard was reset to the 08-28 activation date.
+> See RESEARCH_SCALP_6MO.md.
 
-The retirement and Railway notes below are historical and no longer describe
-the active local setup.
+> **CURRENT SETUP — 2026-09-01:** OptionsAgent runs on **Railway**, in project
+> `OptionsAgent` (`cc393b70-4ef5-48d5-8299-253b914cc219`), service `OptionsAgent`,
+> region sfo. Linux cron in the container is the scheduler; the volume at
+> `/Users/mo/OptionsAgent/data` holds all state. Proposals still come from the
+> authenticated **Claude Code CLI** (`claude -p`), which the image installs and
+> authenticates with `CLAUDE_CODE_OAUTH_TOKEN` — NOT an Anthropic API key.
+> Public.com is read-only options data, AlpacaRelay serves stock bars, Alpaca is
+> the paper execution broker. **Railway variables are authoritative**, and
+> `entrypoint.sh` writes them into `.env` at boot because cron does not inherit
+> the container environment. Alerts go to Discord `#options-agent`.
+> Dashboard: https://optionsagent-production.up.railway.app
+> Redeploy with `railway up --service OptionsAgent`. The Mac's launchd plist and
+> user-crontab lines are disabled; do not restart this bot locally.
+
+The retirement notes below describe the FIRST Railway deployment (deleted
+2026-08-02) and are historical. They do not describe the current one.
 
 > ## HISTORICAL RETIREMENT 2026-08-02 — superseded by the local reactivation note above.
 >
