@@ -20,11 +20,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # trade) when it is missing, so the container must carry it or the bot deploys
 # green and silently never trades. Auth is headless via CLAUDE_CODE_OAUTH_TOKEN,
 # injected by entrypoint.sh; OA_CLAUDE_CLI must point at the path below.
+# npm installs its own `claude` bin shim; do NOT hand-symlink cli.js (the package
+# layout moved, and a dangling link silently disarms the proposer). The
+# command -v + --version below assert the executable really runs, so a broken
+# install fails the BUILD rather than a trading day.
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && npm install -g @anthropic-ai/claude-code \
-    && ln -sf "$(npm root -g)/@anthropic-ai/claude-code/cli.js" /usr/local/bin/claude \
-    && chmod +x /usr/local/bin/claude \
+    && command -v claude \
+    && claude --version \
     && rm -rf /var/lib/apt/lists/* /root/.npm
 
 # Mirror the Mac path for consistency with the sibling bots' containers.

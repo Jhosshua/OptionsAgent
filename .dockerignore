@@ -1,0 +1,16 @@
+# Keep the image small and, more importantly, keep secrets and Mac-only runtime
+# state out of the layers. Runtime state belongs on the mounted volume.
+.venv/
+venv/
+node_modules/
+.next/
+__pycache__/
+*.pyc
+.git/
+.pytest_cache/
+data/
+logs/
+
+# Never ship secrets into an image layer.
+.env
+.env.*

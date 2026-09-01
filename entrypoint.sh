@@ -28,7 +28,15 @@ secret_keys = [
     # OAuth token; OA_CLAUDE_CLI is the container path to the executable.
     # Missing either = _claude_cli() raises = fail-closed "no trade", silently.
     "CLAUDE_CODE_OAUTH_TOKEN", "OA_CLAUDE_CLI", "OA_CLAUDE_MODEL",
-    "OA_CLAUDE_TIMEOUT_SECONDS", "OA_EQUITY_SCALP_ENABLED",
+    "OA_CLAUDE_TIMEOUT_SECONDS", "OA_CLAUDE_ATTEMPTS",
+    # Equity scalper rails. The master switch alone is not enough: without these
+    # every rail silently falls back to its code default, so a TIGHTER limit set
+    # in Railway would never bind. cron does not pass the container env.
+    "OA_EQUITY_SCALP_ENABLED", "OA_EQUITY_SCALP_DRY_RUN",
+    "OA_EQUITY_NOTIONAL_USD", "OA_EQUITY_STOP_PCT",
+    "OA_EQUITY_MAX_TRADES", "OA_EQUITY_DAILY_LOSS_USD",
+    # Tighten-only per-position cap (harness/risk_rails.py).
+    "OA_MAX_POSITION_USD",
     "DISCORD_WEBHOOK_URL",
     # 0DTE ORB scalper (isolated). Master switch + tighten-only rail overrides +
     # dry-run. Missing from this list = silently never reaches the cron job.
