@@ -962,3 +962,14 @@ call returned a completion — the CLI authenticates, it is not merely present.
 **Rejected:** rewriting the proposer onto the Anthropic API. It would have
 changed the model path, the prompt handling and the billing account, to solve a
 packaging problem.
+
+## 2026-09-01 (later) — OptionsAgent alerts moved to #options-agent
+
+Was sharing StrategyS's channel; the operator's rule is one channel per bot.
+`NOTIFY_DISCORD_CHANNEL` is a Railway variable, so this is config, not code.
+
+**CLI call budget:** the entry cycle self-gates to 10:15-10:27 ET once per day
+via an atomic lock on the volume, and calls the proposer ONCE per cycle with the
+whole watchlist in one bundle. So **1 Claude CLI call per trading day**, up to 3
+if it fails and retries. Exits, the 0DTE scalper and the equity scalper are all
+deterministic and use no LLM.
