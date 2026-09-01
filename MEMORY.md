@@ -46,6 +46,32 @@ Fixes shipped (`harness/dashboard_server.py`, `dashboard/`):
 - Switching tabs now scrolls to the top; the sidebar scrolls with the page, so
   a nav click while scrolled landed on empty space.
 
+### OPEN ISSUE (pre-existing, NOT from this change): broker refresh times out
+
+While verifying the restart, the dashboard's background snapshot began reporting
+`broker_timeout` on most cycles: `consecutive_failures` climbs, `as_of` freezes
+for minutes, then one refresh succeeds and it starts over. The UI handles this
+correctly (stale banner, values held from the last good read, nothing
+fabricated) — verified in the browser — but the account panel is minutes stale
+much of the time.
+
+It is **not** caused by the dashboard work: `git diff` shows `SnapshotStore`,
+`ReadOnlyBroker`, `make_client` and `BROKER_TIMEOUT_SECONDS` are untouched, and
+the identical `SnapshotStore.refresh()` run in a fresh process completes in
+**0.35s** against the same account. Only the long-lived server process stalls
+past its 10s join.
+
+Prime suspect: `ReadOnlyBroker.read_snapshot` calls `make_client()` on EVERY
+30-second refresh, and `make_client` constructs a new `PaperClient` and calls
+`_ensure_paper()` before `account_state()` and `list_positions()` — three round
+trips on a fresh connection every cycle, forever. Worth checking connection/
+socket accumulation in the resident process. Note also that `refresh()` clears
+`_refresh_inflight` only in the worker's `finally`, so a worker that outlives
+the 10s join leaves the flag set and the NEXT cycle returns early.
+
+Not fixed here: out of scope for the UI audit, and it needs its own diagnosis.
+Flag before building on the assumption that the account panel is live.
+
 ### Adversarial QA round (2 sub-agents) — 10 further findings, all fixed
 
 A code-correctness reviewer and an independent data-integrity auditor were run
