@@ -40,6 +40,13 @@ the active local setup.
 > read-only market-data sidecar. It is now enabled locally; Alpaca remains the paper
 > execution/account broker. Its secret stays in the local `.env` only.
 
+> **2026-09-01 dashboard update:** the dashboard reads BOTH engines. Any new P/L
+> view must merge `data/structures.jsonl` (seller) AND
+> `data/equity_scalp_decisions.jsonl` + `data/equity_scalp_state/<ET-date>.json`
+> (scalper) — reading one alone silently reports a flat, empty day. Trading days
+> bucket by ET, not UTC. A missing scalper day-state file renders as "not
+> running", never as 0.
+
 > **2026-08-27 dashboard update:** `dashboard/` and `harness/dashboard_server.py` are a
 > local-only, read-only observer. It uses a background cache and a separate supervisor;
 > `OA_TRADING_ENABLED` defaults false in templates and is verified from the local `.env` before

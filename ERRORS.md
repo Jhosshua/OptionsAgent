@@ -1,5 +1,59 @@
 # ERRORS.md — OptionsAgent
 
+## 2026-09-01 — A dashboard is only as honest as the journals it reads
+
+**What did not work:** The dashboard read one engine's registry
+(`data/structures.jsonl`) and presented the result as the account's P/L. When a
+SECOND engine (the equity scalper) started trading the same account with its own
+journal, every headline number silently became wrong rather than absent: Today
+P/L read `+$0`, the trade table read "No closed trades", and an open short
+showed as an unattributed "Broker position". Nothing errored, nothing looked
+stale, and the broker snapshot was green the whole time.
+
+**What worked instead:** Enumerate the writers, not the readers. For each
+number the UI shows, name every file that can produce it, and merge them at the
+source. Two engines on one account means two journals in every P/L view.
+
+**Note for next time:**
+- A green "snapshot ok" badge says the BROKER read succeeded. It says nothing
+  about whether the journal layer has anything to say. Do not read one as the
+  other.
+- A missing day-state file must render as "not running", never as 0. A zero is
+  a claim; silence is not.
+- Audit the UI against the raw files, not against the API. The API was the
+  thing that was wrong, and it was internally consistent while being wrong.
+- Check for fields the API returns that no element consumes: `equity_usd` was
+  served correctly for weeks and rendered nowhere.
+- Bucket trading days by ET. A UTC date comparison rolls at 20:00 ET, mid-life
+  for anything that closes late.
+
+**The zero-is-a-claim family (found by adversarial QA on the FIX itself):**
+seven of ten review findings were the same mistake in new places. A count, a
+sum, or an empty list is a positive assertion about the world. Each needs the
+question "could this be 0 because I do not know?" asked separately:
+- `len(x or [])` is 0 on an unread source, and `?? "—"` never fires on 0,
+  because 0 is not nullish. Gate on whether the source was READ, not on the
+  count.
+- `sum([])` is 0.0. A day whose closes all carry `pnl_usd: null` is unknown,
+  not flat.
+- An unpaired open with no time bound is reported open forever. Bound it by the
+  rule that must have closed it (here, a mandated 15:50 ET flatten).
+- Coercing a malformed field is itself error-prone: iterating a bare string
+  yields its characters, so `[str(x) for x in value]` "succeeded" and produced
+  12 single-letter rules. Check the container type first. A test caught it.
+
+**Two caps that sound alike are not the same cap.** `max_concurrent_positions`
+is enforced against a count of OPTION LEGS. Pairing it with a count of all
+broker rows would have printed "8 of 6" for a rail that was never breached.
+Before showing "X of Y", read what Y is actually compared against in the
+enforcing code.
+
+**Two numbers for the same-sounding thing on one page.** "Today P/L" (both
+engines, from journals) and "Realized today" (scalper only, from the day-state
+file) come from different sources and can legitimately differ. Label the scope
+in the UI or one will be read as contradicting the other.
+
+
 ## 2026-08-28 — Proposer moved to local Claude Code CLI
 
 The local runtime no longer checks `ANTHROPIC_API_KEY` or imports the Anthropic Python SDK.

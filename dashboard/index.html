@@ -12,7 +12,7 @@
     <aside class="sidebar">
       <div class="brand-block">
         <div class="brand-row"><div class="brand-mark" aria-hidden="true">↗</div><div class="brand-name">OptionsAgent</div></div>
-        <div class="brand-subtitle">Multi-day credit spread seller</div>
+        <div class="brand-subtitle">Credit spread seller + equity scalper</div>
         <div id="mode-pill" class="mode-pill"><span class="dot"></span> PAPER · DISARMED</div>
       </div>
       <nav class="nav" aria-label="Dashboard sections">
@@ -39,7 +39,8 @@
       <section class="view" data-view-panel="overview">
         <div class="stats-grid">
           <article class="card stat-card"><div class="stat-head"><span>Today P/L</span><span class="quiet-icon">↗</span></div><strong id="today-pnl" class="metric money">—</strong><span id="today-pnl-sub" class="muted">Realized, market open</span></article>
-          <article class="card stat-card"><div class="stat-head"><span>Open spreads</span><span class="quiet-icon">▱</span></div><div><strong id="open-spreads" class="metric">—</strong><span id="open-cap" class="metric-suffix"></span></div><span class="muted">Total open positions</span></article>
+          <article class="card stat-card"><div class="stat-head"><span>Account equity</span><span class="quiet-icon">▤</span></div><strong id="account-equity" class="metric">—</strong><span class="muted">Alpaca paper account</span></article>
+          <article class="card stat-card"><div class="stat-head"><span>Open positions</span><span class="quiet-icon">▱</span></div><div><strong id="open-positions" class="metric">—</strong><span id="open-cap" class="metric-suffix"></span></div><span id="open-breakdown" class="muted">—</span></article>
           <article class="card stat-card"><div class="stat-head"><span>Buying power</span><span class="quiet-icon">▰</span></div><strong id="buying-power" class="metric money">—</strong><span class="muted">Available to deploy</span></article>
           <article class="card stat-card"><div class="stat-head"><span>Profile status</span><span class="quiet-icon">◇</span></div><div><strong id="winner-rules" class="metric">—</strong><span class="metric-suffix">winner rules</span></div><span id="profile-status" class="status-text">● Unavailable</span></article>
         </div>
@@ -50,14 +51,14 @@
         </div>
 
         <div class="two-column bottom-grid">
-          <article class="card history-card"><div class="card-heading"><h3>Credit spread history</h3><button class="text-button" data-view-link="trades">View all →</button></div><div class="table-head" role="row"><span role="columnheader">SYMBOL</span><span role="columnheader">TYPE</span><span role="columnheader">WIDTH</span><span role="columnheader">CREDIT</span><span role="columnheader">P/L</span><span role="columnheader">EXIT</span></div><div id="history-rows" role="rowgroup"></div></article>
+          <article class="card history-card"><div class="card-heading"><h3>Recent closed trades</h3><button class="text-button" data-view-link="trades">View all →</button></div><div class="table-head" role="row"><span role="columnheader">SYMBOL</span><span role="columnheader">TYPE</span><span role="columnheader">SIDE</span><span role="columnheader">QTY</span><span role="columnheader">P/L</span><span role="columnheader">EXIT</span></div><div id="history-rows" role="rowgroup"></div></article>
           <article class="card research-card"><div class="card-heading"><h3>Research replay</h3><span class="quiet-icon">⌁</span></div><div class="research-summary"><div class="document-icon">▤</div><div><strong id="research-days">— entry days</strong><span id="research-records" class="muted">— archived records</span></div></div><div class="research-lines"><div><span>Realized</span><strong id="research-realized" class="loss">—</strong></div><div><span>Filtered replay</span><strong id="research-profile" class="gain">—</strong></div></div><button class="button primary full" data-view-link="research">Open replay</button></article>
         </div>
       </section>
 
-      <section class="view" data-view-panel="positions" hidden><div class="section-heading"><div><h2>Positions</h2><p class="muted">Live paper positions from the broker snapshot.</p></div><button class="pill button" data-view-link="overview">← Overview</button></div><article class="card table-card"><div id="positions-table" class="wide-table"></div></article></section>
-      <section class="view" data-view-panel="trades" hidden><div class="section-heading"><div><h2>Trade history</h2><p class="muted">Closed structures from the append-only registry. Unknown P/L stays unknown.</p></div><button class="pill button" data-view-link="overview">← Overview</button></div><article class="card table-card"><div id="trades-table" class="wide-table"></div></article></section>
-      <section class="view" data-view-panel="research" hidden><div class="section-heading"><div><h2>Research replay</h2><p class="muted">Conditional realized replay; not a full backtest or durable edge claim.</p></div><button class="pill button" data-view-link="overview">← Overview</button></div><div id="research-detail" class="research-detail"></div></section>
+      <section class="view" data-view-panel="positions" hidden><div class="section-heading"><div><h2>Positions</h2><p class="muted">Live paper positions from the broker snapshot, matched to the engine that opened them.</p></div><button class="pill button" data-view-link="overview">← Overview</button></div><article class="card table-card"><div id="positions-table" class="wide-table"></div></article></section>
+      <section class="view" data-view-panel="trades" hidden><div class="section-heading"><div><h2>Trade history</h2><p class="muted">Closed trades from both engines’ append-only journals. Unknown P/L stays unknown. History starts at the 2026-08-28 reset; earlier records live in <code>data/archive_pre_2026-08-28/</code>.</p></div><button class="pill button" data-view-link="overview">← Overview</button></div><article class="card table-card"><div id="trades-table" class="wide-table"></div></article></section>
+      <section class="view" data-view-panel="research" hidden><div class="section-heading"><div><h2>Research replay</h2><p class="muted">Conditional realized replay; not a full backtest or durable edge claim. Counts the live volume only — the pre-2026-08-28 seller archive was moved out and is not included.</p></div><button class="pill button" data-view-link="overview">← Overview</button></div><div id="research-detail" class="research-detail"></div></section>
       <section class="view" data-view-panel="risk" hidden><div class="section-heading"><div><h2>Risk rails</h2><p class="muted">Deterministic gates remain in code and the bot is paper-only.</p></div><button class="pill button" data-view-link="overview">← Overview</button></div><div id="risk-list" class="rail-list"></div></section>
       <section class="view" data-view-panel="system" hidden><div class="section-heading"><div><h2>System</h2><p class="muted">Runtime health and market-data provider status.</p></div><button class="pill button" data-view-link="overview">← Overview</button></div><div id="system-detail" class="system-detail"></div></section>
       <footer class="footer-note">Read-only dashboard · Account data is cached and never used to submit orders.</footer>

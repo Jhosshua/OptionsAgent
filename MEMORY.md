@@ -1,5 +1,109 @@
 # MEMORY.md — OptionsAgent
 
+## 2026-09-01 — DASHBOARD UI AUDIT: THE ENGINE THAT WAS ACTUALLY TRADING WAS INVISIBLE
+
+A browser audit of all six dashboard tabs (Overview, Positions, Trade history,
+Research, Risk rails, System) found the dashboard was reporting a flat, empty
+day while the equity intraday scalper was mid-trade. The cause: every P/L view
+read ONLY `data/structures.jsonl`, the credit-spread seller's registry. The
+scalper writes its own journal (`data/equity_scalp_decisions.jsonl` plus
+`data/equity_scalp_state/<ET-date>.json`) and never touches that registry, and
+the seller's registry has been absent since the 08-28 reset. So the dashboard
+had no source of trades at all.
+
+What the operator was shown vs. the truth at 14:31 ET:
+
+| Field | Displayed | Truth |
+|---|---|---|
+| Today P/L | +$0 | -$8.09 realized (SPY morning_fade) |
+| Trade history | "No closed trades" | 2 closed scalps, -$19.53 total |
+| Equity curve / daily bars | empty, "No realized closes" | 2 days of realized P/L |
+| Open QQQ short | "Broker position", no P/L | Equity Scalp · gap_follow, short 28 @ 708.89, +$61 unrealized |
+| Account equity | never rendered at all | $100,041.08 (the API returned it; no tile consumed it) |
+
+Fixes shipped (`harness/dashboard_server.py`, `dashboard/`):
+- `_equity_scalp_records()` pairs eq_open/eq_close per symbol into open and
+  closed rows; both engines' closes now feed today's P/L, the equity curve, the
+  daily bars, and the trade table.
+- `_equity_scalp_summary()` surfaces the day state (trades taken vs cap, rules
+  fired, realized today, halt flag). **A missing state file reports
+  `has_state: false` and `None`, never 0** — silence is not a zero day.
+- Positions rows are matched to the engine that opened them and carry entry
+  price plus unrealized P/L (`market_value - cost_basis`, correct for a short,
+  whose cost basis is negative proceeds; Alpaca's facade returns no unrealized).
+- `_today_pnl` and `_history_metrics` bucket by the **ET** trading date. They
+  used the UTC date, which rolls at 20:00 ET and would credit a late close to
+  the wrong session.
+- Risk rails tab gained the scalper's own rails (notional, daily cap, stop %,
+  daily loss stop, time exit, flatten time, entry windows). System tab
+  separates the options provider (`public`) from the stock data source
+  (AlpacaRelay proxy) and shows scalper liveness.
+- Account equity tile added; "Open spreads" became "Open positions" with a
+  spreads/scalps breakdown (it was labelled "Total open positions" while
+  counting credit spreads only, reading 0 with a live position on the book).
+- `plainMoney()` rendered a negative as `$-19,787`; now `-$19,787`. P/L shows
+  cents below $1,000 (whole-dollar rounding erased a -$8.09 scalp result).
+- Switching tabs now scrolls to the top; the sidebar scrolls with the page, so
+  a nav click while scrolled landed on empty space.
+
+### Adversarial QA round (2 sub-agents) — 10 further findings, all fixed
+
+A code-correctness reviewer and an independent data-integrity auditor were run
+against the change. The auditor reconciled EVERY served field to source and
+found all values correct; the reviewer found ten defects, seven of them in the
+same "a zero is a claim" family:
+
+1. **Open positions printed 0 during a broker outage.** `len(positions or [])`
+   is 0 on an unread snapshot, and `?? "—"` never fires on 0. Now `None` when
+   the account is unread, and the Positions tab says the list is *unknown, not
+   empty*.
+2. **An unpaired scalp open was reported open forever.** Pairing had no date
+   bound, so a 12-day-old open with an un-journaled close showed as a live
+   position while the Positions table showed nothing. Pending opens are now
+   bounded to the current ET day (the scalper mandates a 15:50 flatten).
+3. **The 6-position cap governs OPTION LEGS**, not broker rows
+   (`harness/positions.py` counts legs). Showing an all-positions total against
+   it would print "8 of 6" for a rail that was never breached. The tile no
+   longer pairs them; the cap stays on the Risk rails tab.
+4. **Two opens on one symbol mis-attributed BOTH trades.** `pending[symbol] =`
+   discarded the earlier open, so one close rendered with the other trade's
+   rule/side/entry and the second rendered with none. Now a FIFO queue.
+5. **A day whose closes all have unknown P/L showed +$0.00.** The orphan-close
+   path journals `pnl_usd: null`. `_today_pnl` now returns `None` when today has
+   closes but no known P/L, and 0.0 only for a genuinely empty day. The System
+   panel's figure is relabelled "Realized today (scalper only)" so the two
+   sources on one page cannot be mistaken for each other.
+6. Overview history header and rows used different grid tracks (~21px offset).
+7. A malformed `rules_taken_day` took the whole page to the error banner. Note
+   the first coercion was wrong too — iterating a bare string yields its
+   characters; the test caught it.
+8. `last_cycle` was serialized as `str(datetime)` (space separator, outside the
+   ECMAScript grammar). Now real ISO-8601.
+9. File-sourced strings reaching `innerHTML` are now escaped.
+10. Trade sort was string-lexicographic (`Z` sorts after `+00:00` at the same
+    instant). Now sorts on the parsed instant.
+
+**Unresolved, upstream of the dashboard:** a constant **$0.43** gap between
+broker equity and journal-derived P/L across two paired reads. The journal's own
+P/L (-11.440000000001419, -8.09000399999968) overstates realized by that amount,
+or starting equity was not exactly $100,000.00. The dashboard faithfully copies
+the journal, so `today_pnl_usd` is right relative to its source but may be $0.43
+off broker truth. Settling it needs the orders/activities endpoint.
+
+**Scope disclosure added to the UI:** history is equity-scalper-only from
+2026-08-31 forward. The seller's entire closed record (12 closes, **-$1,684**
+known, 2 unknown) lives in `data/archive_pre_2026-08-28/` after the logged 08-28
+reset, so `research.records` and `unknown_pnl_closes` read 0. The Trade history
+and Research tabs now say so instead of implying an all-time view.
+
+Tests: 13 new dashboard tests (journal pairing, orphan close, FIFO
+re-entry, stale-day opens, ET-date bucketing, short-position P/L sign,
+unknown-P/L days, malformed state, trade ordering, ISO timestamps,
+missing-day-state semantics). **195 passed.**
+Dashboard LaunchAgent `com.optionsagent.dashboard` restarted and re-verified in
+the browser on all six tabs.
+
+
 ## 2026-08-31 — TRADING KEY DIED OVER THE WEEKEND; NEW KEY + NEW PAPER ACCOUNT
 
 Pre-market check found the trading key (PK4UIM…) returning 401 from
