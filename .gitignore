@@ -13,3 +13,4 @@ data/scalp_state/
 data/logs/
 logs/*.log
 !logs/.gitkeep
+data/equity_scalp_state/

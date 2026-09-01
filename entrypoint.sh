@@ -24,6 +24,11 @@ secret_keys = [
     "ALPACA_API_KEY", "ALPACA_SECRET_KEY", "ALPACA_PAPER",
     "OA_TRADING_ENABLED", "OA_DASHBOARD_HOST",
     "ANTHROPIC_API_KEY", "OA_ANTHROPIC_MODEL", "OA_MAX_TOKENS",
+    # The proposer shells out to the Claude Code CLI. Headless auth is the
+    # OAuth token; OA_CLAUDE_CLI is the container path to the executable.
+    # Missing either = _claude_cli() raises = fail-closed "no trade", silently.
+    "CLAUDE_CODE_OAUTH_TOKEN", "OA_CLAUDE_CLI", "OA_CLAUDE_MODEL",
+    "OA_CLAUDE_TIMEOUT_SECONDS", "OA_EQUITY_SCALP_ENABLED",
     "DISCORD_WEBHOOK_URL",
     # 0DTE ORB scalper (isolated). Master switch + tighten-only rail overrides +
     # dry-run. Missing from this list = silently never reaches the cron job.
