@@ -1,4 +1,7 @@
 .env
+# .env.bak / .env.save copies escaped the ignore once in the fleet; the example stays tracked.
+.env.*
+!.env.example
 __pycache__/
 *.pyc
 .pytest_cache/

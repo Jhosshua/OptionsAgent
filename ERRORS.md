@@ -399,3 +399,28 @@ element ref; and treat a nav that disappears on scroll as a finding.
 `railway variable set ... --skip-deploys` works; `railway variable delete KEY` rejects the flag
 and triggers a redeploy per key. Delete stale vars AFTER the code deploy, not before, or the
 old image redeploys once per deleted key.
+
+## 2026-09-01 — One bad journal row took down every dashboard endpoint behind a green /healthz
+
+**What did not work:** `_seller_cycle_report()` did `int(result.get("proposals") or 0)` and was
+called for EVERY `/api/*` route before the route branch, with no `try/except` in the handler.
+A single non-numeric `proposals` value (a hand edit, a corrupt line) raised out of
+`build_payload`, `socketserver` dropped the connection with no HTTP status, all five sections
+failed at once, and `/healthz` still said `ok`. Found by the QA agent, not by the tests.
+**What worked instead:** coerce with `_json_number` (None → 0), and wrap the `/api/` branch so a
+crash returns a 500 JSON body for THAT section; the front end already loads sections
+independently, so one bad section now shows a banner instead of a blank page.
+**Note for next time:** any shared helper that runs on every route is a single point of
+failure for the whole API. Coerce journal values, never `int()`/`float()` them raw, and give
+the handler a last-resort `except` that produces a status code. A liveness probe that does
+not exercise the payload path proves only that the process is alive.
+
+## 2026-09-01 — A head-capped journal read would have frozen the dashboard on old data
+
+**What did not work:** `_read_jsonl` read the FIRST 5000 rows and returned `[]` for any file
+over 2 MB. The journal grows ~530 B/row, ~15 rows/day: in ~265 days the whole file would have
+been skipped and the "latest cycle" logic would have reported a running bot as never started.
+**What worked instead:** `collections.deque(fh, maxlen=max_rows)` (the tail), with the byte
+cap raised to a 256 MB sanity bound; memory is bounded by the row cap, not the file size.
+**Note for next time:** a "latest N" view must read from the END. A head cap plus a size cap
+is a time bomb whose fuse is the write rate; compute the date it goes off before shipping.

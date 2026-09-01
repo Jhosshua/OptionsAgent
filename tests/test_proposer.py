@@ -88,7 +88,7 @@ def test_deepseek_posts_the_bundle_and_parses_proposals(monkeypatch, alerts):
     assert body["max_tokens"] == proposer.DEEPSEEK_MAX_TOKENS
     system, user = body["messages"]
     assert system["role"] == "system"
-    assert "json" in system["content"].lower()  # DeepSeek's json_object precondition
+    assert "json" in system["content"]  # DeepSeek's json_object precondition, lowercase, case-sensitive on purpose
     assert "never mention a specific strike" in system["content"]
     assert user["role"] == "user"
     assert json.loads(user["content"])["phase"] == "credit_spreads_only"
@@ -283,3 +283,73 @@ def test_claude_cli_missing_fails_closed(monkeypatch, alerts, tmp_path):
 
     assert proposer.propose(BUNDLE) == []
     assert len(alerts) == 1 and "Claude CLI" in alerts[0]
+
+
+# --- review follow-ups (2026-09-01 QA pass) ---------------------------------
+
+
+def test_retry_backoff_sleeps_5_then_10(monkeypatch, alerts):
+    slept = []
+    monkeypatch.setattr(proposer.time, "sleep", lambda seconds: slept.append(seconds))
+    _post_returning(monkeypatch, [FakeResponse(500, None, "upstream down")])
+
+    report = proposer.propose_report(BUNDLE)
+
+    assert report.attempts == 3
+    assert slept == [5, 10]  # no sleep after the last attempt
+
+
+def test_config_model_and_temperature_are_used_when_env_is_unset(monkeypatch):
+    monkeypatch.setattr(
+        proposer,
+        "config",
+        lambda: {"llm": {"provider": "deepseek", "model": "deepseek-test-model", "temperature": 0.3}},
+    )
+    calls = _post_returning(monkeypatch, [FakeResponse(200, _completion('{"proposals": []}'))])
+
+    report = proposer.propose_report(BUNDLE)
+
+    assert report.model == "deepseek-test-model"
+    assert calls[0][1]["json"]["model"] == "deepseek-test-model"
+    assert calls[0][1]["json"]["temperature"] == 0.3
+
+
+def test_bad_request_400_is_not_retried(monkeypatch, alerts):
+    calls = _post_returning(monkeypatch, [FakeResponse(400, None, '{"error":"model not found"}')])
+
+    report = proposer.propose_report(BUNDLE)
+
+    assert report.ok is False and len(calls) == 1 and report.attempts == 1
+
+
+def test_rate_limit_429_is_retried(monkeypatch, alerts):
+    calls = _post_returning(
+        monkeypatch, [FakeResponse(429, None, "slow down"), FakeResponse(200, _completion(json.dumps(GOOD)))]
+    )
+
+    report = proposer.propose_report(BUNDLE)
+
+    assert report.ok is True and len(calls) == 2
+
+
+def test_legacy_claude_knobs_do_not_steer_the_deepseek_path(monkeypatch, alerts):
+    monkeypatch.delenv("OA_LLM_ATTEMPTS", raising=False)
+    monkeypatch.delenv("OA_LLM_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.setenv("OA_CLAUDE_ATTEMPTS", "1")
+    monkeypatch.setenv("OA_CLAUDE_TIMEOUT_SECONDS", "600")
+    calls = _post_returning(monkeypatch, [FakeResponse(500, None, "upstream down")])
+
+    report = proposer.propose_report(BUNDLE)
+
+    assert report.attempts == 3  # code default, not the leftover CLI var
+    assert calls[0][1]["timeout"] == 180.0
+
+
+def test_legacy_claude_knobs_still_steer_the_cli_path(monkeypatch):
+    monkeypatch.setenv("OA_LLM_PROVIDER", "claude_cli")
+    monkeypatch.delenv("OA_LLM_ATTEMPTS", raising=False)
+    monkeypatch.setenv("OA_CLAUDE_ATTEMPTS", "2")
+    monkeypatch.setenv("OA_CLAUDE_TIMEOUT_SECONDS", "45")
+
+    assert proposer._attempts() == 2
+    assert proposer._timeout_seconds() == 45.0

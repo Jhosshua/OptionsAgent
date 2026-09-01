@@ -8,6 +8,7 @@ to loopback by default; /healthz is a deliberately fixed liveness probe.
 
 from __future__ import annotations
 
+from collections import deque
 from datetime import datetime, timedelta, timezone
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -45,7 +46,11 @@ STRUCTURES_PATH = DATA_DIR / "structures.jsonl"
 DECISIONS_PATH = DATA_DIR / "decisions.jsonl"
 EQUITY_SCALP_DECISIONS_PATH = DATA_DIR / "equity_scalp_decisions.jsonl"
 EQUITY_SCALP_STATE_DIR = DATA_DIR / "equity_scalp_state"
-MAX_ARCHIVE_BYTES = 2 * 1024 * 1024
+# Memory is bounded by MAX_ARCHIVE_ROWS (a tail deque), so the byte cap is only
+# a sanity bound against a runaway file, not a working limit: at ~530 B/row the
+# old 2 MB cap would have returned [] for the whole journal after ~265 days and
+# rendered a year-old bot as "has not run a cycle yet".
+MAX_ARCHIVE_BYTES = 256 * 1024 * 1024
 MAX_ARCHIVE_ROWS = 5000
 STALE_AFTER_SECONDS = 120
 REFRESH_INTERVAL_SECONDS = 30
@@ -69,22 +74,24 @@ def _json_number(value: Any) -> float | None:
 
 
 def _read_jsonl(path: Path, *, max_rows: int = MAX_ARCHIVE_ROWS) -> list[dict[str, Any]]:
-    """Read a bounded, known data file; never accepts a caller path."""
+    """Read the LAST max_rows rows of a bounded, known data file; never accepts
+    a caller path. Tail, not head: every caller wants the latest cycle or the
+    latest trades, so a head cap would freeze the page on day one's data."""
     try:
         if not path.is_file() or path.is_symlink() or path.stat().st_size > MAX_ARCHIVE_BYTES:
             return []
         rows: list[dict[str, Any]] = []
         with path.open(encoding="utf-8") as fh:
-            for index, line in enumerate(fh):
-                if index >= max_rows:
-                    break
-                if line.strip():
-                    try:
-                        value = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
-                    if isinstance(value, dict):
-                        rows.append(value)
+            tail = deque(fh, maxlen=max_rows)
+        for line in tail:
+            if not line.strip():
+                continue
+            try:
+                value = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(value, dict):
+                rows.append(value)
         return rows
     except (OSError, UnicodeError):
         return []
@@ -509,6 +516,10 @@ def _seller_cycle_report() -> dict[str, Any]:
         return empty
     last = max(starts, key=lambda row: _parse_ts(row["ts"]))
     cycle_id = last.get("cycle_id")
+    if not cycle_id:
+        # Without an id we cannot tell which rows belong to this cycle; matching
+        # on None would absorb every other id-less row into it.
+        return {**empty, "cycle_id": None, "started": _parse_ts(last["ts"]).isoformat()}
     result = next(
         (row for row in rows if row.get("kind") == "proposer_result" and row.get("cycle_id") == cycle_id),
         None,
@@ -528,13 +539,16 @@ def _seller_cycle_report() -> dict[str, Any]:
             "provider": result.get("provider"),
             "model": result.get("model"),
             "ok": bool(result.get("ok")),
-            "attempts": result.get("attempts"),
+            "attempts": _json_number(result.get("attempts")),
             "latency_s": _json_number(result.get("latency_s")),
             "error": result.get("error"),
             "ts": result.get("ts"),
         }
     if result is not None:
-        proposals: int | None = int(result.get("proposals") or 0)
+        # Coerce, never int(): one hand-edited or corrupt row must not take
+        # every endpoint down behind a still-green /healthz.
+        count = _json_number(result.get("proposals"))
+        proposals: int | None = int(count) if count is not None else 0
     elif decisions:
         proposals = len(decisions)
     else:
@@ -722,7 +736,13 @@ class DashboardHandler(BaseHTTPRequestHandler):
             if path not in {"/api/summary", "/api/positions", "/api/trades", "/api/risk", "/api/system"}:
                 self._send(HTTPStatus.NOT_FOUND, b"not found", "text/plain", no_store=True)
                 return
-            body = json.dumps(build_payload(self.server.store, path), default=str).encode("utf-8")
+            try:
+                body = json.dumps(build_payload(self.server.store, path), default=str).encode("utf-8")
+            except Exception as exc:  # one bad journal row must fail ONE section, loudly, not drop the socket
+                log.exception("payload build failed for %s", path)
+                body = json.dumps({"error": f"{type(exc).__name__}: {exc}"[:300]}).encode("utf-8")
+                self._send(HTTPStatus.INTERNAL_SERVER_ERROR, body, "application/json", no_store=True)
+                return
             self._send(HTTPStatus.OK, body, "application/json", no_store=True)
             return
         self._send(HTTPStatus.NOT_FOUND, b"not found", "text/plain")

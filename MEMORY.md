@@ -1026,3 +1026,24 @@ and zero effect on the closed funnel above); an Anthropic key (the operator's ke
 
 **First live DeepSeek cycle: 2026-09-02 10:15 ET on Railway.** Check `#options-agent` and the
 dashboard's AI card; a `proposer_result` row with `ok=true` is the proof.
+
+### 2026-09-01 (evening) — QA pass on the DeepSeek/dashboard change (two adversarial agents)
+
+Proposer review: SAFE TO DEPLOY, with fixes applied before tomorrow's window: (1) the literal
+lowercase word `json` now appears in the prompt (DeepSeek's `json_object` precondition; the old
+test case-folded the assertion and proved nothing); (2) `OA_CLAUDE_TIMEOUT_SECONDS` /
+`OA_CLAUDE_ATTEMPTS` no longer fall through to the DeepSeek path (a leftover Railway var could
+have silently changed retry/timeout behaviour); (3) every 4xx except 429 is now a no-retry
+config error (400/404/422 were burning up to 6 min of the window); (4) three mutation gaps
+closed with tests (sleep backoff `[5, 10]`, config-file model+temperature actually read,
+legacy knobs inert); (5) the `proposer_result` journal write in `run_cycle.run()` is now
+covered by `tests/test_run_cycle_journal.py` (deleting the line failed nothing before).
+Dashboard review: FIX FIRST, fixed: (1) one malformed `proposer_result` row (`proposals:
+"many"`) crashed `build_payload` for ALL five endpoints with a dropped socket while `/healthz`
+stayed green; now coerced via `_json_number` and the `/api/` branch returns a 500 JSON body
+per section; (2) `_read_jsonl` read the HEAD of the file under a 2 MB cap that would have
+returned `[]` for the whole journal after ~265 days ("has not run a cycle yet" on a year-old
+bot); now a tail `deque` with a 256 MB sanity bound; (3) `attempts` escaped in the JS; (4) a
+`cycle_start` without `cycle_id` no longer absorbs other id-less rows; (5) dead research CSS
+and a date-stamped empty-state string removed. `.gitignore` now ignores `.env.*` except
+`.env.example`. Suite: 233 passed. Both fixes deployed (`railway up`, build 0de84f31).

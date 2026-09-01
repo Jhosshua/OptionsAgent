@@ -447,3 +447,56 @@ def test_summary_risk_and_system_carry_the_seller_cycle(http_server, tmp_path, m
     assert system["proposer"]["last"]["ok"] is True
     assert system["proposer"]["cycle"]["proposals"] == 3
     assert isinstance(system["alert_transport"], str)
+
+
+# --- QA follow-ups (2026-09-01 evening) --------------------------------------
+
+
+def test_a_malformed_proposals_count_degrades_instead_of_crashing(tmp_path, monkeypatch):
+    _write_decisions(tmp_path, monkeypatch, [
+        {"kind": "cycle_start", "cycle_id": "c1", "ts": "2026-09-02T14:15:02+00:00", "phase": "credit_spreads_only"},
+        {"kind": "proposer_result", "cycle_id": "c1", "ts": "2026-09-02T14:15:40+00:00", "provider": "deepseek",
+         "model": "deepseek-v4-pro", "ok": True, "proposals": "many", "attempts": [1, 2], "latency_s": "slow"},
+    ])
+
+    report = dashboard._seller_cycle_report()
+
+    assert report["proposals"] == 0
+    assert report["ai"]["attempts"] is None
+    assert report["ai"]["latency_s"] is None
+
+
+def test_a_payload_crash_returns_500_json_not_a_dropped_socket(http_server, monkeypatch):
+    def boom(store, route):
+        raise ValueError("corrupt row")
+
+    monkeypatch.setattr(dashboard, "build_payload", boom)
+
+    status, body = _request(http_server, "GET", "/api/summary")
+
+    assert status == 500
+    assert "corrupt row" in json.loads(body)["error"]
+    assert _request(http_server, "GET", "/healthz")[0] == 200
+
+
+def test_read_jsonl_returns_the_tail_not_the_head(tmp_path):
+    path = tmp_path / "big.jsonl"
+    path.write_text("\n".join(json.dumps({"i": n}) for n in range(5010)), encoding="utf-8")
+
+    rows = dashboard._read_jsonl(path, max_rows=5000)
+
+    assert len(rows) == 5000
+    assert rows[0]["i"] == 10 and rows[-1]["i"] == 5009
+
+
+def test_a_cycle_start_without_an_id_does_not_absorb_other_rows(tmp_path, monkeypatch):
+    _write_decisions(tmp_path, monkeypatch, [
+        {"kind": "cycle_start", "ts": "2026-09-02T14:15:02+00:00", "phase": "credit_spreads_only"},
+        {"kind": "proposer_result", "ts": "2026-09-02T14:15:40+00:00", "provider": "deepseek",
+         "model": "deepseek-v4-pro", "ok": True, "proposals": 1, "attempts": 1, "latency_s": 1.0},
+    ])
+
+    report = dashboard._seller_cycle_report()
+
+    assert report["cycle_id"] is None
+    assert report["ai"] is None and report["proposals"] is None

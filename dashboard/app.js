@@ -56,7 +56,7 @@
     if (!cycle || !cycle.cycle_id) return { text: "No seller cycle yet", cls: "muted" };
     if (!cycle.ai) return { text: "AI call not journaled for this cycle", cls: "muted" };
     if (!cycle.ai.ok) return { text: `AI call FAILED · ${esc(cycle.ai.error) || "no error text"}`, cls: "loss" };
-    return { text: `AI call OK · ${plural(cycle.ai.attempts ?? 1, "attempt")} · ${cycle.ai.latency_s ?? "—"}s`, cls: "gain" };
+    return { text: `AI call OK · ${plural(esc(cycle.ai.attempts ?? 1), "attempt")} · ${esc(cycle.ai.latency_s ?? "—")}s`, cls: "gain" };
   }
 
   function setStatusBanner(summary) {
@@ -100,7 +100,7 @@
     const rejections = cycle.rejections || [];
     if (!cycle.cycle_id) list.innerHTML = "<li>The seller has not run a cycle yet.</li>";
     else if (ai.ok === false) list.innerHTML = "<li>The AI call failed, so there were no proposals to judge. Nothing was traded (fail-closed).</li>";
-    else if (cycle.proposals == null) list.innerHTML = "<li>This cycle ran before AI calls were journaled (2026-09-01), so the call result is unknown. Tomorrow's cycle will show it.</li>";
+    else if (cycle.proposals == null) list.innerHTML = "<li>This cycle ran on a build that did not journal the AI call, so its result is unknown. The next cycle will show it.</li>";
     else if (cycle.proposals === 0) list.innerHTML = "<li>The AI proposed nothing this cycle. That is allowed; it is a selective bot.</li>";
     else if (!rejections.length && (cycle.opened ?? 0) > 0) list.innerHTML = "<li>Every proposal opened.</li>";
     else rejections.forEach((r) => { const li = document.createElement("li"); li.textContent = `${r.reason} (${r.count})`; list.appendChild(li); });

@@ -43,7 +43,7 @@ button { cursor:pointer; }
 .stats-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:16px; margin-bottom:16px; }
 .card { border:1px solid var(--line); border-radius:var(--radius); background:#fff; }
 .stat-card { display:flex; flex-direction:column; gap:10px; padding:20px; min-height:155px; }
-.stat-head,.card-heading,.table-head,.chart-foot,.research-lines>div { display:flex; align-items:center; justify-content:space-between; }
+.stat-head,.card-heading,.table-head,.chart-foot { display:flex; align-items:center; justify-content:space-between; }
 .stat-head { color:var(--muted); font-size:13.5px; font-weight:600; }
 .quiet-icon { color:var(--faint); font-size:20px; }
 .metric { font-size:30px; font-weight:800; letter-spacing:-.8px; }
@@ -96,7 +96,7 @@ button { cursor:pointer; }
 .wide-table .wide-head,.wide-table .wide-row { display:grid; grid-template-columns:1fr 1.7fr .8fr 1fr 1fr 1fr 1.4fr; gap:14px; align-items:center; padding:13px 8px; }
 .wide-table .wide-head { color:var(--faint); font-size:11px; font-weight:700; letter-spacing:.3px; }
 .wide-table .wide-row { border-top:1px solid #f2f2f2; font-size:14px; }
-.research-detail,.rail-list,.system-detail { display:grid; gap:16px; }
+.rail-list,.system-detail { display:grid; gap:16px; }
 .detail-card { padding:22px; }
 .detail-card h3 { margin:0 0 14px; font-size:17px; }
 .detail-row { display:flex; justify-content:space-between; gap:20px; border-bottom:1px solid #f2f2f2; padding:12px 0; }
