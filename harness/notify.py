@@ -18,18 +18,68 @@ def _webhook_url() -> str | None:
     return env("DISCORD_WEBHOOK_URL")
 
 
+def _bot_credentials() -> tuple[str, str] | None:
+    """Bot-token transport, used when no webhook is configured.
+
+    The fleet's other bots page through a Discord BOT (NOTIFY_DISCORD_TOKEN +
+    NOTIFY_DISCORD_CHANNEL) rather than a webhook. Supporting both means this
+    bot can alert using credentials that already exist, instead of being mute
+    until someone creates a webhook — and mute is the failure that matters here,
+    because the proposer FAILS CLOSED: no CLI, no trades, all day, quietly.
+    """
+    token = env("NOTIFY_DISCORD_TOKEN")
+    channel = env("NOTIFY_DISCORD_CHANNEL")
+    if token and channel:
+        return token, channel
+    return None
+
+
 def post(message: str) -> bool:
+    """Send to Discord via webhook if configured, else via the bot token.
+
+    Fail-open in both directions: a broken transport logs and returns False, and
+    never raises into a trading cycle.
+    """
     url = _webhook_url()
-    if not url:
-        log.warning("DISCORD_WEBHOOK_URL not set — skipping notification: %s", message)
-        return False
-    try:
-        resp = requests.post(url, json={"content": message}, timeout=10)
-        resp.raise_for_status()
-        return True
-    except Exception as e:  # fail-open — never let Discord break a trading cycle
-        log.error("Discord post failed: %s", e)
-        return False
+    if url:
+        try:
+            resp = requests.post(url, json={"content": message}, timeout=10)
+            resp.raise_for_status()
+            return True
+        except Exception as e:  # fail-open — never let Discord break a cycle
+            log.error("Discord webhook post failed: %s", e)
+            return False
+
+    creds = _bot_credentials()
+    if creds:
+        token, channel = creds
+        try:
+            resp = requests.post(
+                f"https://discord.com/api/v10/channels/{channel}/messages",
+                headers={"Authorization": f"Bot {token}"},
+                json={"content": message},
+                timeout=10,
+            )
+            resp.raise_for_status()
+            return True
+        except Exception as e:  # fail-open
+            log.error("Discord bot post failed: %s", e)
+            return False
+
+    log.warning(
+        "no Discord transport (set DISCORD_WEBHOOK_URL, or NOTIFY_DISCORD_TOKEN "
+        "+ NOTIFY_DISCORD_CHANNEL) — skipping notification: %s", message
+    )
+    return False
+
+
+def transport_status() -> str:
+    """Which transport is live. Used at boot so a mute bot is visible on day one."""
+    if _webhook_url():
+        return "Discord (webhook)"
+    if _bot_credentials():
+        return "Discord (bot token)"
+    return "NO DISCORD TRANSPORT — alerts are log-only"
 
 
 def trade_opened(*, underlying: str, strategy_type: str, strike: float, dte: int, credit_or_debit: float, thesis: str) -> None:

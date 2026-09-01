@@ -236,4 +236,18 @@ def propose(bundle: dict[str, Any]) -> list[Proposal]:
             if attempt < attempts:
                 time.sleep(5 * attempt)
     log.error("Claude Code CLI proposal call failed all %d attempts — degrading to no trade", attempts)
+    # PAGE IT. This is the quiet failure that matters: the entry cycle runs once
+    # a day, so a dead CLI costs the whole trading day and looks exactly like a
+    # day the model found nothing worth trading. A log line nobody reads is not
+    # an alert. notify.post is fail-open, so this can never break the cycle.
+    try:
+        from harness import notify
+
+        notify.error(
+            f"the AI proposal call failed all {attempts} attempts, so NO TRADES will be "
+            "entered today. This is the fail-closed path, not a quiet market. "
+            "Check the Claude CLI and its login token on Railway."
+        )
+    except Exception:
+        log.exception("could not send the CLI-failure alert")
     return stub_proposals()

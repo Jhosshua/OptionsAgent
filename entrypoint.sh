@@ -37,7 +37,10 @@ secret_keys = [
     "OA_EQUITY_MAX_TRADES", "OA_EQUITY_DAILY_LOSS_USD",
     # Tighten-only per-position cap (harness/risk_rails.py).
     "OA_MAX_POSITION_USD",
-    "DISCORD_WEBHOOK_URL",
+    # Alert transport. Either a webhook, OR the fleet's bot token + channel —
+    # harness/notify.py accepts both. With neither, every alert is log-only and
+    # a fail-closed no-trade day passes in total silence.
+    "DISCORD_WEBHOOK_URL", "NOTIFY_DISCORD_TOKEN", "NOTIFY_DISCORD_CHANNEL",
     # 0DTE ORB scalper (isolated). Master switch + tighten-only rail overrides +
     # dry-run. Missing from this list = silently never reaches the cron job.
     "OA_SCALP_ENABLED", "OA_SCALP_DRY_RUN",
@@ -119,8 +122,15 @@ if [ -n "${OA_RELAY_TOKEN:-}" ]; then
   fi
 fi
 
-# Announce the deploy in Discord if the webhook is configured. Never fatal.
-if [ -n "${DISCORD_WEBHOOK_URL:-}" ]; then
+# Say at boot which alert transport is live. A bot that cannot alert is the
+# failure that hides every other failure, so it is announced either way.
+python3 -c "
+from harness.notify import transport_status
+print('[entrypoint] alert transport:', transport_status())
+" || echo "[entrypoint] could not read the alert transport"
+
+# Announce the deploy in Discord. Never fatal.
+if [ -n "${DISCORD_WEBHOOK_URL:-}" ] || { [ -n "${NOTIFY_DISCORD_TOKEN:-}" ] && [ -n "${NOTIFY_DISCORD_CHANNEL:-}" ]; }; then
   python3 -c "
 from harness.env import active_phase, allowed_strategies
 from harness.notify import post
