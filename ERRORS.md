@@ -357,3 +357,45 @@ the PATH plus "not already commented", never on cron schedule syntax.
 **Note for next time:** this bot is the odd one out in the fleet — one launchd
 job (the dashboard), all trading from cron. Scheduler choice is not consistent
 across bots, so check BOTH for every one.
+
+## 2026-09-01 — The Claude Code CLI logged itself out and the daily cycle died twice
+
+**What did not work:** shelling out to `claude -p` from cron for the once-a-day proposal. On
+08-31 and 09-01 the CLI answered `{"is_error":true,"result":"Not logged in · Please run
+/login"}` (exit 1) on all three attempts; the cycle correctly failed closed, so the bot simply
+did not trade, and until the 08-31 stdout-capture fix the reason was invisible. A cron job
+cannot run an interactive `/login`.
+**What worked instead:** the DeepSeek HTTP API with a key in `.env` (`harness/proposer.py`,
+`OA_LLM_PROVIDER=deepseek`). A key has no login state to lose. The call is journaled as a
+`proposer_result` row so the dashboard shows "AI call FAILED · <error>" instead of a clean day.
+**Note for next time:** any daily job that depends on an OAuth/CLI login is one token expiry
+away from silently doing nothing. Prefer API keys for headless paths, journal the call outcome
+separately from the decisions, and put that outcome on the dashboard.
+
+## 2026-09-01 — A "missing CLI" test silently ran the real CLI
+
+**What did not work:** `test_claude_cli_missing_fails_closed` stubbed `shutil.which` to None
+and assumed that meant "no CLI". `_claude_cli()`'s last fallback is `~/.npm-global/bin/claude`,
+which exists on the Mac, so the test spawned the real binary. It passed for weeks only because
+the real CLI happened to fail; today it happened to succeed with an empty watchlist and the
+assertion flipped.
+**What worked instead:** also stub `Path.home` to a tmp dir and make `subprocess.run` fail the
+test if called.
+**Note for next time:** when a lookup has a hard-coded home-directory fallback, a test that
+stubs only PATH is not offline. Stub every branch, and make the real side effect `pytest.fail`.
+
+## 2026-09-01 — Dashboard audit: nav clicks after scrolling hit nothing
+
+**What did not work:** clicking sidebar items via coordinates after scrolling the page. The
+sidebar scrolled away with the content (not sticky), so the clicks landed on blank space and
+every "tab" screenshot was the same Overview view.
+**What worked instead:** `position: sticky; top: 0; height: 100vh` on `.sidebar` (reset to
+static under 700 px). Also a real UX bug for humans, not just for automation.
+**Note for next time:** in browser audits, scroll to top before clicking nav, or click by
+element ref; and treat a nav that disappears on scroll as a finding.
+
+## 2026-09-01 — `railway variable delete` has no `--skip-deploys`
+
+`railway variable set ... --skip-deploys` works; `railway variable delete KEY` rejects the flag
+and triggers a redeploy per key. Delete stale vars AFTER the code deploy, not before, or the
+old image redeploys once per deleted key.

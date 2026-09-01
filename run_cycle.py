@@ -34,7 +34,7 @@ from harness.execution import (
 )
 from harness.exits import LONG_TYPES
 from harness.positions import build_account_state
-from harness.proposer import propose
+from harness.proposer import propose_report
 from harness.risk_rails import (
     active_rails,
     apply_opened_position,
@@ -243,8 +243,17 @@ def run() -> None:
         "allowed_strategies": strategies,
         "watchlist": [{"underlying": sym, "context": context_by_symbol.get(sym, {})} for sym in syms],
     }
-    proposals = propose(bundle)
-    log.info("cycle %s: %d proposal(s) from proposer", cycle_id, len(proposals))
+    report = propose_report(bundle)
+    proposals = report.proposals
+    # Journal the CALL, not just its proposals: a dead model and a quiet market
+    # both produce zero decisions, and the dashboard must be able to tell them
+    # apart (2026-09-01: two "Not logged in" days looked like nothing-to-trade).
+    decision_log.record(report.as_journal_row(cycle_id, decision_log.now_iso()))
+    log.info(
+        "cycle %s: %d proposal(s) from proposer (%s/%s ok=%s attempts=%d %.1fs%s)",
+        cycle_id, len(proposals), report.provider, report.model, report.ok,
+        report.attempts, report.latency_s, f" error={report.error}" if report.error else "",
+    )
 
     rails = active_rails()
 

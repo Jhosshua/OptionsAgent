@@ -21,12 +21,13 @@ import time
 from typing import Any, Callable
 from urllib.parse import urlsplit
 
+from harness import notify, proposer
 from harness.env import ROOT, active_phase, config, env
 from harness.occ import parse_occ_symbol
 from harness.risk_rails import (
+    _CREDIT_SPREAD_OVERFIT_RULES,
     active_equity_scalp_rails,
     active_rails,
-    credit_spread_overfit_decision,
 )
 
 try:  # stdlib on 3.9+; the dashboard must never fail to start over a tz lookup
@@ -463,42 +464,90 @@ def _history_metrics(closed: list[dict[str, Any]]) -> tuple[list[dict[str, Any]]
     return curve, daily_rows
 
 
-def _research_summary() -> dict[str, Any]:
-    open_structures, closed = _structure_records()
-    credit = [row for row in [*closed, *open_structures] if row.get("strategy_type") == "credit_spread"]
-    known = [_json_number(row.get("pnl_usd")) for row in credit]
-    known = [value for value in known if value is not None and value != 0]
-    profile = []
-    for row in credit:
-        value = _json_number(row.get("pnl_usd"))
-        legs = row.get("legs") or []
-        if value is None or value == 0 or len(legs) < 2:
-            continue
-        try:
-            direction = "bullish" if next(leg for leg in legs if leg.get("side") == "short").get("right") == "put" else "bearish"
-            width = abs(float(legs[0]["strike"]) - float(legs[1]["strike"]))
-            matched, _ = credit_spread_overfit_decision(
-                underlying=str(row.get("underlying", "")),
-                direction=direction,
-                width=width,
-                net_credit=float(row.get("entry_net", 0)),
-            )
-        except (KeyError, StopIteration, TypeError, ValueError):
-            matched = False
-        if matched:
-            profile.append(value)
-    days = {str(row.get("opened_ts", ""))[:10] for row in credit if row.get("opened_ts")}
-    unknown = sum(1 for row in credit if row.get("pnl_usd") is None)
+def _allowed_profiles() -> list[str]:
+    """The only (symbol, direction, width, credit) shapes the seller may open,
+    rendered from the SAME tuple the rail enforces so the page can never drift
+    from the code (a hand-copied list did exactly that before)."""
+    rows = []
+    for symbol, side, min_credit, min_width, max_width in _CREDIT_SPREAD_OVERFIT_RULES:
+        parts = [f"{symbol} {side}"]
+        if min_width is not None:
+            parts.append(f"width ≥ ${min_width:.2f}")
+        if max_width is not None:
+            parts.append(f"width ≤ ${max_width:.2f}")
+        parts.append(f"credit ≥ ${min_credit:.2f}")
+        rows.append(" · ".join(parts))
+    return rows
+
+
+def _rejection_label(record: dict[str, Any]) -> str:
+    """Collapse a decision's `outcome` into a sentence a person can act on."""
+    outcome = str(record.get("outcome") or "")
+    if outcome == "executed":
+        return "Opened"
+    if outcome == "no_spread_matched_criteria":
+        return "No contract passed the delta / DTE / width filters"
+    if outcome.startswith("overfit_profile"):
+        return "Not one of the allowed profiles"
+    if outcome == "vetoed":
+        rail = record.get("rail_decision") if isinstance(record.get("rail_decision"), dict) else {}
+        return f"Rail veto: {rail.get('reason') or 'unspecified'}"
+    if outcome.startswith("skipped_cap"):
+        return "Position cap below one contract"
+    return outcome.replace("_", " ") or "unknown"
+
+
+def _seller_cycle_report() -> dict[str, Any]:
+    """What the seller did on its most recent cycle: whether the AI call
+    itself worked (the `proposer_result` row), how many proposals came back,
+    how many opened, and why the rest did not. A cycle with no journaled call
+    reports the AI as unknown, never as a clean zero."""
+    rows = _read_jsonl(DECISIONS_PATH)
+    starts = [row for row in rows if row.get("kind") == "cycle_start" and _parse_ts(row.get("ts"))]
+    empty = {"cycle_id": None, "started": None, "ai": None, "proposals": None, "opened": None, "rejections": []}
+    if not starts:
+        return empty
+    last = max(starts, key=lambda row: _parse_ts(row["ts"]))
+    cycle_id = last.get("cycle_id")
+    result = next(
+        (row for row in rows if row.get("kind") == "proposer_result" and row.get("cycle_id") == cycle_id),
+        None,
+    )
+    decisions = [row for row in rows if row.get("kind") == "decision" and row.get("cycle_id") == cycle_id]
+    counts: dict[str, int] = {}
+    opened = 0
+    for decision in decisions:
+        label = _rejection_label(decision)
+        if label == "Opened":
+            opened += 1
+        else:
+            counts[label] = counts.get(label, 0) + 1
+    ai = None
+    if result is not None:
+        ai = {
+            "provider": result.get("provider"),
+            "model": result.get("model"),
+            "ok": bool(result.get("ok")),
+            "attempts": result.get("attempts"),
+            "latency_s": _json_number(result.get("latency_s")),
+            "error": result.get("error"),
+            "ts": result.get("ts"),
+        }
+    if result is not None:
+        proposals: int | None = int(result.get("proposals") or 0)
+    elif decisions:
+        proposals = len(decisions)
+    else:
+        proposals = None
     return {
-        "entry_days": len(days),
-        "records": len(credit),
-        "realized_pnl": sum(known),
-        "profile_pnl": sum(profile),
-        "unknown_pnl_closes": unknown,
-        "rules": [
-            "CCL bullish · width ≥ $1.50 · credit ≥ $0.29",
-            "SOFI bullish · width ≥ $1.00 · credit ≥ $0.23",
-            "F bearish · width ≤ $0.50 · credit ≥ $0.06",
+        "cycle_id": cycle_id,
+        "started": _parse_ts(last["ts"]).isoformat(),
+        "ai": ai,
+        "proposals": proposals,
+        "opened": opened if proposals is not None else None,
+        "rejections": [
+            {"reason": reason, "count": count}
+            for reason, count in sorted(counts.items(), key=lambda item: (-item[1], item[0]))
         ],
     }
 
@@ -514,6 +563,7 @@ def build_payload(store: SnapshotStore, route: str) -> dict[str, Any]:
     account = snapshot.get("account") if not stale or snapshot.get("account") else None
     rails = active_rails()
     eq_rails = active_equity_scalp_rails()
+    seller = _seller_cycle_report()
     base = {
         "status": snapshot.get("status"),
         "as_of": snapshot.get("as_of"),
@@ -540,7 +590,7 @@ def build_payload(store: SnapshotStore, route: str) -> dict[str, Any]:
             # an all-positions total would show a breach that never happened.
             "spread_positions_cap": rails.max_concurrent_positions,
             "equity_scalp": _equity_scalp_summary(open_scalps),
-            "winner_rules": 3,
+            "seller_cycle": seller,
             "last_cycle": _last_cycle_iso(),
             "deployment": "paper / online" if _trading_enabled_from_dotenv() else "paper / disarmed",
             "equity_curve": equity_curve,
@@ -578,8 +628,6 @@ def build_payload(store: SnapshotStore, route: str) -> dict[str, Any]:
             "daily_pnl": daily_pnl[-30:],
             "unknown_pnl_closes": sum(1 for row in closed if row.get("pnl_usd") is None),
         }
-    if route == "/api/research":
-        return {**base, **_research_summary()}
     if route == "/api/risk":
         return {
             **base,
@@ -590,7 +638,9 @@ def build_payload(store: SnapshotStore, route: str) -> dict[str, Any]:
                 "mandatory_close_dte": rails.dte_mandatory_close,
                 "paper_only": True,
                 "trading_enabled": _trading_enabled_from_dotenv(),
+                "allowed_profiles": _allowed_profiles(),
             },
+            "proposer": {"provider": proposer.provider(), "model": proposer.model_name()},
             "equity_scalp_rails": {
                 "enabled": _equity_scalp_enabled(),
                 "notional_per_trade_usd": eq_rails.notional_per_trade_usd,
@@ -613,6 +663,13 @@ def build_payload(store: SnapshotStore, route: str) -> dict[str, Any]:
             "paper_only": (env("ALPACA_PAPER", "true") or "true").lower() == "true",
             "equity_scalp": _equity_scalp_summary(open_scalps),
             "last_cycle": _last_cycle_iso(),
+            "proposer": {
+                "provider": proposer.provider(),
+                "model": proposer.model_name(),
+                "last": seller.get("ai"),
+                "cycle": seller,
+            },
+            "alert_transport": notify.transport_status(),
         }
     raise KeyError(route)
 
@@ -662,7 +719,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._send(HTTPStatus.OK, target.read_bytes(), content_type)
             return
         if path.startswith("/api/"):
-            if path not in {"/api/summary", "/api/positions", "/api/trades", "/api/research", "/api/risk", "/api/system"}:
+            if path not in {"/api/summary", "/api/positions", "/api/trades", "/api/risk", "/api/system"}:
                 self._send(HTTPStatus.NOT_FOUND, b"not found", "text/plain", no_store=True)
                 return
             body = json.dumps(build_payload(self.server.store, path), default=str).encode("utf-8")

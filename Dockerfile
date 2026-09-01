@@ -16,20 +16,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && echo "$TZ" > /etc/timezone \
     && rm -rf /var/lib/apt/lists/*
 
-# harness/proposer.py shells out to the Claude Code CLI and FAILS CLOSED (no
-# trade) when it is missing, so the container must carry it or the bot deploys
-# green and silently never trades. Auth is headless via CLAUDE_CODE_OAUTH_TOKEN,
-# injected by entrypoint.sh; OA_CLAUDE_CLI must point at the path below.
-# npm installs its own `claude` bin shim; do NOT hand-symlink cli.js (the package
-# layout moved, and a dangling link silently disarms the proposer). The
-# command -v + --version below assert the executable really runs, so a broken
-# install fails the BUILD rather than a trading day.
-RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-    && apt-get install -y --no-install-recommends nodejs \
-    && npm install -g @anthropic-ai/claude-code \
-    && command -v claude \
-    && claude --version \
-    && rm -rf /var/lib/apt/lists/* /root/.npm
+# The AI proposer (harness/proposer.py) calls the DeepSeek HTTP API with
+# DEEPSEEK_API_KEY since 2026-09-01. The container deliberately does NOT carry
+# the Claude Code CLI any more: the CLI login expired twice ("Not logged in ·
+# Please run /login") and each time the once-a-day entry cycle failed closed
+# and the whole trading day was lost. An API key has no login to lose.
+# Set OA_LLM_PROVIDER=claude_cli only on the Mac, where the CLI exists.
 
 # Mirror the Mac path for consistency with the sibling bots' containers.
 WORKDIR /Users/mo/OptionsAgent

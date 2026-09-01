@@ -9,8 +9,8 @@
 # ARCHITECTURE.md — OptionsAgent (original design, 2026-07-03)
 
 > **CURRENT IMPLEMENTATION NOTE — 2026-09-01:** The active runtime is a Railway
-> container (see SETUP.md). Claude Code CLI is still the proposal boundary; no
-> Anthropic API key is used. Public.com remains read-only options data and Alpaca
+> container (see SETUP.md). The DeepSeek API is the proposal boundary since
+> 2026-09-01 (evening); the Claude Code CLI is no longer in the image. Public.com remains read-only options data and Alpaca
 > remains the paper-only account/order boundary. The Railway design below is
 > once again the live one.
 
@@ -224,15 +224,15 @@ Mirrors DA's "rails live in code" philosophy — config can only tighten these, 
 
 - Python 3, `alpaca-py`, PAPER endpoint only for v1 (same `make_client()` refusal-of-live pattern).
 - Persistence: flat JSONL under `data/` (`decisions.jsonl`, matching DA — no DB).
-- Module layout mirrors DA's `harness/`: `proposer.py` (Claude Code CLI call), `contracts.py` (new — the
+- Module layout mirrors DA's `harness/`: `proposer.py` (DeepSeek API call), `contracts.py` (new — the
   contract-selection rail), `risk_rails.py` (hard floors, code not config), `execution.py` (Alpaca
   order submission incl. mleg/equity-leg sequencing), `exits.py` (the LLM-free rails sweep),
   `notify.py` (Discord), `epistemics.py`, `env.py`.
   Self-learning loops (autoresearch/postmortem-style tuning) deferred to after a paper track record
   exists — not part of v1.
-  LLM: use the operator's authenticated local Claude Code CLI; no Anthropic API key.
-- Runtime: local user crontab and local dashboard. The
-  dashboard is a local-only, read-only observer on `$PORT`; it uses a
+  LLM: the DeepSeek API (`OA_LLM_PROVIDER=deepseek`); the Claude CLI path survives for the Mac only.
+- Runtime: Railway container cron and the public read-only dashboard. The
+  dashboard is a read-only observer on `$PORT`; it uses a
   background-cached broker snapshot and never imports execution modules. Its
   `/healthz` endpoint is for manual/external probes only and is not configured
   as Railway's container healthcheck, so dashboard failure cannot restart cron.

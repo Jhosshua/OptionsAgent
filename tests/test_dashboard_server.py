@@ -322,3 +322,128 @@ def test_last_cycle_is_iso_8601_parseable(tmp_path, monkeypatch):
     value = dashboard._last_cycle_iso()
     assert "T" in value and " " not in value
     assert dashboard._parse_ts(value) is not None
+
+
+# --- seller cycle report (2026-09-01) ---------------------------------------
+# The AI call is journaled as its own row. Before this, a dead model and a
+# quiet market both rendered as "last cycle 10:15 AM" with nothing else.
+
+CYCLE_ROWS = [
+    {"kind": "cycle_start", "cycle_id": "c_old", "ts": "2026-08-31T14:21:33+00:00", "phase": "credit_spreads_only"},
+    {"kind": "decision", "cycle_id": "c_old", "ts": "2026-08-31T14:22:00+00:00",
+     "proposal": {"underlying": "CCL"}, "outcome": "no_spread_matched_criteria"},
+    {"kind": "cycle_start", "cycle_id": "c_new", "ts": "2026-09-02T14:15:02+00:00", "phase": "credit_spreads_only"},
+    {"kind": "proposer_result", "cycle_id": "c_new", "ts": "2026-09-02T14:15:40+00:00", "provider": "deepseek",
+     "model": "deepseek-v4-pro", "ok": True, "proposals": 3, "attempts": 1, "latency_s": 31.2, "error": None},
+    {"kind": "decision", "cycle_id": "c_new", "ts": "2026-09-02T14:15:41+00:00",
+     "proposal": {"underlying": "CCL"}, "outcome": "no_spread_matched_criteria"},
+    {"kind": "decision", "cycle_id": "c_new", "ts": "2026-09-02T14:15:42+00:00",
+     "proposal": {"underlying": "AAL"}, "outcome": "overfit_profile no historical winner rule for AAL bullish"},
+    {"kind": "decision", "cycle_id": "c_new", "ts": "2026-09-02T14:15:43+00:00",
+     "proposal": {"underlying": "T"}, "outcome": "overfit_profile no historical winner rule for T bearish"},
+]
+
+
+def _write_decisions(tmp_path, monkeypatch, rows):
+    path = tmp_path / "decisions.jsonl"
+    path.write_text("\n".join(json.dumps(row) for row in rows), encoding="utf-8")
+    monkeypatch.setattr(dashboard, "DECISIONS_PATH", path)
+    return path
+
+
+def test_seller_cycle_report_reads_the_latest_cycle_only(tmp_path, monkeypatch):
+    _write_decisions(tmp_path, monkeypatch, CYCLE_ROWS)
+
+    report = dashboard._seller_cycle_report()
+
+    assert report["cycle_id"] == "c_new"
+    assert report["started"] == "2026-09-02T14:15:02+00:00"
+    assert report["ai"]["ok"] is True
+    assert report["ai"]["model"] == "deepseek-v4-pro"
+    assert report["ai"]["latency_s"] == 31.2
+    assert report["proposals"] == 3
+    assert report["opened"] == 0
+    assert report["rejections"] == [
+        {"reason": "Not one of the allowed profiles", "count": 2},
+        {"reason": "No contract passed the delta / DTE / width filters", "count": 1},
+    ]
+
+
+def test_seller_cycle_report_surfaces_a_failed_ai_call(tmp_path, monkeypatch):
+    _write_decisions(tmp_path, monkeypatch, [
+        {"kind": "cycle_start", "cycle_id": "c_fail", "ts": "2026-09-02T14:15:02+00:00", "phase": "credit_spreads_only"},
+        {"kind": "proposer_result", "cycle_id": "c_fail", "ts": "2026-09-02T14:15:10+00:00", "provider": "deepseek",
+         "model": "deepseek-v4-pro", "ok": False, "proposals": 0, "attempts": 1, "latency_s": 0.4,
+         "error": "ProposerConfigError: DEEPSEEK_API_KEY is not set"},
+    ])
+
+    report = dashboard._seller_cycle_report()
+
+    assert report["ai"]["ok"] is False
+    assert "DEEPSEEK_API_KEY" in report["ai"]["error"]
+    assert report["proposals"] == 0
+    assert report["opened"] == 0
+    assert report["rejections"] == []
+
+
+def test_seller_cycle_without_a_journaled_call_is_unknown_not_zero(tmp_path, monkeypatch):
+    _write_decisions(tmp_path, monkeypatch, [
+        {"kind": "cycle_start", "cycle_id": "c_bare", "ts": "2026-09-01T14:15:02+00:00", "phase": "credit_spreads_only"},
+    ])
+
+    report = dashboard._seller_cycle_report()
+
+    assert report["cycle_id"] == "c_bare"
+    assert report["ai"] is None
+    assert report["proposals"] is None
+    assert report["opened"] is None
+
+
+def test_executed_decisions_count_as_opened(tmp_path, monkeypatch):
+    _write_decisions(tmp_path, monkeypatch, [
+        {"kind": "cycle_start", "cycle_id": "c1", "ts": "2026-09-02T14:15:02+00:00", "phase": "credit_spreads_only"},
+        {"kind": "proposer_result", "cycle_id": "c1", "ts": "2026-09-02T14:15:40+00:00", "provider": "deepseek",
+         "model": "deepseek-v4-pro", "ok": True, "proposals": 2, "attempts": 1, "latency_s": 20.0, "error": None},
+        {"kind": "decision", "cycle_id": "c1", "ts": "2026-09-02T14:15:41+00:00",
+         "proposal": {"underlying": "CCL"}, "outcome": "executed"},
+        {"kind": "decision", "cycle_id": "c1", "ts": "2026-09-02T14:15:42+00:00",
+         "proposal": {"underlying": "F"}, "outcome": "vetoed",
+         "rail_decision": {"approved": False, "reason": "conviction 0.55 below floor 0.60"}},
+    ])
+
+    report = dashboard._seller_cycle_report()
+
+    assert report["opened"] == 1
+    assert report["rejections"] == [{"reason": "Rail veto: conviction 0.55 below floor 0.60", "count": 1}]
+
+
+def test_allowed_profiles_are_derived_from_the_rails():
+    assert dashboard._allowed_profiles() == [
+        "CCL bullish · width ≥ $1.50 · credit ≥ $0.29",
+        "SOFI bullish · width ≥ $1.00 · credit ≥ $0.23",
+        "F bearish · width ≤ $0.50 · credit ≥ $0.06",
+    ]
+
+
+def test_research_route_is_gone(http_server):
+    assert _request(http_server, "GET", "/api/research")[0] == 404
+
+
+def test_summary_risk_and_system_carry_the_seller_cycle(http_server, tmp_path, monkeypatch):
+    _write_decisions(tmp_path, monkeypatch, CYCLE_ROWS)
+    monkeypatch.setenv("OA_LLM_PROVIDER", "deepseek")
+    monkeypatch.delenv("OA_DEEPSEEK_MODEL", raising=False)
+
+    _, summary = _request(http_server, "GET", "/api/summary")
+    _, risk = _request(http_server, "GET", "/api/risk")
+    _, system = _request(http_server, "GET", "/api/system")
+    summary, risk, system = json.loads(summary), json.loads(risk), json.loads(system)
+
+    assert summary["seller_cycle"]["cycle_id"] == "c_new"
+    assert "winner_rules" not in summary
+    assert risk["rails"]["allowed_profiles"][0].startswith("CCL bullish")
+    assert risk["proposer"] == {"provider": "deepseek", "model": "deepseek-v4-pro"}
+    assert system["proposer"]["provider"] == "deepseek"
+    assert system["proposer"]["last"]["ok"] is True
+    assert system["proposer"]["cycle"]["proposals"] == 3
+    assert isinstance(system["alert_transport"], str)

@@ -24,9 +24,14 @@ secret_keys = [
     "ALPACA_API_KEY", "ALPACA_SECRET_KEY", "ALPACA_PAPER",
     "OA_TRADING_ENABLED", "OA_DASHBOARD_HOST",
     "ANTHROPIC_API_KEY", "OA_ANTHROPIC_MODEL", "OA_MAX_TOKENS",
-    # The proposer shells out to the Claude Code CLI. Headless auth is the
-    # OAuth token; OA_CLAUDE_CLI is the container path to the executable.
-    # Missing either = _claude_cli() raises = fail-closed "no trade", silently.
+    # The AI proposer (harness/proposer.py). Since 2026-09-01 the container
+    # calls the DeepSeek API with DEEPSEEK_API_KEY. A missing key = the
+    # proposer fails closed = "no trade" every day, paged to Discord but
+    # otherwise silent. OA_LLM_PROVIDER selects deepseek (default) or the
+    # Mac-only claude_cli path (the container does not carry the CLI).
+    "DEEPSEEK_API_KEY", "OA_LLM_PROVIDER", "OA_DEEPSEEK_MODEL",
+    "OA_LLM_TIMEOUT_SECONDS", "OA_LLM_ATTEMPTS",
+    # Legacy Claude CLI knobs, honoured only when OA_LLM_PROVIDER=claude_cli.
     "CLAUDE_CODE_OAUTH_TOKEN", "OA_CLAUDE_CLI", "OA_CLAUDE_MODEL",
     "OA_CLAUDE_TIMEOUT_SECONDS", "OA_CLAUDE_ATTEMPTS",
     # Equity scalper rails. The master switch alone is not enough: without these

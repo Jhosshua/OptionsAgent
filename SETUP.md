@@ -3,9 +3,10 @@
 > **CURRENT SETUP — 2026-09-01:** OptionsAgent runs on **Railway**, in project
 > `OptionsAgent` (`cc393b70-4ef5-48d5-8299-253b914cc219`), service `OptionsAgent`,
 > region sfo. Linux cron in the container is the scheduler; the volume at
-> `/Users/mo/OptionsAgent/data` holds all state. Proposals still come from the
-> authenticated **Claude Code CLI** (`claude -p`), which the image installs and
-> authenticates with `CLAUDE_CODE_OAUTH_TOKEN` — NOT an Anthropic API key.
+> `/Users/mo/OptionsAgent/data` holds all state. Proposals come from the **DeepSeek
+> API** (`OA_LLM_PROVIDER=deepseek`, `DEEPSEEK_API_KEY`, `OA_DEEPSEEK_MODEL=deepseek-v4-pro`)
+> since 2026-09-01 evening. The image no longer carries the Claude Code CLI (its login
+> expired twice and each time the daily cycle failed closed).
 > Public.com is read-only options data, AlpacaRelay serves stock bars, Alpaca is
 > the paper execution broker. **Railway variables are authoritative**, and
 > `entrypoint.sh` writes them into `.env` at boot because cron does not inherit
@@ -17,17 +18,20 @@
 ## Runtime
 
 - Container working directory: `/Users/mo/OptionsAgent` (the image mirrors the Mac path)
-- Proposal model: Claude Code CLI, authenticated through the operator's local Claude Code session
+- Proposal model: DeepSeek API (`harness/proposer.py`), one JSON-mode call per trading day,
+  ~40-80 s, 3 attempts on transient errors, no retry on key errors, Discord page on failure
 - Market data: Public.com read-only sidecar (`OA_OPTIONS_DATA_PROVIDER=public`)
 - Paper account and order execution: Alpaca (`ALPACA_PAPER=true`)
-- Entry scheduler: user crontab invokes `cron/entry.sh` every five minutes; the script self-gates to
-  10:15–10:27 ET weekdays, paper mode, and Alpaca's market clock.
-- Exit scheduler: user crontab invokes `cron/exits.sh` every 20 minutes from 09:00–16:00 ET.
-- Logs: `data/logs/entry-local.log` and `data/logs/exits-local.log`
+- Entry scheduler: container cron (`cron/crontab.railway`) invokes `cron/entry.sh` every five
+  minutes; the script self-gates to 10:15–10:27 ET weekdays, paper mode, and Alpaca's market clock.
+- Exit scheduler: container cron invokes `cron/exits.sh` every 20 minutes from 09:00–16:00 ET.
+- Logs: `data/logs/` on the volume (`railway logs` for the container stream)
 
-The CLI is resolved from `OA_CLAUDE_CLI`, PATH, or `/Users/mo/.npm-global/bin/claude`. It runs with
-`--safe-mode`, no tools, no session persistence, and structured JSON output. Any CLI/auth/parse
-failure returns no proposal and submits no order.
+The proposer's outcome is journaled as a `proposer_result` row in `data/decisions.jsonl`
+(provider, model, ok, proposals, attempts, latency_s, error) and shown on the dashboard's
+"AI proposer" card. Any API/key/parse failure returns no proposal and submits no order.
+`OA_LLM_PROVIDER=claude_cli` selects the Mac-only Claude Code CLI path (resolved from
+`OA_CLAUDE_CLI`, PATH, or `~/.npm-global/bin/claude`); the container cannot use it.
 
 ### Restart / verification (Railway)
 
@@ -79,9 +83,12 @@ hard-coded credit-spread winner profile documented in `OVERFIT_ANALYSIS.md`.
 |---|---|---|
 | `ALPACA_API_KEY` / `ALPACA_SECRET_KEY` | Paper account keys | Dedicated paper account (never share another bot's — exposure math tangles) |
 | `ALPACA_PAPER` | `true` | Belt-and-suspenders; `make_client()` refuses non-paper anyway |
-| `OA_CLAUDE_CLI` | `claude` | Optional executable path override |
-| `OA_CLAUDE_MODEL` | `sonnet` | Claude Code CLI model alias |
-| `OA_CLAUDE_TIMEOUT_SECONDS` | `180` | CLI call timeout |
+| `DEEPSEEK_API_KEY` | (secret) | AI proposer key. Missing = fail-closed no-trade every day, paged |
+| `OA_LLM_PROVIDER` | `deepseek` | `deepseek` (Railway) or `claude_cli` (Mac only) |
+| `OA_DEEPSEEK_MODEL` | `deepseek-v4-pro` | Overrides `config.json` `llm.model` |
+| `OA_LLM_TIMEOUT_SECONDS` | `180` | Per-attempt call timeout |
+| `OA_LLM_ATTEMPTS` | `3` | Attempts on transient errors (key errors are not retried) |
+| `OA_CLAUDE_CLI` / `OA_CLAUDE_MODEL` | — | Only read when `OA_LLM_PROVIDER=claude_cli` |
 | `DISCORD_WEBHOOK_URL` | `#options-agent` webhook | Channel 1522587333822513253, StockBot guild |
 | `OA_MAX_POSITION_USD` | (unset) | OPTIONAL tighten-only emergency brake: absolute $ ceiling per position |
 | `OA_MAX_TOKENS` | (unset, default 4096) | Proposer output ceiling |
@@ -179,7 +186,7 @@ mleg order rejections (limit-price sign convention), proposer schema hiccups. Al
 
 Required in `.env` for the current local setup (beyond the original keys):
 - `OA_TRADING_ENABLED=true`, `ALPACA_PAPER=true` (hard gates in every cron script)
-- `OA_CLAUDE_CLI` / `OA_CLAUDE_MODEL` (proposer)
+- `DEEPSEEK_API_KEY` + `OA_LLM_PROVIDER=deepseek` (proposer; `OA_CLAUDE_*` only for `claude_cli`)
 - `OA_DATA_KEY_ID` / `OA_DATA_SECRET_KEY` — read-only SIP-entitled stock-data key
   (the bot's own trading key gets only 15-minute-delayed SIP)
 - `OA_OPTIONS_DATA_PROVIDER=public` + `PUBLIC_API_SECRET` (option chains/quotes)

@@ -25,9 +25,10 @@
     "_comment": "Below floor: pass, no trade. Scales linearly floor->max to size_min->size_max fraction of per-position cap."
   },
   "llm": {
-    "provider": "anthropic",
-    "model": "claude-fable-5",
-    "temperature": 0.0
+    "provider": "deepseek",
+    "model": "deepseek-v4-pro",
+    "temperature": 0.0,
+    "_comment": "Read by harness/proposer.py. OA_LLM_PROVIDER / OA_DEEPSEEK_MODEL env override these; DEEPSEEK_API_KEY is env-only. Operator 2026-09-01: moved off the Claude Code CLI (its login expired twice and each time the daily cycle failed closed) onto the DeepSeek API. v4-pro over v4-flash: one call a day, cost is irrelevant, judgment is not."
   },
   "wheel": {
     "csp_delta_min": 0.20,

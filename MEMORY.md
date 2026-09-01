@@ -973,3 +973,56 @@ via an atomic lock on the volume, and calls the proposer ONCE per cycle with the
 whole watchlist in one bundle. So **1 Claude CLI call per trading day**, up to 3
 if it fails and retries. Exits, the 0DTE scalper and the equity scalper are all
 deterministic and use no LLM.
+
+## 2026-09-01 (evening) — Proposer moved off the Claude CLI onto the DeepSeek API; dashboard reworked
+
+**This overrides the same-day "Rejected: rewriting the proposer onto the Anthropic API"
+decision above, by explicit operator instruction** ("replace it with this api ... I want no
+error tomorrow"). The premise of that rejection ("it would solve a packaging problem") was
+wrong: the CLI's failure mode is a LOGIN, not packaging. Today's 10:15 ET cycle on the Mac
+got `Not logged in · Please run /login` three times and failed closed; 08-31's cycle died
+the same way (invisible then, because stdout was discarded). Two trading days lost to an
+auth state a cron job cannot repair.
+
+**What was decided:**
+- `harness/proposer.py` now has two providers behind `OA_LLM_PROVIDER`: `deepseek` (default,
+  Railway) and `claude_cli` (Mac only). The key the operator supplied is a **DeepSeek** key
+  (`sk-` + 32 hex; `api.deepseek.com/models` = 200, Anthropic and OpenAI both 401), so the API
+  is DeepSeek's OpenAI-compatible chat completions, `response_format=json_object`, temp 0,
+  `max_tokens` 8192, `finish_reason=length` rejected. Model `deepseek-v4-pro` (one call a day;
+  cost is irrelevant, judgment is not; v4-flash was 8 s vs pro 39 s on a 3-name test and
+  both made the same CCL-bullish call Claude made on 08-31).
+- Every call returns a `ProposeReport`; `run_cycle.py` journals it as a `proposer_result` row
+  (provider, model, ok, proposals, attempts, latency_s, error). Config errors (missing/401/402/403
+  key, unknown provider, missing CLI) are NOT retried; transient ones retry 3x with 5s/10s
+  sleeps; exactly one Discord page per failed cycle.
+- Dockerfile no longer installs Node or `@anthropic-ai/claude-code`. entrypoint.sh allowlist
+  gained `DEEPSEEK_API_KEY`, `OA_LLM_PROVIDER`, `OA_DEEPSEEK_MODEL`, `OA_LLM_TIMEOUT_SECONDS`,
+  `OA_LLM_ATTEMPTS`. config.json `llm` block now says deepseek / deepseek-v4-pro (it said
+  anthropic / claude-fable-5 and nothing read it).
+- Railway vars set: `DEEPSEEK_API_KEY`, `OA_LLM_PROVIDER=deepseek`,
+  `OA_DEEPSEEK_MODEL=deepseek-v4-pro`. `OA_CLAUDE_CLI`, `OA_CLAUDE_MODEL`,
+  `CLAUDE_CODE_OAUTH_TOKEN` deleted after the deploy (inert under provider=deepseek anyway).
+- Dashboard: Research tab + `/api/research` removed (always 0/0/$0 since the 08-28 reset moved
+  `structures.jsonl` out). New "AI proposer · last cycle" card + "Seller, last cycle" stat on
+  Overview, AI proposer card on System, both engines get identical Engine/Runs/Decides-with
+  rows on Risk rails plus the three allowed profiles rendered from
+  `_CREDIT_SPREAD_OVERFIT_RULES` itself. Sticky sidebar, per-section loading
+  (`Promise.allSettled`), 60 s auto-refresh, humanized labels.
+
+**Verified:** real full-watchlist call through the new code path: ok, 3 proposals (CCL/AAL/SOFI
+bullish), 76.6 s, valid journal row. 221 tests green (test_proposer rewritten: 16 tests incl.
+retry/no-retry classes, truncation, invalid JSON, malformed items dropped, CLI path pinned).
+Local dashboard rendered on all 5 tabs with zero console errors.
+
+**Why the seller has still never traded (unchanged by this work):** all 14 proposals since 08-28
+died at gates that never read the thesis: 7 `no_spread_matched_criteria` (contract picker),
+7 `overfit_profile` (only CCL-bullish / SOFI-bullish / F-bearish may ever open). The 08-31
+CCL-bullish proposal, which WAS on the allowed list, died at contract selection. Better
+inputs (e.g. web search) cannot move this; the funnel is closed downstream.
+
+**Rejected:** web search for the proposer (non-replayable decisions, prompt-injection surface,
+and zero effect on the closed funnel above); an Anthropic key (the operator's key is DeepSeek's).
+
+**First live DeepSeek cycle: 2026-09-02 10:15 ET on Railway.** Check `#options-agent` and the
+dashboard's AI card; a `proposer_result` row with `ok=true` is the proof.

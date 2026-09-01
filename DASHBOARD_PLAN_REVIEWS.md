@@ -1,8 +1,8 @@
 # Dashboard plan review record
 
-> **CURRENT RUNTIME NOTE — 2026-08-28:** The reviewed dashboard is local-only. The active bot uses
-> the local Claude Code CLI rather than an Anthropic API key and is scheduled by the local user
-> crontab; Railway is not the active deployment target.
+> **CURRENT RUNTIME NOTE — 2026-09-01:** The reviewed dashboard now runs on Railway. The active bot
+> uses the DeepSeek API for proposals and container cron for scheduling; the Research tab reviewed
+> below no longer exists.
 
 The implementation plan in `DASHBOARD_BUILD_PLAN.md` was attacked with three separate Claude Code
 CLI review sessions before implementation.

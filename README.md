@@ -2,8 +2,9 @@
 
 > **Where this runs (since 2026-09-01):** Railway, project `OptionsAgent`, not this Mac.
 > Linux cron in the container is the scheduler; state lives on the volume at `data/`.
-> The image carries the Claude Code CLI, because `harness/proposer.py` fails CLOSED
-> without it — a container missing it comes up green and never trades.
+> Proposals come from the **DeepSeek API** (`DEEPSEEK_API_KEY`, since 2026-09-01 evening);
+> the image no longer carries the Claude Code CLI. `harness/proposer.py` fails CLOSED on
+> any API/key error and pages Discord, and every call is journaled as a `proposer_result` row.
 > Dashboard: https://optionsagent-production.up.railway.app (public, no password).
 > Alerts: Discord `#options-agent`. Redeploy: `railway up --service OptionsAgent`.
 > The Mac's launchd plist and its three user-crontab lines are disabled.
@@ -13,9 +14,9 @@ deterministic Python picks the actual contract, sizes it, and executes. See `CLA
 full picture, `ARCHITECTURE.md` for the design rationale, `RESEARCH.md` for the research it's built
 on.
 
-> **OPERATING MODE — 2026-09-01:** A paper-trading robot on Railway. Claude Code
-> CLI supplies proposals, authenticated headlessly with `CLAUDE_CODE_OAUTH_TOKEN`;
-> no `ANTHROPIC_API_KEY` is configured or required. Public.com is read-only options
+> **OPERATING MODE — 2026-09-01:** A paper-trading robot on Railway. The DeepSeek
+> API (`OA_LLM_PROVIDER=deepseek`, model `deepseek-v4-pro`) supplies proposals;
+> no Anthropic key and no Claude CLI login are involved any more. Public.com is read-only options
 > data, AlpacaRelay serves stock bars, Alpaca remains paper execution. **Railway
 > variables are authoritative** — `entrypoint.sh` writes them into `.env` at boot,
 > because cron does not inherit the container environment.
@@ -25,7 +26,7 @@ on.
 ## Status (2026-09-01)
 
 **ACTIVE ON RAILWAY, PAPER ONLY, TWO ENGINES on a $100,000 Alpaca paper account.**
-- Engine 1, credit-spread seller: Claude Code CLI proposes, deterministic rails
+- Engine 1, credit-spread seller: the DeepSeek API proposes, deterministic rails
   dispose, once daily 10:15-10:27 ET (cron/entry.sh), exits every 20 min
   (cron/exits.sh). Winner-profile gated; most days it vetoes everything.
 - Engine 2, EQUITY intraday scalper (run_scalp_equity.py, NEW tonight): two
@@ -52,16 +53,17 @@ on.
 | `OVERFIT_ANALYSIS.md` | Archived per-day/per-trade replay and the documented local research changes |
 | `research_credit_spread_history.py` | Replays the archived multi-day credit-spread ledger and winner profile |
 | `DEEPSEEK_CREDIT_SPREAD_PROMPT.md` | Read-only prompt for an independent DeepSeek/claude-ds review |
-| `SETUP.md` | Local setup, scheduler, Claude Code CLI, logs, and paper-trading gates |
+| `SETUP.md` | Railway runbook, scheduler, the DeepSeek proposer, logs, and paper-trading gates |
 
 ## Local dev
 
 1. `pip install -r requirements.txt`
-2. Ensure the authenticated `claude` CLI is on PATH (or set `OA_CLAUDE_CLI`).
-3. Copy `.env.example` to `.env` and fill in paper credentials plus the read-only Public secret.
+2. Copy `.env.example` to `.env` and fill in paper credentials, `DEEPSEEK_API_KEY`, and the
+   read-only Public secret. (`OA_LLM_PROVIDER=claude_cli` uses the Mac's Claude CLI instead.)
 4. `python3 -m pytest tests/` — all tests pass without broker or model calls.
-5. The local user crontab runs `cron/entry.sh` and `cron/exits.sh`; run `python3 run_cycle.py`
-   manually only when intentionally performing a paper entry cycle.
+4. The bot itself runs on Railway; the Mac crontab lines are commented out. Run
+   `python3 run_cycle.py` locally only when intentionally performing a paper entry cycle
+   (it would trade the same paper account).
 
 ## Config
 

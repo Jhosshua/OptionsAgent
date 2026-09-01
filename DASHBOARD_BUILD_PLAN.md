@@ -1,9 +1,9 @@
 # OptionsAgent dashboard build plan
 
-> **CURRENT RUNTIME NOTE — 2026-08-28:** The dashboard is local-only and read-only. Trading runs from
-> the local user crontab, proposals use the authenticated Claude Code CLI, Public.com is read-only
-> market data, and Alpaca is paper-only execution. Railway deployment requirements below are
-> historical and must not override this local setup.
+> **CURRENT RUNTIME NOTE — 2026-09-01:** The dashboard is deployed on Railway (public, read-only).
+> Proposals use the DeepSeek API, Public.com is read-only market data, Alpaca is paper-only
+> execution. The Research tab described below was REMOVED on 2026-09-01 (it replayed an
+> always-empty file); an "AI proposer · last cycle" card replaced it.
 
 ## Goal
 

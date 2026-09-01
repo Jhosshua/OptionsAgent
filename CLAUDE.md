@@ -2,8 +2,8 @@
 
 > **CURRENT OPERATING MODE — 2026-08-28 (night):** OptionsAgent is a local
 > paper-trading robot with TWO engines on a $100,000 Alpaca paper account:
-> (1) the credit-spread seller (Claude CLI proposes, rails dispose, once daily
-> 10:15-10:27 ET) and (2) the EQUITY intraday scalper (run_scalp_equity.py,
+> (1) the credit-spread seller (the AI proposer, DeepSeek API since 09-01, proposes;
+> rails dispose, once daily 10:15-10:27 ET) and (2) the EQUITY intraday scalper (run_scalp_equity.py,
 > mined rules, shares only, every minute 09:45-15:55 ET, cron/equity_scalp.sh).
 > The 0DTE OPTION scalper was RETIRED tonight on 6-month evidence (no positive
 > expectancy in 16,384 configs). Stock data runs through the hosted AlpacaRelay
@@ -15,9 +15,14 @@
 > **CURRENT SETUP — 2026-09-01:** OptionsAgent runs on **Railway**, in project
 > `OptionsAgent` (`cc393b70-4ef5-48d5-8299-253b914cc219`), service `OptionsAgent`,
 > region sfo. Linux cron in the container is the scheduler; the volume at
-> `/Users/mo/OptionsAgent/data` holds all state. Proposals still come from the
-> authenticated **Claude Code CLI** (`claude -p`), which the image installs and
-> authenticates with `CLAUDE_CODE_OAUTH_TOKEN` — NOT an Anthropic API key.
+> `/Users/mo/OptionsAgent/data` holds all state. Proposals come from the
+> **DeepSeek API** (`harness/proposer.py`, `OA_LLM_PROVIDER=deepseek`,
+> `DEEPSEEK_API_KEY`, model `deepseek-v4-pro`) since 2026-09-01 (evening). The
+> Claude Code CLI is NOT in the image any more: its login expired twice
+> ("Not logged in · Please run /login", 08-31 and 09-01) and each time the
+> once-a-day cycle failed closed and the trading day was lost. Every AI call is
+> journaled as a `proposer_result` row in `data/decisions.jsonl` and shown on
+> the dashboard, so a dead model can no longer pass for a quiet market.
 > Public.com is read-only options data, AlpacaRelay serves stock bars, Alpaca is
 > the paper execution broker. **Railway variables are authoritative**, and
 > `entrypoint.sh` writes them into `.env` at boot because cron does not inherit
@@ -53,6 +58,14 @@ The retirement notes below describe the FIRST Railway deployment (deleted
 > read-only market-data sidecar. It is now enabled locally; Alpaca remains the paper
 > execution/account broker. Its secret stays in the local `.env` only.
 
+> **2026-09-01 (evening) dashboard rework:** the Research tab and `/api/research` are GONE (they
+> replayed an always-empty file). `/api/summary.seller_cycle`, `/api/system.proposer` and
+> `/api/risk.rails.allowed_profiles` come from `_seller_cycle_report()` / `_allowed_profiles()`,
+> which read the latest cycle's `proposer_result` + `decision` rows and the SAME rule tuple the
+> rail enforces. The sidebar is sticky, sections load independently (one failed endpoint no
+> longer blanks the page), and the page refreshes every 60 s. Any new "is the seller alive"
+> view must read the `proposer_result` row, not the mere presence of a `cycle_start`.
+
 > **2026-09-01 dashboard update:** the dashboard reads BOTH engines. Any new P/L
 > view must merge `data/structures.jsonl` (seller) AND
 > `data/equity_scalp_decisions.jsonl` + `data/equity_scalp_state/<ET-date>.json`
@@ -84,11 +97,15 @@ Full design rationale: `RESEARCH.md` (3 research passes, verified findings + exp
   adapters, a verifier per module).
 - **Broker:** Alpaca paper via `alpaca-py`. PAPER ONLY — `make_client()` refuses any non-paper
   endpoint. Order prefix `oa-`.
-- **LLM:** the operator's authenticated Claude Code CLI, invoked non-interactively with structured
-  JSON output (`OA_CLAUDE_CLI`, `OA_CLAUDE_MODEL`). No Anthropic API key is required. CLI/auth/parse
-  failure returns no proposals (conservative, not a guess).
+- **LLM:** the DeepSeek chat-completions API (`harness/proposer.py`, `OA_LLM_PROVIDER=deepseek`,
+  `DEEPSEEK_API_KEY`, `OA_DEEPSEEK_MODEL`, default `deepseek-v4-pro`, JSON-object mode, temperature
+  0). One call per trading day with the whole watchlist in one bundle; ~1-2k tokens in, up to
+  ~5k out, ~40-80 s. Transient errors retry 3x; config errors (bad/missing key) do not. Any
+  failure returns no proposals (conservative, not a guess) and pages Discord once. The Claude Code
+  CLI path (`OA_LLM_PROVIDER=claude_cli`) still exists for the Mac only.
 - **Persistence:** flat JSONL under `data/` (`decisions.jsonl`), no DB — matches DA.
-- **Runtime:** local user crontab + local read-only dashboard; no Railway deployment.
+- **Runtime:** Railway (Linux cron in the container, state on the volume) + the public read-only
+  dashboard. The Mac crontab lines are commented out; do not run the bot locally as well.
 
 ## Permanent constraints (apply every session, flag before breaking)
 

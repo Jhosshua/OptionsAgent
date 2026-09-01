@@ -1,8 +1,8 @@
 # DeepSeek prompt: OptionsAgent credit-spread overfit review
 
-> **CURRENT RUNTIME NOTE — 2026-08-28:** This is a read-only research prompt, not the runtime
-> proposal path. The active local bot uses the authenticated Claude Code CLI, Public.com read-only
-> data, and Alpaca paper execution. No Anthropic API key or Railway deployment is required.
+> **CURRENT RUNTIME NOTE — 2026-09-01:** This is a read-only research prompt, not the runtime
+> proposal path. (Coincidence of names: the RUNTIME proposer also uses the DeepSeek API since
+> 2026-09-01, via `harness/proposer.py` on Railway. This file is unrelated to that call.)
 
 Run this from `/Users/mo/OptionsAgent` with the local DeepSeek wrapper. Do not
 edit files. Return a recommendation only.
