@@ -63,6 +63,8 @@ options trading" on the evidence judges will look at (the account's orders).
 - [x] **C1 CLI in the order path.** `harness/alpaca_cli.py` + `OA_BROKER_TRANSPORT=cli`; Dockerfile installs Alpaca CLI v0.0.14 (sha256 pinned). Account/positions/clock/order submit (incl. `mleg`)/get/cancel all go through `alpaca …`, journaled to `data/cli_calls.jsonl`, fail-closed. Verified against the real account (read-only) and with `--dry-run` for the spread body.
 - [x] **C2 Gate opened + cap set together.** `OA_CREDIT_SPREAD_GATE=research_rules` bypasses the CCL/SOFI/F winner table; `OA_MAX_POSITION_USD=3000` caps each position (≤ 15 contracts of a $2 spread). Whether a spread FILLS still depends on the picker finding a 0.15–0.30-delta, 30–45-DTE, ≤ $2-wide pair: watch Wed 10:15.
 - [x] **C3** README hackathon section: disclosure, account ID, requirements mapping, the two deliberate changes.
+- [x] **C5** 276 tests green, 7 mutation checks caught; deployed to Railway 2026-09-01 23:00 ET (416c1fea) and verified in-container (CLI binary, env, adapter smoke, dry-run mleg, cron). Adversarial review findings (immediate-stop spreads, no dedupe, scalper bypassing the CLI, fills booked unconfirmed) fixed BEFORE deploy; see MEMORY.md.
+- [ ] **C4** LICENSE (MIT) + public repo: still the operator's call (D3).
 - [ ] **C4** Add LICENSE (MIT) if going public. Scrub: `git log -p --all -S 'PK' | head`, `.env*` never committed, dashboard has no secrets.
 - [ ] **C5** Tests green after C1/C2 (233 currently). Deploy to Railway, verify the first cron cycle Wed 10:15 ET through the new path in the journal.
 

@@ -82,6 +82,13 @@ lever; the picker is research). Opening the phase to CSPs (a CSP's collateral
 is strike×100 and the same %-of-BP sizer would have sized in the tens of
 thousands).
 
+**DEPLOYED 2026-09-01 23:00 ET** (Railway deployment 416c1fea, commit db43c52). Verified
+from inside the container: `/usr/local/bin/alpaca` 0.0.14; the three vars present in the cron
+`.env`; `make_client()` on the CLI path read account ($100,034.43), positions ([]) and clock in
+~220 ms each with journal rows in `data/cli_calls.jsonl`; a `--dry-run` mleg produced the exact
+Alpaca body; cron running with `/etc/cron.d/optionsagent`. Public `/api/risk` reports
+gate=research_rules, cap=$3,000, transport=cli.
+
 **Watch on 09-02:** the 10:15 ET cycle's `judged_against` row, the first
 `cli_calls.jsonl` rows from the container, and whether any spread actually
 fills (the picker still binds; a quiet-IV day can legitimately yield zero).
