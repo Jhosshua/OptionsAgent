@@ -7,7 +7,8 @@ Outputs (submission/out/):
   slides/slide-NN.png       8 slides + up to 2 dashboard screenshots (1920x1080)
   Wingspan-Slides.pdf       the slides as a PDF
   Wingspan-OnePager.pdf     one-page write-up (AI logic, risk gates, Alpaca infra)
-  Wingspan-Video.mp4        narrated slideshow, <= 5 min (macOS `say` + ffmpeg)
+  Wingspan-Video.mp4        narrated slideshow, ~2 min (edge-tts neural voice + ffmpeg;
+                            --voice=en-US-AvaMultilingualNeural etc.; falls back to macOS `say`)
 
 Live numbers come from the public dashboard API and the Alpaca CLI (paper keys
 from .env); when either is unreachable the slide says "unavailable" rather
@@ -202,70 +203,50 @@ def slide_specs(n: dict) -> list[dict]:
     eq = money(n["equity"])
     return [
         dict(kind="title",
-             narration="This is Wingspan, an autonomous options trading agent built for the Alpaca A I Trading Agents Hackathon. "
-                       "Its one design rule: the A I is the least trusted part of the system. It may propose a trade. "
-                       "It may never pick a strike, size a position, choose an exit, or place an order."),
+             narration="This is Wingspan, an options agent that mostly says no. The A I may propose a trade. It never picks a strike, sizes a position, or places an order."),
         dict(title="The problem", kicker="Why build it this way",
              items=["Language models are good at generating plausible trades and bad at refusing bad ones.",
                     "In a live account the expensive mistakes are not the ideas, they are the sizes, the strikes and the exits.",
                     "So the model only answers one question per name: is there a trade here, which strategy, which direction, how sure?",
                     "Everything after that is deterministic code that can be tested, replayed and audited."],
-             narration="The problem we designed around: language models are good at generating plausible trades and bad at refusing bad ones. "
-                       "In a live account the expensive mistakes are not the ideas. They are the sizes, the strikes and the exits. "
-                       "So the model answers one question per name: is there a trade, which strategy, which direction, how sure. "
-                       "Everything after that is deterministic code that can be tested, replayed and audited."),
+             narration="Language models invent plausible trades and struggle to refuse them. So the model answers one question per name: is there a trade, and how sure are you."),
         dict(title="The rule: AI proposes, code disposes", kicker="Architecture",
              items=["Once a day DeepSeek reads a 13-name watchlist with fresh bars and context, returns {underlying, strategy, direction, conviction, thesis}, validated against a schema.",
                     "Deterministic rails: conviction floor 0.60, strategy menu, one position per name, six slots, a $3,000 hard cap per position.",
                     "Contract picker: short strike 0.15 to 0.30 delta, 30 to 45 days out, width at most $2. Liquidity floor: credit ≥ $0.10 and unwind cost < 1.5x credit.",
                     "One multi-leg limit order through the official Alpaca CLI. Fill confirmed, remainder cancelled, filled count booked."],
-             narration="Here is the pipeline. Once a day DeepSeek reads a thirteen name watchlist and returns proposals validated against a schema. "
-                       "Deterministic rails apply a conviction floor, a strategy menu, one position per name, six slots, and a three thousand dollar hard cap per position. "
-                       "A contract picker chooses the short strike between fifteen and thirty delta, thirty to forty five days out, at most two dollars wide, "
-                       "and a liquidity floor rejects any spread the exit rule would stop out on its own entry quotes. "
-                       "Then one multi leg limit order goes through the official Alpaca C L I, the fill is confirmed, and only the filled count is booked."),
+             narration="Once a day, DeepSeek reads thirteen names and proposes. Deterministic rails apply a conviction floor, one position per name, and a three thousand dollar cap. A picker chooses the strikes, and one order goes through the official Alpaca C L I."),
         dict(title="Exits have no AI in them", kicker="Every 20 minutes",
              items=["Profit target: buy the spread back at 50% of the credit received.",
                     "Stop: cost to close at 2x the credit, only after 10:00 ET and only when two consecutive sweeps agree, so one wide opening quote cannot force a liquidation.",
                     "Time: forced close at 21 days to expiry, before gamma risk grows.",
                     "A close is recorded only when the unwind order actually fills; a partial fill re-registers the remainder."],
-             narration="Exits run every twenty minutes with no A I in the loop. Profit target at fifty percent of the credit. "
-                       "A stop at two times the credit, only after ten A M and only when two consecutive sweeps agree, so one wide opening quote cannot force a liquidation. "
-                       "A forced close at twenty one days to expiry. And a close is recorded only when the unwind order actually fills."),
+             narration="Exits have no A I in them. Take profit at half the credit, stop at twice the credit, force close at twenty one days. A close is booked only when the unwind actually fills."),
         dict(kind="shot", file="dash_overview.png", title="Live dashboard", kicker="Read-only observer of the same journals",
-             narration="This is the public dashboard. It reads the same journals the bot writes: today's equity and P and L, "
-                       "the A I's trade ideas for the day, and, next to each one, the gate that accepted or rejected it."),
+             narration="The public dashboard reads the same journals the bot writes: equity, P and L, and each day's A I ideas with the gate that accepted or rejected them."),
         dict(kind="shot", file="dash_risk.png", title="Risk rails, as the code sees them", kicker="Rendered from the same functions the bot runs",
-             narration="The risk rails tab is rendered from the exact functions the trading cycle calls, so the page cannot drift from the code. "
-                       "You can see the gate mode, the three thousand dollar cap, and that the broker path is the official Alpaca C L I."),
+             narration="The risk rails page is rendered from the exact functions the bot runs, so it cannot drift from the code. Gate mode, the cap, and the broker path are all visible."),
         dict(title="Alpaca infrastructure", kicker="Trading API through the official CLI",
              items=["Account, positions, clock, order submit (single-leg and mleg), order status and cancel all run as `alpaca … -q` subprocesses inside the container, JSON out.",
                     "CLI pinned to v0.0.14 with a verified checksum in the Docker image. Every call journaled: argv, exit code, latency, order id.",
                     "Fail-closed: a missing binary or a non-zero exit stops the trade. A lost reply is reconciled by our own client order id before it is called a failure.",
                     "Runs on Railway as Linux cron: entry 10:15 ET, exits every 20 min, an equity scalper every minute. State on a volume. Paper only by construction."],
-             narration="On the Alpaca side, every account, position, clock and order call runs through the official command line interface as a subprocess inside the container, "
-                       "pinned to a checksummed release, with every call journaled. It fails closed: a missing binary or a non zero exit stops the trade, "
-                       "and a lost reply is reconciled by our own client order I D before it is ever called a failure. "
-                       "The whole thing runs on Railway as Linux cron, paper only by construction."),
+             narration="Every account, position and order call runs through Alpaca's official C L I inside the container, pinned and journaled. It fails closed."),
         dict(title="What we caught before the first trade", kicker="Build in public means showing the misses",
              items=["The original gate admitted only three historical winner shapes: a week of zero option fills.",
                     "Opening it naively would have booked losers: replaying the previous day's real chains, 8 of 22 admitted spreads were already past the 2x stop on their own entry quotes, because entry is priced bid-to-ask and the unwind ask-to-bid.",
                     "Fix: a liquidity floor derived from the exit rule. After it: 5 of 26 admitted, 0 past the stop.",
                     "Also fixed before deploy: no per-name dedupe, fills booked unconfirmed, a scalper path that bypassed the CLI. 276 tests; seven mutation checks each broke the right test."],
-             narration="What we caught before the first trade. The original gate admitted only three historical winner shapes, which meant a week of zero option fills. "
-                       "Opening it naively would have booked losers: replaying the previous day's real option chains, eight of twenty two admitted spreads were already past their stop on their own entry quotes. "
-                       "The fix is a liquidity floor derived from the exit rule. After it, five of twenty six admitted, none past the stop. "
-                       "We also fixed missing de duplication, unconfirmed fills, and a scalper path that bypassed the C L I, all before deploy, with two hundred seventy six tests."),
+             narration="Before the first trade, a replay of real option chains showed eight of twenty two spreads the open gate would take were already past their stop. A liquidity floor fixed it: five admitted, none past."),
         dict(title="Results and disclosure", kicker=f"Snapshot {n['as_of']}",
              items=[f"Competition account {n['account_number']}: equity {eq}; today's P/L {money(n['today_pnl'])}.",
                     f"Filled orders in the window: {n['fills_total']} ({n['fills_options']} options, {n['fills_equity']} shares).",
                     f"Active settings: gate = {n['gate']}, cap = {money(n['cap'])}, broker path = {n['transport']}, proposer = {n['proposer']}.",
                     "Disclosure: the harness predates the event (July 2026). Built in the window: the equity scalper and its study, the Railway deploy, the DeepSeek proposer, the dashboard rework, the CLI transport, the gate and cap. Nothing else has traded this account.",
                     "Repo: github.com/Jhosshua/OptionsAgent (MIT). Dashboard: optionsagent-production.up.railway.app"],
-             narration=f"Results as of {n['as_of']}. Equity {eq}. {n['fills_total']} filled orders in the window, "
-                       f"{n['fills_options']} of them options. Full disclosure: the harness predates the event; the scalper, the deployment, the proposer, "
-                       "the dashboard, the C L I transport and the gate changes were built inside the window, and nothing else has traded this account. "
-                       "The lesson we would offer: on a two day window, robustness is the thing a judge can verify. Thank you."),
+             narration=f"Results as of {n['as_of']}: equity {eq}, {n['fills_total']} filled orders. "
+                       "The harness predates the event; the rest was built inside the window. "
+                       "On a two day window, robustness is what a judge can verify. Thank you."),
     ]
 
 
@@ -361,19 +342,37 @@ def one_pager(n: dict):
 
 # ---------------------------------------------------------------- video
 
-def video(paths: list[Path], n: dict, voice: str = "Samantha"):
+DEFAULT_VOICE = "en-US-AndrewMultilingualNeural"   # Microsoft neural voice via edge-tts (free, no key)
+
+
+def narrate(text: str, out: Path, voice: str) -> Path:
+    """Neural voice through edge-tts; falls back to macOS `say` (Samantha) if
+    the network path fails, and says so on stdout."""
+    mp3 = out.with_suffix(".mp3")
+    try:
+        subprocess.run([sys.executable, "-m", "edge_tts", "--voice", voice, "--rate=+4%",
+                        "--text", text, "--write-media", str(mp3)], check=True, capture_output=True, timeout=120)
+        if mp3.stat().st_size > 1000:
+            return mp3
+    except Exception as e:  # noqa: BLE001
+        print("edge-tts failed, falling back to `say`:", str(e)[:120])
+    aiff = out.with_suffix(".aiff")
+    subprocess.run(["say", "-v", "Samantha", "-r", "178", "-o", str(aiff), text], check=True)
+    return aiff
+
+
+def video(paths: list[Path], n: dict, voice: str = DEFAULT_VOICE):
     specs = slide_specs(n)
     work = OUT / "video_work"
     work.mkdir(exist_ok=True)
     segs = []
     for i, (p, s) in enumerate(zip(paths, specs), 1):
-        aiff = work / f"narr-{i:02d}.aiff"
-        subprocess.run(["say", "-v", voice, "-r", "178", "-o", str(aiff), s["narration"]], check=True)
+        audio = narrate(s["narration"], work / f"narr-{i:02d}", voice)
         seg = work / f"seg-{i:02d}.mp4"
         subprocess.run([
-            "ffmpeg", "-y", "-loglevel", "error", "-loop", "1", "-i", str(p), "-i", str(aiff),
+            "ffmpeg", "-y", "-loglevel", "error", "-loop", "1", "-i", str(p), "-i", str(audio),
             "-c:v", "libx264", "-tune", "stillimage", "-pix_fmt", "yuv420p", "-r", "24",
-            "-c:a", "aac", "-b:a", "128k", "-af", "apad=pad_dur=0.8", "-shortest", str(seg),
+            "-c:a", "aac", "-b:a", "128k", "-ar", "44100", "-af", "apad=pad_dur=0.6", "-shortest", str(seg),
         ], check=True)
         segs.append(seg)
     lst = work / "list.txt"
@@ -396,7 +395,8 @@ def main():
     slides_pdf(paths)
     one_pager(n)
     if "--no-video" not in sys.argv:
-        final, dur = video(paths, n)
+        voice = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--voice=")), DEFAULT_VOICE)
+        final, dur = video(paths, n, voice=voice)
         print(f"video: {final} {dur:.0f}s {'OK' if dur <= 300 else 'TOO LONG (>300s)'}")
     for p in sorted(OUT.glob("*")):
         if p.is_file():
