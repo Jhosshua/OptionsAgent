@@ -88,18 +88,6 @@ CUES = {
 }
 
 # Cue words: the first matching spoken word sets the CSS variable on the scene, so reveals land on the voice.
-CUES = {
-    1: {"c-agent": "options"},
-    2: {"c-point": "point", "c-finds": "finds", "c-178": "hundred", "c-idea": "idea", "c-never": "never"},
-    3: {"c-model": "model", "c-code": "code", "c-code2": "everything", "c-code3": "dollar", "c-code4": "sign"},
-    4: {"c-drop": "five", "c-dies": "dies", "c-most": "most"},
-    5: {"c-spy": "spy", "c-rules": "rules", "c-fade": "qqq", "c-gap": "mined", "c-twenty": "twenty", "c-twenty2": "trade", "c-two": "two", "c-flat": "flat"},
-    6: {"c-ring": "card"},
-    7: {"c-ring": "three"},
-    8: {"c-json": "json", "c-exit": "exit", "c-fails": "fails"},
-    9: {"c-eight": "eight", "c-floor": "liquidity", "c-five": "five", "c-zero": "zero"},
-    10: {"c-dash": "dashboard", "c-check": "check"},
-}
 
 
 def results_narration(n: dict) -> str:

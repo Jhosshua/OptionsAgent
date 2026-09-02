@@ -4,35 +4,17 @@ Everything the lablab form asks for, in the order the form asks. Numbers marked
 `[[…]]` get filled in Thursday after the close from the account snapshot.
 
 ## 1. Project title
-Wingspan: an options agent that mostly says no
+Wingspan: a trading helper that knows when to say no
 
 ## 2. Short description (max 255 chars)
-Autonomous options agent on Alpaca. DeepSeek proposes, code decides every strike, size and exit, and the official Alpaca CLI places every order. Defined risk credit spreads plus a no AI share scalper, a $3k cap per position, every refusal journaled.
+A trading helper for everyday options traders. An AI may have ideas; fixed rules decide how much to bet, when to get out, and when to do nothing, and Alpaca's official command line tool places every order. Two engines, every no written down.
 
-## 3. Long description (≥ 100 words)
-Wingspan (repo: OptionsAgent) is an autonomous options-trading agent built on
-Alpaca's Trading API through the official Alpaca CLI, running on a $100,000
-paper account created for this hackathon (account ID PA371G5THNUO).
+## 3. Long description (100+ words)
+Everyday options traders now make up to 60% of same day S&P 500 option volume, and as a group they lost $2.1 billion in twenty months, most of it to the cost of trading rather than bad picks (Cboe 2025; Journal of Finance 2023). Behavior research finds the same pattern after a losing streak: bet bigger, trade more. The problem is not picking stocks. It is size, exits, and knowing when to do nothing.
 
-The governing rule is simple: the AI proposes, the code disposes. Once a day
-DeepSeek reads a 13-name watchlist with fresh market context and answers one
-question per name: is there a trade, which strategy, which direction, how
-convinced? It may not name a strike, a size or an exit. A deterministic
-pipeline then picks the contracts (short strike at 0.15 to 0.30 delta, 30 to 45 days out, at most $2 wide), sizes the position (conviction-scaled, hard-capped
-at $3,000 of defined risk), checks that the spread is liquid enough that the
-exit rule will not stop it out on the same quotes it was opened on, and sends
-one multi-leg limit order through `alpaca order submit`. A separate exit sweep
-runs every 20 minutes with no AI in it: 50% profit target, a 2x credit stop
-confirmed over two sweeps after 10:00 ET, forced close at 21 days to expiry.
-A second engine has no AI at all: two rules on SPY and QQQ mined from six months
-of minute bars, $20k a trade, two trades a day, a 0.7% stop, flat by 15:50 ET.
-Both engines trade the same account through the same CLI path.
+Wingspan does exactly those three things. An AI (DeepSeek) is allowed to have ideas: once a day it reads six weeks of prices for thirteen well known stocks and says whether there is a bet and how sure it is. Fixed rules do everything with a dollar sign on it. Engine one turns a yes into a small bet with a fixed worst case (sell a contract five to six weeks out at a price the stock probably will not reach, buy a second contract behind it, never more than $3,000 at risk), runs five checks that any one can fail, and hands the order to Alpaca's official command line tool. A separate program with no AI decides every exit on a clock: take the win at half, cut the loss at double, never hold into the last three weeks. Engine two has no AI at all: two rules on SPY and QQQ shares found in six months of data, $20,000 a trade, two a day, everything closed by 3:50.
 
-What makes it different is what it refuses. Every proposal that dies at a gate
-is journaled with the gate that killed it and the thresholds it was judged
-against, every CLI call is journaled with its exit code and latency, and the
-public dashboard shows the refusals next to the fills. The design goal was an
-agent a stranger could audit in ten minutes, not one that trades a lot.
+Every idea the AI has, and every rule that said no, is written down and shown on the public dashboard next to the fills. Every order is logged with whether it worked. The goal is a helper a stranger can audit in ten minutes, not one that trades a lot. Practice account PA371G5THNUO, $100,000 start.
 
 ## 4. Tags
 Alpaca · Alpaca CLI · DeepSeek · Python · Railway · Options · Credit spreads · Autonomous agent

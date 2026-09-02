@@ -118,6 +118,16 @@ CLI has no per-word option in 7.2.8) and sets `--c-<cue>` CSS vars per scene. Th
 corrected to 23 pickable shapes (my reproducible replay; the first reviewer said 22). Scene 6 still shows an
 EMPTY ideas card: reshoot after the 10:15 cycle and re-run make_scenes + render + print_pdf.
 
+**Video v5 (09-02 ~02:40 ET):** operator: the customer is not a developer, show a real customer need with
+research, explain BOTH engines, strip jargon, video may be longer, use /design for alternatives. Research
+(WebSearch): Bryzgalova/Pavlova/Sikorskaya J. Finance 2023 ($2.1B retail options losses Nov 2019 to Jun 2021, mostly
+trading costs); Cboe 2025 (retail up to 60% of same-day S&P option volume, record volume 6 years running); behavior
+research (after a losing streak, size and frequency go up); MIT Sloan/de Silva (5 to 9% average loss around earnings).
+13 scenes, ~3:40: cover, couch-trader vignette (win, losing week, "doubles the next bet"), evidence tiles, what it
+is, engine one (3 steps), exits (clock + 3 rules), engine two (chart + 6 rows), app x2, CLI, replay proof, straight
+talk, results. Canvas got a second page "Ideas + research" with three vignette directions and a sources board.
+Bug found: a stale duplicate `CUES` dict in render.py overrode the new one (cues "not found"); removed.
+
 **Watch on 09-02:** the 10:15 ET cycle's `judged_against` row, the first
 `cli_calls.jsonl` rows from the container, and whether any spread actually
 fills (the picker still binds; a quiet-IV day can legitimately yield zero).
