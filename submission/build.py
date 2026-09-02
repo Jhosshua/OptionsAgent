@@ -215,7 +215,7 @@ def slide_specs(n: dict) -> list[dict]:
                     "Deterministic rails: conviction floor 0.60, strategy menu, one position per name, six slots, a $3,000 hard cap per position.",
                     "Contract picker: short strike 0.15 to 0.30 delta, 30 to 45 days out, width at most $2. Liquidity floor: credit ≥ $0.10 and unwind cost < 1.5x credit.",
                     "One multi-leg limit order through the official Alpaca CLI. Fill confirmed, remainder cancelled, filled count booked."],
-             narration="Once a day, DeepSeek reads thirteen names and proposes. Deterministic rails apply a conviction floor, one position per name, and a three thousand dollar cap. A picker chooses the strikes, and one order goes through the official Alpaca C L I."),
+             narration="Once a day, DeepSeek reads thirteen names and proposes. Rails apply a conviction floor, one position per name, and a three thousand dollar cap. Code picks the strikes, and one order goes through the official Alpaca C L I."),
         dict(title="Exits have no AI in them", kicker="Every 20 minutes",
              items=["Profit target: buy the spread back at 50% of the credit received.",
                     "Stop: cost to close at 2x the credit, only after 10:00 ET and only when two consecutive sweeps agree, so one wide opening quote cannot force a liquidation.",
@@ -244,7 +244,7 @@ def slide_specs(n: dict) -> list[dict]:
                     f"Active settings: gate = {n['gate']}, cap = {money(n['cap'])}, broker path = {n['transport']}, proposer = {n['proposer']}.",
                     "Disclosure: the harness predates the event (July 2026). Built in the window: the equity scalper and its study, the Railway deploy, the DeepSeek proposer, the dashboard rework, the CLI transport, the gate and cap. Nothing else has traded this account.",
                     "Repo: github.com/Jhosshua/OptionsAgent (MIT). Dashboard: optionsagent-production.up.railway.app"],
-             narration=f"Results as of {n['as_of']}: equity {eq}, {n['fills_total']} filled orders. "
+             narration=f"At snapshot: equity {eq}, {n['fills_total']} filled orders. "
                        "The harness predates the event; the rest was built inside the window. "
                        "On a two day window, robustness is what a judge can verify. Thank you."),
     ]
