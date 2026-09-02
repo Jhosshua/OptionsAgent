@@ -29,7 +29,8 @@
 
 The proposer's outcome is journaled as a `proposer_result` row in `data/decisions.jsonl`
 (provider, model, ok, proposals, attempts, latency_s, error) and shown on the dashboard's
-"AI proposer" card. Any API/key/parse failure returns no proposal and submits no order.
+"AI trade ideas" tile and card (renamed from "AI proposer" on 2026-09-01; each has an info
+icon explaining it in plain words). Any API/key/parse failure returns no proposal and submits no order.
 `OA_LLM_PROVIDER=claude_cli` selects the Mac-only Claude Code CLI path (resolved from
 `OA_CLAUDE_CLI`, PATH, or `~/.npm-global/bin/claude`); the container cannot use it.
 

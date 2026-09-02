@@ -1,5 +1,34 @@
 # MEMORY.md — OptionsAgent
 
+## 2026-09-01 — "Seller, last cycle" tile renamed "AI trade ideas" + info tooltip
+
+**Decided:** the Overview tile "Seller, last cycle / — proposals / AI call not
+journaled for this cycle" is now "AI trade ideas" with an info icon whose
+tooltip explains it in plain words (each morning the credit-spread engine asks
+the AI for ideas, the rails pick which become trades, and the tile shows how
+many came back and whether the call worked). The lower card is "AI trade ideas
+· latest run" with the same icon; its rows read "AI call / Ideas proposed /
+Traded" and the list is "What happened to the ideas". Status copy:
+"No run yet" · "Last run predates AI logging · check back after the next daily
+run" · "AI call failed, nothing traded (safe) · <error>" · "AI responded in Xs
+[after N tries]". Files: `dashboard/index.html`, `dashboard/app.js`,
+`dashboard/app.css` (`.info`, `.tooltip`, CSS-only, hover + keyboard focus).
+
+**Why:** operator: "its not user friendly idk what its even for". The label
+assumed you knew "seller" = credit-spread engine and "cycle" = its daily run,
+a dash next to "proposals" looked broken instead of unknown, and "not
+journaled" is developer language. The unknown state still never renders as 0.
+
+**Rejected:** putting "10:15 ET" in the tile copy. The schedule is a cron
+constant that has moved before; the tooltip says "each morning after the open"
+so the text cannot rot.
+
+**Staleness sweep, same evening:** CLAUDE.md opened with "a local
+paper-trading robot" while its next paragraph said Railway (fixed); SETUP.md
+and DASHBOARD_BUILD_PLAN.md still named the card "AI proposer" (fixed); README
+dashboard section now records the Wingspan brand. Suite 233 passed. Deployed
+with `railway up --service OptionsAgent`.
+
 ## 2026-09-01 — DASHBOARD BRAND: "Wingspan" wordmark + W-wing mark
 
 **Decided:** the dashboard's logo and name are now **Wingspan** (wordmark) with

@@ -53,10 +53,11 @@
   // of this is that a dead model and a quiet market look identical in the
   // trade list; only the journaled call tells them apart.
   function aiStatus(cycle) {
-    if (!cycle || !cycle.cycle_id) return { text: "No seller cycle yet", cls: "muted" };
-    if (!cycle.ai) return { text: "AI call not journaled for this cycle", cls: "muted" };
-    if (!cycle.ai.ok) return { text: `AI call FAILED · ${esc(cycle.ai.error) || "no error text"}`, cls: "loss" };
-    return { text: `AI call OK · ${plural(esc(cycle.ai.attempts ?? 1), "attempt")} · ${esc(cycle.ai.latency_s ?? "—")}s`, cls: "gain" };
+    if (!cycle || !cycle.cycle_id) return { text: "No run yet", cls: "muted" };
+    if (!cycle.ai) return { text: "Last run predates AI logging · check back after the next daily run", cls: "muted" };
+    if (!cycle.ai.ok) return { text: `AI call failed, nothing traded (safe) · ${esc(cycle.ai.error) || "no error text"}`, cls: "loss" };
+    const tries = (cycle.ai.attempts ?? 1) > 1 ? ` after ${esc(cycle.ai.attempts)} tries` : "";
+    return { text: `AI responded in ${esc(cycle.ai.latency_s ?? "—")}s${tries}`, cls: "gain" };
   }
 
   function setStatusBanner(summary) {
@@ -79,7 +80,7 @@
     const cycle = data.seller_cycle || {};
     $("seller-proposals").textContent = cycle.proposals ?? "—";
     const status = aiStatus(cycle);
-    const opened = cycle.opened == null ? "" : `${plural(cycle.opened, "trade")} opened · `;
+    const opened = cycle.opened == null ? "" : `${cycle.opened} traded · `;
     $("seller-status").textContent = `${opened}${status.text}`;
     $("seller-status").className = `status-text ${status.cls}`;
     renderEquity(data.equity_curve || []);
@@ -91,18 +92,18 @@
     $("ai-badge").className = `status-text ${status.cls}`;
     const ai = cycle.ai || {};
     $("ai-rows").innerHTML =
-      row("When", cycle.started ? whenET(cycle.started) : "No cycle yet") +
+      row("When", cycle.started ? whenET(cycle.started) : "No run yet") +
       row("Model", ai.provider ? `${esc(ai.provider)} · ${esc(ai.model)}` : "—") +
-      row("Call", status.text, status.cls) +
-      row("Proposals", cycle.proposals ?? "—") +
-      row("Opened", cycle.opened ?? "—", cycle.opened > 0 ? "gain" : "");
+      row("AI call", status.text, status.cls) +
+      row("Ideas proposed", cycle.proposals ?? "—") +
+      row("Traded", cycle.opened ?? "—", cycle.opened > 0 ? "gain" : "");
     const list = $("ai-rejections"); list.innerHTML = "";
     const rejections = cycle.rejections || [];
-    if (!cycle.cycle_id) list.innerHTML = "<li>The seller has not run a cycle yet.</li>";
-    else if (ai.ok === false) list.innerHTML = "<li>The AI call failed, so there were no proposals to judge. Nothing was traded (fail-closed).</li>";
-    else if (cycle.proposals == null) list.innerHTML = "<li>This cycle ran on a build that did not journal the AI call, so its result is unknown. The next cycle will show it.</li>";
-    else if (cycle.proposals === 0) list.innerHTML = "<li>The AI proposed nothing this cycle. That is allowed; it is a selective bot.</li>";
-    else if (!rejections.length && (cycle.opened ?? 0) > 0) list.innerHTML = "<li>Every proposal opened.</li>";
+    if (!cycle.cycle_id) list.innerHTML = "<li>The credit-spread engine has not run yet.</li>";
+    else if (ai.ok === false) list.innerHTML = "<li>The AI call failed, so there were no ideas to judge. Nothing was traded, which is the safe default.</li>";
+    else if (cycle.proposals == null) list.innerHTML = "<li>This run happened before the dashboard started logging AI calls, so its result is unknown. The next daily run will show here.</li>";
+    else if (cycle.proposals === 0) list.innerHTML = "<li>The AI proposed nothing this run. That is allowed; it is a selective bot.</li>";
+    else if (!rejections.length && (cycle.opened ?? 0) > 0) list.innerHTML = "<li>Every idea became a trade.</li>";
     else rejections.forEach((r) => { const li = document.createElement("li"); li.textContent = `${r.reason} (${r.count})`; list.appendChild(li); });
   }
   function renderEquity(points) {

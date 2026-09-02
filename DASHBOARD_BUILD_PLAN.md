@@ -3,7 +3,8 @@
 > **CURRENT RUNTIME NOTE — 2026-09-01:** The dashboard is deployed on Railway (public, read-only).
 > Proposals use the DeepSeek API, Public.com is read-only market data, Alpaca is paper-only
 > execution. The Research tab described below was REMOVED on 2026-09-01 (it replayed an
-> always-empty file); an "AI proposer · last cycle" card replaced it.
+> always-empty file); an "AI proposer · last cycle" card replaced it (renamed "AI trade ideas · latest run" on
+> 2026-09-01, with a plain-language info tooltip; the stat tile is "AI trade ideas").
 
 ## Goal
 

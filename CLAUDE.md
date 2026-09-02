@@ -1,7 +1,7 @@
 # CLAUDE.md — OptionsAgent
 
-> **CURRENT OPERATING MODE — 2026-08-28 (night):** OptionsAgent is a local
-> paper-trading robot with TWO engines on a $100,000 Alpaca paper account:
+> **CURRENT OPERATING MODE — 2026-08-28 (night), hosting updated 09-01:** OptionsAgent is a
+> paper-trading robot (on Railway since 09-01, see CURRENT SETUP below) with TWO engines on a $100,000 Alpaca paper account:
 > (1) the credit-spread seller (the AI proposer, DeepSeek API since 09-01, proposes;
 > rails dispose, once daily 10:15-10:27 ET) and (2) the EQUITY intraday scalper (run_scalp_equity.py,
 > mined rules, shares only, every minute 09:45-15:55 ET, cron/equity_scalp.sh).

@@ -85,7 +85,9 @@ adapter is read-only and never submits Public orders. See `SETUP.md` for the cre
 
 The supplied daylight dashboard is implemented under `dashboard/` and served by the
 `harness.dashboard_server` process, which the Railway entrypoint supervises alongside cron.
-It is read-only and defaults to paper trading disarmed.
+It is read-only and defaults to paper trading disarmed. Its on-page brand is **Wingspan**
+(W-wing mark, chosen 2026-09-01, working files in `dashboard/brand/`); the system itself is
+still OptionsAgent everywhere else.
 
 **Live at https://optionsagent-production.up.railway.app.** In the container it binds
 `0.0.0.0` on Railway's `$PORT` (`OA_DASHBOARD_HOST=0.0.0.0`), so unlike the old
