@@ -106,6 +106,18 @@ account; hook = the real "178 contracts on one idea" sizing number), one idea pe
 had asked for it, so it stays restrained in scenes 1 and 9 only. Scene 5's screenshot still shows an EMPTY
 "AI trade ideas" card: re-shoot after the 09-02 10:15 cycle and re-run make_scenes + render.
 
+**Video v4 (09-02 ~01:40 ET):** operator rejected v3 (highlight drifted under the zoom, big zero over the dots, only
+one engine explained, no customer vignette). Fixes: the focus ring lives inside the zoomed layer; a
+developer+LLM vignette opens the video; engine two has its own scene; a code-reading subagent produced
+"How Wingspan works today (from the code)" and every claim in the video, one-pager and README was aligned to it
+(6 slots = LEGS so 3 spreads max ≈ $9k, stop needs two sweeps after 10:00, the scalper's flatten is the one
+journaled SDK fallback, 0DTE scalper wired but OFF, market data never via the CLI). Reveals now lock to the
+spoken word: `render.py` uses edge-tts WordBoundary events (`Communicate(..., boundary="WordBoundary")`; the
+CLI has no per-word option in 7.2.8) and sets `--c-<cue>` CSS vars per scene. The one-pager is an artboard
+(`OnePager.dc.html`, Letter) printed via CDP `Page.printToPDF`, so it matches the video's design. Replay count
+corrected to 23 pickable shapes (my reproducible replay; the first reviewer said 22). Scene 6 still shows an
+EMPTY ideas card: reshoot after the 10:15 cycle and re-run make_scenes + render + print_pdf.
+
 **Watch on 09-02:** the 10:15 ET cycle's `judged_against` row, the first
 `cli_calls.jsonl` rows from the container, and whether any spread actually
 fills (the picker still binds; a quiet-IV day can legitimately yield zero).

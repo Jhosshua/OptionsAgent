@@ -215,7 +215,7 @@ def scene02() -> str:
     {DEV_SVG.format(style="")}
     <div class="say me"><span class="tag">developer</span>Find me a trade.</div>
     <div class="say llm"><span class="tag">language model</span>Sure. Sell call spreads on T.</div>
-    <div class="meter"><div class="l"><span><span class="big">178</span>&nbsp; spreads. Our own first dry run sized it.</span><b>$35,600 · a third of the account</b></div><div class="bar"><i></i></div></div>
+    <div class="meter"><div class="l"><span><span class="big">178</span>&nbsp; spreads on one idea</span><b>$35,600 · a third of the account</b></div><div class="bar"><i></i></div></div>
     <div class="line">It will always find a trade. It never says no, and it <em>can't count contracts.</em></div>
     """
     return page("Scene 2 · Problem", css, body)

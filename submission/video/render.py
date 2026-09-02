@@ -127,7 +127,7 @@ async def narrate(i: int, text: str, voice: str, rate: str) -> Path:
     import edge_tts
     mp3 = FRAMES / f"narr-{i:02d}.mp3"
     words_path = FRAMES / f"narr-{i:02d}.words.json"
-    com = edge_tts.Communicate(text, voice, rate=rate)
+    com = edge_tts.Communicate(text, voice, rate=rate, boundary="WordBoundary")
     words = []
     with open(mp3, "wb") as f:
         async for chunk in com.stream():
