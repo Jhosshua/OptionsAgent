@@ -22,9 +22,9 @@ a { color:var(--accent-dark); } a:hover { color:var(--accent); }
 .brand { position:absolute; left:96px; top:56px; display:flex; align-items:center; gap:14px; }
 .brand .mark { width:44px; height:44px; border-radius:12px; background:var(--accent); display:grid; place-items:center; }
 .brand .name { font-weight:800; font-size:26px; letter-spacing:-.4px; }
-.brand .kick { color:var(--muted); font-weight:600; font-size:20px; margin-left:10px; }
-.foot { position:absolute; left:96px; bottom:48px; color:var(--faint); font-size:20px; font-weight:600; }
-.pn { position:absolute; right:96px; bottom:48px; color:var(--faint); font-size:20px; font-weight:600; }
+.brand .kick { color:var(--muted); font-weight:600; font-size:24px; margin-left:10px; }
+.foot { position:absolute; left:96px; bottom:48px; color:var(--faint); font-size:24px; font-weight:600; }
+.pn { position:absolute; right:96px; bottom:48px; color:var(--faint); font-size:24px; font-weight:600; }
 h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
 .rise { animation: rise .7s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--d, 0s); }
 .pop  { animation: pop .55s cubic-bezier(.34,1.56,.64,1) both; animation-delay: var(--d, 0s); }
@@ -54,14 +54,14 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
     .stage { background:var(--paper); }
     .who { position:absolute; left:120px; top:180px; color:var(--muted); font-weight:700; font-size:26px; letter-spacing:.06em; text-transform:uppercase; }
     .dev { position:absolute; left:120px; top:300px; width:560px; height:560px; }
-    .dev .brows { transform-origin: 210px 130px; animation: worry .5s ease-out 6.0s both; }
+    .dev .brows { transform-origin: 210px 130px; animation: worry .5s ease-out var(--c-idea, 9.8s) both; }
     @keyframes worry { to { transform: translateY(-9px) rotate(-6deg); } }
-    .dev .mouth { animation: flat .5s ease-out 6.0s both; }
+    .dev .mouth { animation: flat .5s ease-out var(--c-idea, 9.8s) both; }
     @keyframes flat { to { d: path("M196 176 q14 -6 28 0"); } }
-    .dev .bang { opacity:0; animation: pop .35s cubic-bezier(.34,1.56,.64,1) 6.2s both; }
+    .dev .bang { opacity:0; animation: pop .35s cubic-bezier(.34,1.56,.64,1) var(--c-idea, 9.8s) both; }
     .say { position:absolute; padding:26px 34px; border-radius:26px; font-size:38px; font-weight:700; line-height:1.35; box-shadow:0 10px 30px rgba(0,0,0,.06); }
-    .say.me { left:560px; top:330px; background:#fff; border:1px solid var(--line); border-bottom-left-radius:6px; animation: pop .45s cubic-bezier(.2,.8,.3,1.1) 1.0s both; }
-    .say.llm { left:760px; top:480px; background:var(--ink); color:#fff; border-bottom-right-radius:6px; max-width:900px; animation: pop .45s cubic-bezier(.2,.8,.3,1.1) 2.8s both; }
+    .say.me { left:560px; top:330px; background:#fff; border:1px solid var(--line); border-bottom-left-radius:6px; animation: pop .45s cubic-bezier(.2,.8,.3,1.1) var(--c-point, .5s) both; }
+    .say.llm { left:760px; top:480px; background:var(--ink); color:#fff; border-bottom-right-radius:6px; max-width:900px; animation: pop .45s cubic-bezier(.2,.8,.3,1.1) var(--c-finds, 3.5s) both; }
     .say.llm b { color:#ff8a8e; font-weight:900; }
     .tag { font-size:22px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:#9a9aa3; display:block; margin-bottom:6px; }
     .say.me .tag { color:var(--muted); }
@@ -69,10 +69,12 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
     .meter .l { display:flex; justify-content:space-between; font-size:26px; font-weight:800; color:var(--muted); margin-bottom:12px; }
     .meter .l b { color:var(--loss); }
     .meter .bar { height:30px; border-radius:10px; background:#e6e1da; overflow:hidden; }
-    .meter .bar i { display:block; height:100%; width:0; background:var(--loss); animation: fill 1.6s cubic-bezier(.2,.7,.2,1) 4.4s both; }
-    @keyframes fill { to { width:100%; } }
-    .meter { opacity:0; animation: fade .3s 4.3s both; }
-    .line { position:absolute; left:120px; top:930px; font-size:44px; font-weight:800; letter-spacing:-.6px; animation: fade .5s 7.4s both; }
+    .meter .bar i { display:block; height:100%; width:0; background:var(--loss); animation: fill 1.6s cubic-bezier(.2,.7,.2,1) var(--c-178, 7.6s) both; }
+    @keyframes fill { to { width:35.6%; } }
+    .meter { opacity:0; animation: fade .3s var(--c-178, 7.6s) both; }
+    .meter .big { font-size:64px; font-weight:900; letter-spacing:-2px; color:var(--ink); line-height:1; }
+    .tag { font-size:24px; }
+    .line { position:absolute; left:120px; top:880px; font-size:44px; font-weight:800; letter-spacing:-.6px; animation: fade .5s var(--c-never, 10.6s) both; }
     .line em { font-style:normal; color:var(--accent-dark); }
     </style>
 </helmet>
@@ -93,12 +95,12 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
   <g class="brows"><path d="M184 128 l20 -4" stroke="#2b2118" stroke-width="5" stroke-linecap="round"/><path d="M216 124 l20 4" stroke="#2b2118" stroke-width="5" stroke-linecap="round"/></g>
   <circle cx="192" cy="146" r="4.5" fill="#222"/><circle cx="228" cy="146" r="4.5" fill="#222"/>
   <path class="mouth" d="M196 172 q14 10 28 0" stroke="#8b4a3c" stroke-width="4" stroke-linecap="round" fill="none"/>
-  <text class="bang" x="292" y="96" font-family="Nunito Sans, sans-serif" font-weight="900" font-size="72" fill="#e5484d">!</text>
+  <text class="bang" x="292" y="96" font-family="Nunito Sans, sans-serif" font-weight="900" font-size="72" fill="#222">!</text>
 </svg>
 
     <div class="say me"><span class="tag">developer</span>Find me a trade.</div>
-    <div class="say llm"><span class="tag">language model</span>Sure. Selling <b>178</b> call spreads on T.</div>
-    <div class="meter"><div class="l"><span>Buying power on one idea</span><b>$35,600 of $100,000</b></div><div class="bar"><i></i></div></div>
+    <div class="say llm"><span class="tag">language model</span>Sure. Sell call spreads on T.</div>
+    <div class="meter"><div class="l"><span><span class="big">178</span>&nbsp; spreads. Our own first dry run sized it.</span><b>$35,600 · a third of the account</b></div><div class="bar"><i></i></div></div>
     <div class="line">It will always find a trade. It never says no, and it <em>can't count contracts.</em></div>
     
 </div>

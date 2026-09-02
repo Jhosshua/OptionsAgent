@@ -22,9 +22,9 @@ a { color:var(--accent-dark); } a:hover { color:var(--accent); }
 .brand { position:absolute; left:96px; top:56px; display:flex; align-items:center; gap:14px; }
 .brand .mark { width:44px; height:44px; border-radius:12px; background:var(--accent); display:grid; place-items:center; }
 .brand .name { font-weight:800; font-size:26px; letter-spacing:-.4px; }
-.brand .kick { color:var(--muted); font-weight:600; font-size:20px; margin-left:10px; }
-.foot { position:absolute; left:96px; bottom:48px; color:var(--faint); font-size:20px; font-weight:600; }
-.pn { position:absolute; right:96px; bottom:48px; color:var(--faint); font-size:20px; font-weight:600; }
+.brand .kick { color:var(--muted); font-weight:600; font-size:24px; margin-left:10px; }
+.foot { position:absolute; left:96px; bottom:48px; color:var(--faint); font-size:24px; font-weight:600; }
+.pn { position:absolute; right:96px; bottom:48px; color:var(--faint); font-size:24px; font-weight:600; }
 h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
 .rise { animation: rise .7s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--d, 0s); }
 .pop  { animation: pop .55s cubic-bezier(.34,1.56,.64,1) both; animation-delay: var(--d, 0s); }
@@ -53,19 +53,19 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
 
     .stage { background:var(--paper); }
     .h { position:absolute; left:120px; top:170px; } .h h1 { font-size:72px; }
-    .funnel { position:absolute; left:640px; top:300px; width:760px; display:flex; flex-direction:column; gap:16px; }
+    .funnel { position:absolute; left:640px; top:300px; width:900px; display:flex; flex-direction:column; gap:16px; }
     .gate { height:86px; border-radius:14px; background:#fff; border:2px solid var(--line); display:flex; align-items:center; padding:0 34px; font-size:34px; font-weight:800; color:var(--muted); }
-    .gate.g5 { animation: reject .45s 8.2s both; }
+    .gate.g5 { animation: reject .45s var(--c-dies, 12.4s) both; }
     @keyframes reject { to { background:var(--wash); border-color:var(--accent); color:var(--accent-dark); } }
-    .gate.g5 .no { margin-left:auto; color:var(--accent-dark); opacity:0; font-size:30px; animation: fade .3s 8.5s both; }
+    .gate.g5 .no { margin-left:auto; color:var(--accent-dark); opacity:0; font-size:30px; animation: fade .3s var(--c-dies, 12.4s) both; }
     .token { position:absolute; left:560px; top:322px; width:44px; height:44px; border-radius:50%; background:var(--ink);
-             animation: drop 8.4s cubic-bezier(.2,.7,.2,1) .8s both; }
-    @keyframes drop { 0% { transform: translateY(0); } 18% { transform: translateY(0); } 22% { transform: translateY(102px); }
-                      40% { transform: translateY(102px); } 44% { transform: translateY(204px); } 58% { transform: translateY(204px); }
-                      62% { transform: translateY(306px); } 76% { transform: translateY(306px); } 80%,100% { transform: translateY(408px); } }
+             animation: drop 6s cubic-bezier(.2,.7,.2,1) var(--c-drop, 1.2s) both; }
+    @keyframes drop { 0% { transform: translateY(0); } 25% { transform: translateY(0); } 30% { transform: translateY(102px); }
+                      45% { transform: translateY(102px); } 50% { transform: translateY(204px); } 65% { transform: translateY(204px); }
+                      70% { transform: translateY(306px); } 83% { transform: translateY(306px); } 88%,100% { transform: translateY(408px); } }
     .side { position:absolute; left:120px; top:320px; width:380px; font-size:30px; color:var(--muted); line-height:1.5; }
     .side b { color:var(--ink); display:block; font-size:44px; margin-bottom:12px; }
-    .note { position:absolute; left:120px; top:880px; font-size:40px; font-weight:800; color:var(--ink); animation: fade .4s 10.5s both; }
+    .note { position:absolute; left:120px; top:880px; font-size:40px; font-weight:800; color:var(--ink); animation: fade .4s var(--c-most, 13.8s) both; }
     </style>
 </helmet>
 <div class="stage">
@@ -76,11 +76,11 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
       <div class="gate g1 fade" style="--d:.4s">Conviction ≥ 0.60</div>
       <div class="gate g2 fade" style="--d:.5s">One position per name · 3 spreads max</div>
       <div class="gate g3 fade" style="--d:.6s">$3,000 cap per position</div>
-      <div class="gate g4 fade" style="--d:.7s">Strike rules · 0.15–0.30 delta · 30–45 days</div>
+      <div class="gate g4 fade" style="--d:.7s">Strike rules · 0.15 to 0.30 delta · 30 to 45 days</div>
       <div class="gate g5 fade" style="--d:.8s">Liquidity: unwind cost &lt; 1.5× credit <span class="no">rejected</span></div>
     </div>
     <div class="token"></div>
-    <div class="note">Most ideas die here. That's the point.</div>
+    <div class="note">Most ideas die here. On purpose.</div>
     
 </div>
 </x-dc>

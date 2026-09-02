@@ -22,9 +22,9 @@ a { color:var(--accent-dark); } a:hover { color:var(--accent); }
 .brand { position:absolute; left:96px; top:56px; display:flex; align-items:center; gap:14px; }
 .brand .mark { width:44px; height:44px; border-radius:12px; background:var(--accent); display:grid; place-items:center; }
 .brand .name { font-weight:800; font-size:26px; letter-spacing:-.4px; }
-.brand .kick { color:var(--muted); font-weight:600; font-size:20px; margin-left:10px; }
-.foot { position:absolute; left:96px; bottom:48px; color:var(--faint); font-size:20px; font-weight:600; }
-.pn { position:absolute; right:96px; bottom:48px; color:var(--faint); font-size:20px; font-weight:600; }
+.brand .kick { color:var(--muted); font-weight:600; font-size:24px; margin-left:10px; }
+.foot { position:absolute; left:96px; bottom:48px; color:var(--faint); font-size:24px; font-weight:600; }
+.pn { position:absolute; right:96px; bottom:48px; color:var(--faint); font-size:24px; font-weight:600; }
 h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
 .rise { animation: rise .7s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--d, 0s); }
 .pop  { animation: pop .55s cubic-bezier(.34,1.56,.64,1) both; animation-delay: var(--d, 0s); }
@@ -72,16 +72,16 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
     <div class="cols">
       <div class="col">
         <h2 class="fade" style="--d:.4s">The model answers one question</h2>
-        <div class="bubble fade" style="--d:1.4s"><b>T</b> · bearish · conviction <b>0.70</b>
+        <div class="bubble fade" style="--d:var(--c-model, 2.1s)"><b>T</b> · bearish · conviction <b>0.70</b>
           <span class="q">“Extended run into resistance on thin volume. Sell the premium.”</span></div>
       </div>
       <div class="col">
         <h2 class="fade" style="--d:.4s">Code does everything with a dollar sign</h2>
         <div class="stamps">
-          <div class="stamp land" style="--d:5.6s">Strike <span>0.15–0.30 delta · 30–45 days</span></div>
-          <div class="stamp land" style="--d:5.75s">Size <span>hard cap $3,000</span></div>
-          <div class="stamp land" style="--d:5.9s">Exit <span>50% profit · 2× stop, confirmed twice · 21 days</span></div>
-          <div class="stamp red land" style="--d:6.05s">Order <span>official Alpaca CLI</span></div>
+          <div class="stamp land" style="--d:var(--c-code, 7.6s)">Strike <span>0.15 to 0.30 delta · 30 to 45 days</span></div>
+          <div class="stamp land" style="--d:var(--c-code2, 8.3s)">Size <span>hard cap $3,000</span></div>
+          <div class="stamp land" style="--d:var(--c-code3, 9.0s)">Exit <span>50% profit · 2× stop, confirmed twice · 21 days</span></div>
+          <div class="stamp land" style="--d:var(--c-code4, 9.7s)">Order <span>official Alpaca CLI</span></div>
         </div>
       </div>
     </div>

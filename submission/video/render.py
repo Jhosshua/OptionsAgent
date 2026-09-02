@@ -42,22 +42,71 @@ DEFAULT_RATE = "+12%"
 # Narration per scene. Short sentences, spoken not read. Keep total ~105 s.
 NARRATION = {
     1: "This is Wingspan. An options agent that mostly says no.",
-    2: "Here's the problem. Point a language model at a brokerage account and it will always find a trade. "
-       "It never says no, and it can't count contracts. Our own first dry run wanted a hundred and seventy eight contracts on one idea.",
-    3: "So we split the job. The model answers one question: is there a trade here, and how sure are you? "
-       "Code does everything with a dollar sign on it.",
-    4: "Then the idea has to survive five gates. A conviction floor. One position per name, three spreads at most. "
-       "A three thousand dollar cap. Strike rules. And a liquidity check: if our own exit rule would stop the spread out on day one, it dies right here.",
-    5: "There's a second engine, and it has no AI at all. Two rules on SPY and QQQ, mined from six months of minute bars. "
-       "Twenty thousand dollars a trade, a tight stop, two trades a day, flat by ten to four.",
-    6: "This is the live app. The card that matters lists every idea the model had today, and which gate said no. A no gets logged like a fill.",
-    7: "The risk page isn't a copy of the rules. It's drawn from the same function the bot runs, so it can't drift.",
-    8: "Every order goes out through Alpaca's own command line tool. One process, one JSON reply, logged with its exit code. "
-       "If the C L I fails, the trade doesn't happen.",
-    9: "Before the first real order we replayed a day of real option chains. Eight of the twenty two spreads the old gate would have "
-       "opened were already past their own stop. With the liquidity floor: five admitted, zero past the stop.",
-    10: "Two trading days on a fresh paper account. Every idea, and every no, is on the dashboard. Go check it yourself. Thanks for watching.",
+    2: "Point a language model at a brokerage account and it always finds a trade. "
+       "Our own first dry run wanted a hundred and seventy eight contracts on one idea. It never says no, and it can't count contracts.",
+    3: "So we split the job. The model answers one question: is there a trade, and how sure are you? Code does everything with a dollar sign on it.",
+    4: "Then the idea has to survive five gates. Any one of them can kill it. The last one is new: "
+       "if our own exit rule would stop the spread out on day one, it dies right here. Most ideas do.",
+    5: "The second engine has no AI at all. Two rules on SPY and QQQ, mined from six months of minute bars. "
+       "Twenty thousand a trade, two a day, and flat by ten to four.",
+    6: "This is the live app. Both engines, one book. From today's run, every idea the model has, and which gate said no, lands in that card. "
+       "A no gets logged like a fill.",
+    7: "The risk page isn't a copy of the rules. That three thousand comes from the same function the bot calls, so it can't drift.",
+    8: "Every order goes out through Alpaca's own command line tool. One process, one JSON reply, logged with its exit code. If the C L I fails, nothing opens.",
+    9: "Before the first order we replayed a day of real option chains. Eight of twenty three spreads the open gate would have taken "
+       "were already past their own stop. With the liquidity floor: five admitted, zero past the stop.",
+    10: None,  # built from live numbers in main()
 }
+
+# Cue words: the first matching spoken word sets the CSS variable on the scene, so reveals land on the voice.
+CUES = {
+    1: {"c-agent": "options"},
+    2: {"c-point": "point", "c-finds": "finds", "c-178": "hundred", "c-idea": "idea", "c-never": "never"},
+    3: {"c-model": "model", "c-code": "code", "c-code2": "everything", "c-code3": "dollar", "c-code4": "sign"},
+    4: {"c-drop": "five", "c-dies": "dies", "c-most": "most"},
+    5: {"c-spy": "spy", "c-rules": "rules", "c-fade": "qqq", "c-gap": "mined", "c-twenty": "twenty", "c-twenty2": "trade", "c-two": "two", "c-flat": "flat"},
+    6: {"c-ring": "card"},
+    7: {"c-ring": "three"},
+    8: {"c-json": "json", "c-exit": "exit", "c-fails": "fails"},
+    9: {"c-eight": "eight", "c-floor": "liquidity", "c-five": "five", "c-zero": "zero"},
+    10: {"c-dash": "dashboard", "c-check": "check"},
+}
+
+
+def results_narration(n: dict) -> str:
+    eq = n.get("equity")
+    pnl = None if eq is None else eq - 100_000
+    if pnl is None:
+        money_line = "The account is flat."
+    else:
+        dollars = int(round(abs(pnl)))
+        money_line = ("Flat." if dollars == 0 else f"{'Up' if pnl > 0 else 'Down'} {dollars} dollars.")
+    fills = n.get("fills_options") or 0
+    fill_line = "No option fills yet." if fills == 0 else f"{fills} option fill{'s' if fills != 1 else ''}."
+    return f"Two trading days on a fresh paper account. {money_line} {fill_line} Every idea, and every no, is on the dashboard. Go check it. Thanks for watching."
+
+
+def word_cues(words_path: Path) -> list[tuple[float, str]]:
+    """(start_seconds, normalized word) from the edge-tts WordBoundary dump."""
+    import re
+    out = []
+    for t, w in json.loads(words_path.read_text()):
+        for piece in str(w).split():
+            out.append((float(t), re.sub(r"[^a-z0-9']", "", piece.lower())))
+    return out
+
+
+def cue_vars(i: int, words_path: Path, lead_in: float) -> dict[str, str]:
+    """CSS variables for scene i: first occurrence of each cue word, shifted by the audio lead-in."""
+    words = word_cues(words_path)
+    vars_: dict[str, str] = {}
+    for var, cue in CUES.get(i, {}).items():
+        cue_l = cue.lower()
+        for t, w in words:
+            if w == cue_l or w.startswith(cue_l):
+                vars_[var] = f"{t + lead_in:.2f}s"
+                break
+    return vars_
 
 
 def http(path: str, method: str = "GET"):
@@ -72,10 +121,21 @@ def probe_duration(path: Path) -> float:
     return float(out or 0)
 
 
-def narrate(i: int, text: str, voice: str, rate: str) -> Path:
+async def narrate(i: int, text: str, voice: str, rate: str) -> Path:
+    """Synthesize one scene with edge-tts and keep the per-word timings
+    (WordBoundary events, offsets in 100 ns units) next to the mp3."""
+    import edge_tts
     mp3 = FRAMES / f"narr-{i:02d}.mp3"
-    subprocess.run([sys.executable, "-m", "edge_tts", "--voice", voice, f"--rate={rate}", "--text", text,
-                    "--write-media", str(mp3)], check=True, capture_output=True, timeout=120)
+    words_path = FRAMES / f"narr-{i:02d}.words.json"
+    com = edge_tts.Communicate(text, voice, rate=rate)
+    words = []
+    with open(mp3, "wb") as f:
+        async for chunk in com.stream():
+            if chunk["type"] == "audio":
+                f.write(chunk["data"])
+            elif chunk["type"] == "WordBoundary":
+                words.append([chunk["offset"] / 1e7, chunk["text"]])
+    words_path.write_text(json.dumps(words))
     if mp3.stat().st_size < 1000:
         raise RuntimeError(f"edge-tts produced no audio for scene {i}")
     return mp3
@@ -100,13 +160,15 @@ class Cdp:
         return r.get("result", {}).get("value")
 
 
-async def capture_scene(cdp: Cdp, i: int, dur: float, fps: int) -> int:
+async def capture_scene(cdp: Cdp, i: int, dur: float, fps: int, cues: dict[str, str] | None = None) -> int:
     url = (SCENES / f"Scene{i:02d}.dc.html").resolve().as_uri()
     await cdp.call("Page.navigate", url=url)
     await asyncio.sleep(0.4)
     await cdp.eval("document.fonts.ready.then(() => true)", await_promise=True)
     # make every animation deterministic: pause, then seek per frame
     await cdp.eval(f"document.documentElement.style.setProperty('--dur', '{dur:.3f}s'); true")
+    for var, val in (cues or {}).items():
+        await cdp.eval(f"document.documentElement.style.setProperty('--{var}', '{val}'); true")
     await asyncio.sleep(0.15)
     await cdp.eval("document.getAnimations({subtree:true}).forEach(a => { a.pause(); a.currentTime = 0; }); true")
     frames_dir = FRAMES / f"s{i:02d}"
@@ -171,11 +233,19 @@ async def main():
     FRAMES.mkdir(parents=True, exist_ok=True)
     OUT.mkdir(parents=True, exist_ok=True)
 
-    # 1) narration + durations
-    audio, durs = {}, {}
+    # 1) narration + durations (+ per-word cues)
+    sys.path.insert(0, str(HERE.parent))
+    from build import live_numbers
+    NARRATION[10] = results_narration(live_numbers())
+    audio, durs, cues = {}, {}, {}
     for i, text in NARRATION.items():
-        audio[i] = narrate(i, text, voice, rate)
+        audio[i] = await narrate(i, text, voice, rate)
         durs[i] = round(probe_duration(audio[i]) + TAIL, 3)
+        lead = 0.30 if i == 1 else 0.12
+        cues[i] = cue_vars(i, FRAMES / f"narr-{i:02d}.words.json", lead)
+        missing = [k for k in CUES.get(i, {}) if k not in cues[i]]
+        if missing:
+            print(f"scene {i}: cue words not found, CSS defaults used for {missing}")
     total = sum(durs.values()) - sum(xfade_for(k) for k in range(1, len(durs)))
     print("scene seconds:", {k: durs[k] for k in sorted(durs)}, f"total ≈ {total:.0f}s")
 
@@ -187,7 +257,7 @@ async def main():
         await cdp.call("Runtime.enable")
         await cdp.call("Emulation.setDeviceMetricsOverride", width=1920, height=1080, deviceScaleFactor=1, mobile=False)
         for i in sorted(NARRATION):
-            n = await capture_scene(cdp, i, durs[i], fps)
+            n = await capture_scene(cdp, i, durs[i], fps, cues[i])
             print(f"scene {i}: {n} frames")
     try:
         http(f"/json/close/{tab['id']}")

@@ -22,9 +22,9 @@ a { color:var(--accent-dark); } a:hover { color:var(--accent); }
 .brand { position:absolute; left:96px; top:56px; display:flex; align-items:center; gap:14px; }
 .brand .mark { width:44px; height:44px; border-radius:12px; background:var(--accent); display:grid; place-items:center; }
 .brand .name { font-weight:800; font-size:26px; letter-spacing:-.4px; }
-.brand .kick { color:var(--muted); font-weight:600; font-size:20px; margin-left:10px; }
-.foot { position:absolute; left:96px; bottom:48px; color:var(--faint); font-size:20px; font-weight:600; }
-.pn { position:absolute; right:96px; bottom:48px; color:var(--faint); font-size:20px; font-weight:600; }
+.brand .kick { color:var(--muted); font-weight:600; font-size:24px; margin-left:10px; }
+.foot { position:absolute; left:96px; bottom:48px; color:var(--faint); font-size:24px; font-weight:600; }
+.pn { position:absolute; right:96px; bottom:48px; color:var(--faint); font-size:24px; font-weight:600; }
 h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
 .rise { animation: rise .7s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--d, 0s); }
 .pop  { animation: pop .55s cubic-bezier(.34,1.56,.64,1) both; animation-delay: var(--d, 0s); }
@@ -57,8 +57,9 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
     .chart .line { fill:none; stroke:var(--ink); stroke-width:5; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:2400; stroke-dashoffset:2400; animation: draw 3.2s cubic-bezier(.3,.6,.3,1) .6s both; }
     @keyframes draw { to { stroke-dashoffset:0; } }
     .chart .vwap { fill:none; stroke:var(--muted); stroke-width:3; stroke-dasharray:10 10; opacity:0; animation: fade .4s 1.0s both; }
-    .chart .range { fill:rgba(229,72,77,.08); stroke:var(--accent); stroke-width:2; opacity:0; animation: fade .4s 1.4s both; }
+    .chart .range { fill:rgba(34,34,34,.08); stroke:#b0b0b0; stroke-width:2; opacity:0; animation: fade .4s 1.4s both; }
     .chart text { font-family:"Nunito Sans", sans-serif; font-weight:800; }
+    .row span { font-size:26px; }
     .mk { opacity:0; animation: pop .4s cubic-bezier(.34,1.56,.64,1) both; }
     .side { position:absolute; left:1240px; top:300px; width:560px; display:flex; flex-direction:column; gap:16px; }
     .row { display:flex; justify-content:space-between; align-items:center; padding:20px 28px; border-radius:14px; background:#fff; border:1px solid var(--line); font-size:30px; font-weight:800; }
@@ -70,23 +71,23 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
 <div class="topbar"></div><div class="brand rise" style="--d:.05s"><div class="mark"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5 L6.5 16 H9.5 L12 10.5 L14.5 16 H17.5 L21.5 8.5"/></svg></div><div class="name">Wingspan</div><div class="kick">Engine two</div></div><div class="foot">Alpaca AI Trading Agents Hackathon 2026 · paper account PA371G5THNUO</div><div class="pn">5 / 10</div>
     <div class="h fade" style="--d:.2s"><h1>The second engine trades shares. No AI in it.</h1></div>
     <svg class="chart fade" style="--d:.4s" viewBox="0 0 1040 600">
-      <rect class="range" x="60" y="230" width="150" height="200" rx="8"/>
-      <text x="60" y="466" font-size="22" fill="#b8383c">opening range · first 15 min</text>
+      <rect class="range" x="60" y="230" width="36" height="200" rx="6"/>
+      <text x="60" y="466" font-size="24" fill="#717171">first 15 min</text>
       <path class="vwap" d="M60 340 C 260 330, 520 380, 980 300"/>
-      <text x="930" y="284" font-size="22" fill="#717171">VWAP</text>
-      <path class="line" d="M60 340 L110 290 L150 410 L210 250 L270 200 L330 300 L400 350 L470 300 L540 380 L610 330 L680 260 L760 230 L840 300 L920 270 L980 320"/>
-      <g class="mk" style="animation-delay:2.4s"><circle cx="270" cy="200" r="16" fill="#e5484d"/><text x="300" y="176" font-size="26" fill="#222">10:15 · fade the overshoot</text></g>
-      <g class="mk" style="animation-delay:3.4s"><circle cx="760" cy="230" r="16" fill="#067647"/><text x="640" y="196" font-size="26" fill="#222">13:00 · follow a big gap</text></g>
+      <text x="700" y="372" font-size="24" fill="#717171">VWAP</text>
+      <path class="line" d="M60 340 L80 290 L96 410 L125 200 L180 300 L260 350 L340 300 L420 380 L500 330 L565 230 L640 250 L720 220 L800 260 L900 230 L980 250"/>
+      <g class="mk" style="animation-delay:var(--c-fade, 5.5s)"><circle cx="125" cy="200" r="16" fill="#222"/><text x="150" y="176" font-size="28" fill="#222">10:15 · fade the overshoot</text></g>
+      <g class="mk" style="animation-delay:var(--c-gap, 6.5s)"><circle cx="565" cy="230" r="16" fill="#222"/><text x="590" y="206" font-size="28" fill="#222">13:00 · follow a big gap</text></g>
       <line x1="60" y1="530" x2="980" y2="530" stroke="#ebebeb" stroke-width="2"/>
-      <text x="60" y="566" font-size="22" fill="#717171">09:30</text><text x="840" y="566" font-size="22" fill="#717171">15:50 flat</text>
+      <text x="60" y="566" font-size="24" fill="#717171">09:30</text><text x="560" y="566" font-size="24" fill="#717171">13:00</text><text x="860" y="566" font-size="24" fill="#717171">15:50 flat</text>
     </svg>
     <div class="side">
-      <div class="row fade" style="--d:1.2s">SPY and QQQ <span>shares only</span></div>
-      <div class="row fade" style="--d:1.4s">Two rules <span>from 6 months of data</span></div>
-      <div class="row fade" style="--d:1.6s">$20,000 <span>per trade</span></div>
-      <div class="row fade" style="--d:1.8s">0.7% stop <span>120 bar time exit</span></div>
-      <div class="row fade" style="--d:2.0s">2 trades a day <span>$300 daily halt · flat by 15:50</span></div>
-      <div class="row dark fade" style="--d:2.2s">Same Alpaca CLI path <span>same journal</span></div>
+      <div class="row fade" style="--d:var(--c-spy, 4.2s)">SPY and QQQ <span>shares only</span></div>
+      <div class="row fade" style="--d:var(--c-rules, 5.3s)">10:15 fade <span>13:00 gap follow</span></div>
+      <div class="row fade" style="--d:var(--c-twenty, 8.0s)">$20,000 <span>per trade</span></div>
+      <div class="row fade" style="--d:var(--c-twenty2, 8.9s)">0.7% stop <span>out after 120 minutes</span></div>
+      <div class="row fade" style="--d:var(--c-two, 9.5s)">2 trades a day <span>$300 daily halt</span></div>
+      <div class="row dark fade" style="--d:var(--c-flat, 11.0s)">Flat by 15:50 <span>same CLI, same journal</span></div>
     </div>
     
 </div>

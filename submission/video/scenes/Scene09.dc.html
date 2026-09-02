@@ -22,9 +22,9 @@ a { color:var(--accent-dark); } a:hover { color:var(--accent); }
 .brand { position:absolute; left:96px; top:56px; display:flex; align-items:center; gap:14px; }
 .brand .mark { width:44px; height:44px; border-radius:12px; background:var(--accent); display:grid; place-items:center; }
 .brand .name { font-weight:800; font-size:26px; letter-spacing:-.4px; }
-.brand .kick { color:var(--muted); font-weight:600; font-size:20px; margin-left:10px; }
-.foot { position:absolute; left:96px; bottom:48px; color:var(--faint); font-size:20px; font-weight:600; }
-.pn { position:absolute; right:96px; bottom:48px; color:var(--faint); font-size:20px; font-weight:600; }
+.brand .kick { color:var(--muted); font-weight:600; font-size:24px; margin-left:10px; }
+.foot { position:absolute; left:96px; bottom:48px; color:var(--faint); font-size:24px; font-weight:600; }
+.pn { position:absolute; right:96px; bottom:48px; color:var(--faint); font-size:24px; font-weight:600; }
 h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
 .rise { animation: rise .7s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--d, 0s); }
 .pop  { animation: pop .55s cubic-bezier(.34,1.56,.64,1) both; animation-delay: var(--d, 0s); }
@@ -53,32 +53,32 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
 
     .stage { background:var(--paper); }
     .h { position:absolute; left:120px; top:160px; } .h h1 { font-size:72px; }
-    .row { position:absolute; left:120px; top:420px; display:flex; gap:16px; }
+    .row { position:absolute; left:120px; top:420px; display:flex; gap:14px; }
     .dot { width:46px; height:46px; border-radius:50%; background:var(--ink); }
     .dot.r { animation: red .35s ease-out both; animation-delay: var(--d); }
     @keyframes red { to { background: var(--loss); transform: scale(1.12); } }
-    .dot.g { animation: grey .5s ease-out 9.4s both; }
+    .dot.g { animation: grey .5s ease-out var(--c-floor, 10.7s) both; }
     @keyframes grey { to { background:#d9d5cf; } }
-    .dot.k { animation: keep .5s ease-out 9.4s both; }
+    .dot.k { animation: keep .5s ease-out var(--c-floor, 10.7s) both; }
     @keyframes keep { to { background:var(--gain); } }
     .lbl { position:absolute; left:120px; top:340px; font-size:34px; font-weight:800; color:var(--muted); }
-    .zero { position:absolute; left:1560px; top:300px; font-size:240px; font-weight:900; letter-spacing:-12px; color:var(--gain); line-height:1; animation: fade .4s 11.2s both; }
+    .zero { position:absolute; left:1560px; top:300px; font-size:240px; font-weight:900; letter-spacing:-12px; color:var(--gain); line-height:1; animation: fade .4s var(--c-zero, 13.0s) both; }
     .zero small { display:block; font-size:34px; letter-spacing:0; color:var(--muted); font-weight:700; margin-top:-10px; }
     .cap { position:absolute; left:120px; top:540px; font-size:40px; line-height:1.5; max-width:1300px; color:var(--ink); }
-    .cap .a { animation: fade .4s 4.2s both; display:block; }
-    .cap .b { animation: fade .4s 9.6s both; display:block; }
+    .cap .a { animation: fade .4s var(--c-eight, 4.5s) both; display:block; }
+    .cap .b { animation: fade .4s var(--c-five, 12.0s) both; display:block; }
     .tests { position:absolute; left:120px; bottom:120px; font-size:28px; font-weight:700; color:var(--muted); }
     </style>
 </helmet>
 <div class="stage">
 <div class="topbar"></div><div class="brand rise" style="--d:.05s"><div class="mark"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5 L6.5 16 H9.5 L12 10.5 L14.5 16 H17.5 L21.5 8.5"/></svg></div><div class="name">Wingspan</div><div class="kick">Proof</div></div><div class="foot">Alpaca AI Trading Agents Hackathon 2026 · paper account PA371G5THNUO</div><div class="pn">9 / 10</div>
     <div class="h fade" style="--d:.2s"><h1>We replayed a day of real option chains first.</h1></div>
-    <div class="lbl fade" style="--d:.5s">22 spreads the old gate would have opened</div>
-    <div class="row fade" style="--d:.6s"><div class="dot g"></div><div class="dot r" style="--d:4.30s"></div><div class="dot k"></div><div class="dot g"></div><div class="dot r" style="--d:4.38s"></div><div class="dot g"></div><div class="dot r" style="--d:4.46s"></div><div class="dot k"></div><div class="dot g"></div><div class="dot r" style="--d:4.54s"></div><div class="dot g"></div><div class="dot k"></div><div class="dot r" style="--d:4.62s"></div><div class="dot g"></div><div class="dot g"></div><div class="dot r" style="--d:4.70s"></div><div class="dot k"></div><div class="dot g"></div><div class="dot r" style="--d:4.78s"></div><div class="dot g"></div><div class="dot k"></div><div class="dot r" style="--d:4.86s"></div></div>
+    <div class="lbl fade" style="--d:.5s">23 spreads the open gate would have taken</div>
+    <div class="row fade" style="--d:.6s"><div class="dot g"></div><div class="dot r" style="--d:calc(var(--c-eight, 4.5s) + 0.00s)"></div><div class="dot k"></div><div class="dot g"></div><div class="dot r" style="--d:calc(var(--c-eight, 4.5s) + 0.08s)"></div><div class="dot g"></div><div class="dot r" style="--d:calc(var(--c-eight, 4.5s) + 0.16s)"></div><div class="dot k"></div><div class="dot g"></div><div class="dot r" style="--d:calc(var(--c-eight, 4.5s) + 0.24s)"></div><div class="dot g"></div><div class="dot k"></div><div class="dot r" style="--d:calc(var(--c-eight, 4.5s) + 0.32s)"></div><div class="dot g"></div><div class="dot g"></div><div class="dot r" style="--d:calc(var(--c-eight, 4.5s) + 0.40s)"></div><div class="dot k"></div><div class="dot g"></div><div class="dot r" style="--d:calc(var(--c-eight, 4.5s) + 0.48s)"></div><div class="dot g"></div><div class="dot k"></div><div class="dot r" style="--d:calc(var(--c-eight, 4.5s) + 0.56s)"></div><div class="dot g"></div></div>
     <div class="cap"><span class="a"><b style="color:var(--loss)">8</b> were already past their own stop on the quotes they were picked from.</span>
       <span class="b">With the liquidity floor: <b style="color:var(--gain)">5 admitted, 0 past the stop.</b></span></div>
     <div class="zero">0<small>past the stop</small></div>
-    <div class="tests">276 tests · replay of the 2026-09-01 chain snapshots · seven mutation checks</div>
+    <div class="tests">276 tests · replay of the Sept 1 chain snapshots</div>
     
 </div>
 </x-dc>

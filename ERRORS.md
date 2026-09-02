@@ -5,7 +5,7 @@
 **What did not work:** the first cut of `OA_CREDIT_SPREAD_GATE=research_rules`
 just skipped the winner-profile table and kept the picker's delta/DTE/width
 rules. It looked complete: 4 tests, mutation check green. An adversarial
-replay over the previous day's real chain snapshots showed 8 of 22 admitted
+replay over the previous day's real chain snapshots showed 8 of 23 admitted
 shapes were ALREADY past the 2x-credit stop on the same quotes, because entry
 credit is priced at bid/ask-worst (short.bid − long.ask) and the unwind is
 priced at bid/ask-worst the other way (short.ask − long.bid). The old table's

@@ -22,9 +22,9 @@ a { color:var(--accent-dark); } a:hover { color:var(--accent); }
 .brand { position:absolute; left:96px; top:56px; display:flex; align-items:center; gap:14px; }
 .brand .mark { width:44px; height:44px; border-radius:12px; background:var(--accent); display:grid; place-items:center; }
 .brand .name { font-weight:800; font-size:26px; letter-spacing:-.4px; }
-.brand .kick { color:var(--muted); font-weight:600; font-size:20px; margin-left:10px; }
-.foot { position:absolute; left:96px; bottom:48px; color:var(--faint); font-size:20px; font-weight:600; }
-.pn { position:absolute; right:96px; bottom:48px; color:var(--faint); font-size:20px; font-weight:600; }
+.brand .kick { color:var(--muted); font-weight:600; font-size:24px; margin-left:10px; }
+.foot { position:absolute; left:96px; bottom:48px; color:var(--faint); font-size:24px; font-weight:600; }
+.pn { position:absolute; right:96px; bottom:48px; color:var(--faint); font-size:24px; font-weight:600; }
 h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
 .rise { animation: rise .7s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--d, 0s); }
 .pop  { animation: pop .55s cubic-bezier(.34,1.56,.64,1) both; animation-delay: var(--d, 0s); }
@@ -55,7 +55,7 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
     .brand .name, .foot, .pn { color:#fff; } .brand .kick { color:#9a9aa3; }
     .h { position:absolute; left:120px; top:170px; } .h h1 { font-size:64px; color:#fff; }
     .url { position:absolute; left:120px; top:380px; font-size:88px; font-weight:900; color:#fff; letter-spacing:-2px; }
-    .url span { color:var(--accent); }
+    .url span { color:#fff; }
     .line { position:absolute; left:124px; top:520px; font-size:40px; color:#d9d9de; font-weight:600; line-height:1.6; }
     .line b { color:#fff; }
     .repo { position:absolute; left:124px; bottom:130px; font-size:30px; color:#9a9aa3; font-weight:600; }
@@ -65,10 +65,10 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
 <div class="stage">
 <div class="topbar"></div><div class="brand rise" style="--d:.05s"><div class="mark"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5 L6.5 16 H9.5 L12 10.5 L14.5 16 H17.5 L21.5 8.5"/></svg></div><div class="name">Wingspan</div><div class="kick">Results</div></div><div class="foot">Alpaca AI Trading Agents Hackathon 2026 · paper account PA371G5THNUO</div><div class="pn">10 / 10</div>
     <div class="h fade" style="--d:.2s"><h1>Every idea and every no is on the dashboard. Go check it.</h1></div>
-    <div class="url fade" style="--d:2.4s">optionsagent-production<span>.up.railway.app</span></div>
-    <div class="line fade" style="--d:3.4s">Paper account <b>PA371G5THNUO</b> · $100,000 start · equity <b>$100,034.43</b><br>
-      6 filled orders in the window · 0 options · snapshot Wed Sep 02, 01:17 ET</div>
-    <div class="repo fade" style="--d:4.4s"><b>github.com/Jhosshua/OptionsAgent</b> · MIT · team Convexity</div>
+    <div class="url fade" style="--d:var(--c-dash, 7.3s)">optionsagent-production<span>.up.railway.app</span></div>
+    <div class="line fade" style="--d:.4s">Paper account <b>PA371G5THNUO</b> · $100,000 start · equity <b>$100,034.43</b><br>
+      6 filled orders in the window · 0 options · snapshot Wed Sep 02, 01:31 ET</div>
+    <div class="repo fade" style="--d:var(--c-check, 8.4s)"><b>github.com/Jhosshua/OptionsAgent</b> · MIT · team Convexity</div>
     
 <svg class="alpaca idle" style="right:130px; bottom:110px; width:240px; height:240px;" viewBox="0 0 220 220" fill="none">
   <g class="body">
@@ -83,9 +83,7 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
       <rect x="132" y="24" width="60" height="40" rx="19" fill="#f3e6d2"/>
       <path d="M144 28 L150 8 L158 28 Z" fill="#f3e6d2"/>
       <path d="M170 28 L178 9 L184 28 Z" fill="#f3e6d2"/>
-      <path d="M147 26 L150 15 L154 26 Z" fill="#e5484d" opacity=".55"/>
-      <path d="M173 26 L177 15 L181 26 Z" fill="#e5484d" opacity=".55"/>
-      <ellipse cx="182" cy="52" rx="9" ry="7" fill="#e6d3bb"/>
+            <ellipse cx="182" cy="52" rx="9" ry="7" fill="#e6d3bb"/>
       <circle cx="166" cy="42" r="3.6" fill="#222"/>
       <rect class="lid" x="161" y="37" width="10" height="10" rx="5" fill="#f3e6d2" opacity="0"/>
       <path d="M176 57 q4 3 8 0" stroke="#8b6f52" stroke-width="2" stroke-linecap="round"/>

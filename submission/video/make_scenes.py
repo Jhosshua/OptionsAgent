@@ -42,9 +42,9 @@ a { color:var(--accent-dark); } a:hover { color:var(--accent); }
 .brand { position:absolute; left:96px; top:56px; display:flex; align-items:center; gap:14px; }
 .brand .mark { width:44px; height:44px; border-radius:12px; background:var(--accent); display:grid; place-items:center; }
 .brand .name { font-weight:800; font-size:26px; letter-spacing:-.4px; }
-.brand .kick { color:var(--muted); font-weight:600; font-size:20px; margin-left:10px; }
-.foot { position:absolute; left:96px; bottom:48px; color:var(--faint); font-size:20px; font-weight:600; }
-.pn { position:absolute; right:96px; bottom:48px; color:var(--faint); font-size:20px; font-weight:600; }
+.brand .kick { color:var(--muted); font-weight:600; font-size:24px; margin-left:10px; }
+.foot { position:absolute; left:96px; bottom:48px; color:var(--faint); font-size:24px; font-weight:600; }
+.pn { position:absolute; right:96px; bottom:48px; color:var(--faint); font-size:24px; font-weight:600; }
 h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
 .rise { animation: rise .7s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--d, 0s); }
 .pop  { animation: pop .55s cubic-bezier(.34,1.56,.64,1) both; animation-delay: var(--d, 0s); }
@@ -87,9 +87,7 @@ ALPACA_SVG = """
       <rect x="132" y="24" width="60" height="40" rx="19" fill="#f3e6d2"/>
       <path d="M144 28 L150 8 L158 28 Z" fill="#f3e6d2"/>
       <path d="M170 28 L178 9 L184 28 Z" fill="#f3e6d2"/>
-      <path d="M147 26 L150 15 L154 26 Z" fill="#e5484d" opacity=".55"/>
-      <path d="M173 26 L177 15 L181 26 Z" fill="#e5484d" opacity=".55"/>
-      <ellipse cx="182" cy="52" rx="9" ry="7" fill="#e6d3bb"/>
+            <ellipse cx="182" cy="52" rx="9" ry="7" fill="#e6d3bb"/>
       <circle cx="166" cy="42" r="3.6" fill="#222"/>
       <rect class="lid" x="161" y="37" width="10" height="10" rx="5" fill="#f3e6d2" opacity="0"/>
       <path d="M176 57 q4 3 8 0" stroke="#8b6f52" stroke-width="2" stroke-linecap="round"/>
@@ -155,7 +153,7 @@ def scene01() -> str:
     <div class="panel"></div>
     <div class="bigw">{W_MARK.format(s=340, c="#fff")}</div>
     <div class="title fade" style="--d:.9s"><h1>WINGSPAN</h1></div>
-    <div class="tag fade" style="--d:1.25s">An options agent that mostly says no.</div>
+    <div class="tag fade" style="--d:var(--c-agent, 1.6s)">An options agent that mostly says no.</div>
     <div class="meta fade" style="--d:1.6s">Alpaca AI Trading Agents Hackathon 2026 · team Convexity · paper account PA371G5THNUO</div>
     <div class="walkin">{alpaca("walk", "position:relative; width:250px; height:250px;")}</div>
     """
@@ -178,7 +176,7 @@ DEV_SVG = """
   <g class="brows"><path d="M184 128 l20 -4" stroke="#2b2118" stroke-width="5" stroke-linecap="round"/><path d="M216 124 l20 4" stroke="#2b2118" stroke-width="5" stroke-linecap="round"/></g>
   <circle cx="192" cy="146" r="4.5" fill="#222"/><circle cx="228" cy="146" r="4.5" fill="#222"/>
   <path class="mouth" d="M196 172 q14 10 28 0" stroke="#8b4a3c" stroke-width="4" stroke-linecap="round" fill="none"/>
-  <text class="bang" x="292" y="96" font-family="Nunito Sans, sans-serif" font-weight="900" font-size="72" fill="#e5484d">!</text>
+  <text class="bang" x="292" y="96" font-family="Nunito Sans, sans-serif" font-weight="900" font-size="72" fill="#222">!</text>
 </svg>
 """
 
@@ -189,14 +187,14 @@ def scene02() -> str:
     .stage { background:var(--paper); }
     .who { position:absolute; left:120px; top:180px; color:var(--muted); font-weight:700; font-size:26px; letter-spacing:.06em; text-transform:uppercase; }
     .dev { position:absolute; left:120px; top:300px; width:560px; height:560px; }
-    .dev .brows { transform-origin: 210px 130px; animation: worry .5s ease-out 6.0s both; }
+    .dev .brows { transform-origin: 210px 130px; animation: worry .5s ease-out var(--c-idea, 9.8s) both; }
     @keyframes worry { to { transform: translateY(-9px) rotate(-6deg); } }
-    .dev .mouth { animation: flat .5s ease-out 6.0s both; }
+    .dev .mouth { animation: flat .5s ease-out var(--c-idea, 9.8s) both; }
     @keyframes flat { to { d: path("M196 176 q14 -6 28 0"); } }
-    .dev .bang { opacity:0; animation: pop .35s cubic-bezier(.34,1.56,.64,1) 6.2s both; }
+    .dev .bang { opacity:0; animation: pop .35s cubic-bezier(.34,1.56,.64,1) var(--c-idea, 9.8s) both; }
     .say { position:absolute; padding:26px 34px; border-radius:26px; font-size:38px; font-weight:700; line-height:1.35; box-shadow:0 10px 30px rgba(0,0,0,.06); }
-    .say.me { left:560px; top:330px; background:#fff; border:1px solid var(--line); border-bottom-left-radius:6px; animation: pop .45s cubic-bezier(.2,.8,.3,1.1) 1.0s both; }
-    .say.llm { left:760px; top:480px; background:var(--ink); color:#fff; border-bottom-right-radius:6px; max-width:900px; animation: pop .45s cubic-bezier(.2,.8,.3,1.1) 2.8s both; }
+    .say.me { left:560px; top:330px; background:#fff; border:1px solid var(--line); border-bottom-left-radius:6px; animation: pop .45s cubic-bezier(.2,.8,.3,1.1) var(--c-point, .5s) both; }
+    .say.llm { left:760px; top:480px; background:var(--ink); color:#fff; border-bottom-right-radius:6px; max-width:900px; animation: pop .45s cubic-bezier(.2,.8,.3,1.1) var(--c-finds, 3.5s) both; }
     .say.llm b { color:#ff8a8e; font-weight:900; }
     .tag { font-size:22px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:#9a9aa3; display:block; margin-bottom:6px; }
     .say.me .tag { color:var(--muted); }
@@ -204,18 +202,20 @@ def scene02() -> str:
     .meter .l { display:flex; justify-content:space-between; font-size:26px; font-weight:800; color:var(--muted); margin-bottom:12px; }
     .meter .l b { color:var(--loss); }
     .meter .bar { height:30px; border-radius:10px; background:#e6e1da; overflow:hidden; }
-    .meter .bar i { display:block; height:100%; width:0; background:var(--loss); animation: fill 1.6s cubic-bezier(.2,.7,.2,1) 4.4s both; }
-    @keyframes fill { to { width:100%; } }
-    .meter { opacity:0; animation: fade .3s 4.3s both; }
-    .line { position:absolute; left:120px; top:930px; font-size:44px; font-weight:800; letter-spacing:-.6px; animation: fade .5s 7.4s both; }
+    .meter .bar i { display:block; height:100%; width:0; background:var(--loss); animation: fill 1.6s cubic-bezier(.2,.7,.2,1) var(--c-178, 7.6s) both; }
+    @keyframes fill { to { width:35.6%; } }
+    .meter { opacity:0; animation: fade .3s var(--c-178, 7.6s) both; }
+    .meter .big { font-size:64px; font-weight:900; letter-spacing:-2px; color:var(--ink); line-height:1; }
+    .tag { font-size:24px; }
+    .line { position:absolute; left:120px; top:880px; font-size:44px; font-weight:800; letter-spacing:-.6px; animation: fade .5s var(--c-never, 10.6s) both; }
     .line em { font-style:normal; color:var(--accent-dark); }
     """
     body = chrome("The problem", 2) + f"""
     <div class="who fade" style="--d:.2s">A developer points a language model at an Alpaca account</div>
     {DEV_SVG.format(style="")}
     <div class="say me"><span class="tag">developer</span>Find me a trade.</div>
-    <div class="say llm"><span class="tag">language model</span>Sure. Selling <b>178</b> call spreads on T.</div>
-    <div class="meter"><div class="l"><span>Buying power on one idea</span><b>$35,600 of $100,000</b></div><div class="bar"><i></i></div></div>
+    <div class="say llm"><span class="tag">language model</span>Sure. Sell call spreads on T.</div>
+    <div class="meter"><div class="l"><span><span class="big">178</span>&nbsp; spreads. Our own first dry run sized it.</span><b>$35,600 · a third of the account</b></div><div class="bar"><i></i></div></div>
     <div class="line">It will always find a trade. It never says no, and it <em>can't count contracts.</em></div>
     """
     return page("Scene 2 · Problem", css, body)
@@ -230,8 +230,9 @@ def scene_scalper(n_index: int) -> str:
     .chart .line { fill:none; stroke:var(--ink); stroke-width:5; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:2400; stroke-dashoffset:2400; animation: draw 3.2s cubic-bezier(.3,.6,.3,1) .6s both; }
     @keyframes draw { to { stroke-dashoffset:0; } }
     .chart .vwap { fill:none; stroke:var(--muted); stroke-width:3; stroke-dasharray:10 10; opacity:0; animation: fade .4s 1.0s both; }
-    .chart .range { fill:rgba(229,72,77,.08); stroke:var(--accent); stroke-width:2; opacity:0; animation: fade .4s 1.4s both; }
+    .chart .range { fill:rgba(34,34,34,.08); stroke:#b0b0b0; stroke-width:2; opacity:0; animation: fade .4s 1.4s both; }
     .chart text { font-family:"Nunito Sans", sans-serif; font-weight:800; }
+    .row span { font-size:26px; }
     .mk { opacity:0; animation: pop .4s cubic-bezier(.34,1.56,.64,1) both; }
     .side { position:absolute; left:1240px; top:300px; width:560px; display:flex; flex-direction:column; gap:16px; }
     .row { display:flex; justify-content:space-between; align-items:center; padding:20px 28px; border-radius:14px; background:#fff; border:1px solid var(--line); font-size:30px; font-weight:800; }
@@ -241,23 +242,23 @@ def scene_scalper(n_index: int) -> str:
     body = chrome("Engine two", n_index) + f"""
     <div class="h fade" style="--d:.2s"><h1>The second engine trades shares. No AI in it.</h1></div>
     <svg class="chart fade" style="--d:.4s" viewBox="0 0 1040 600">
-      <rect class="range" x="60" y="230" width="150" height="200" rx="8"/>
-      <text x="60" y="466" font-size="22" fill="#b8383c">opening range · first 15 min</text>
+      <rect class="range" x="60" y="230" width="36" height="200" rx="6"/>
+      <text x="60" y="466" font-size="24" fill="#717171">first 15 min</text>
       <path class="vwap" d="M60 340 C 260 330, 520 380, 980 300"/>
-      <text x="930" y="284" font-size="22" fill="#717171">VWAP</text>
-      <path class="line" d="M60 340 L110 290 L150 410 L210 250 L270 200 L330 300 L400 350 L470 300 L540 380 L610 330 L680 260 L760 230 L840 300 L920 270 L980 320"/>
-      <g class="mk" style="animation-delay:2.4s"><circle cx="270" cy="200" r="16" fill="#e5484d"/><text x="300" y="176" font-size="26" fill="#222">10:15 · fade the overshoot</text></g>
-      <g class="mk" style="animation-delay:3.4s"><circle cx="760" cy="230" r="16" fill="#067647"/><text x="640" y="196" font-size="26" fill="#222">13:00 · follow a big gap</text></g>
+      <text x="700" y="372" font-size="24" fill="#717171">VWAP</text>
+      <path class="line" d="M60 340 L80 290 L96 410 L125 200 L180 300 L260 350 L340 300 L420 380 L500 330 L565 230 L640 250 L720 220 L800 260 L900 230 L980 250"/>
+      <g class="mk" style="animation-delay:var(--c-fade, 5.5s)"><circle cx="125" cy="200" r="16" fill="#222"/><text x="150" y="176" font-size="28" fill="#222">10:15 · fade the overshoot</text></g>
+      <g class="mk" style="animation-delay:var(--c-gap, 6.5s)"><circle cx="565" cy="230" r="16" fill="#222"/><text x="590" y="206" font-size="28" fill="#222">13:00 · follow a big gap</text></g>
       <line x1="60" y1="530" x2="980" y2="530" stroke="#ebebeb" stroke-width="2"/>
-      <text x="60" y="566" font-size="22" fill="#717171">09:30</text><text x="840" y="566" font-size="22" fill="#717171">15:50 flat</text>
+      <text x="60" y="566" font-size="24" fill="#717171">09:30</text><text x="560" y="566" font-size="24" fill="#717171">13:00</text><text x="860" y="566" font-size="24" fill="#717171">15:50 flat</text>
     </svg>
     <div class="side">
-      <div class="row fade" style="--d:1.2s">SPY and QQQ <span>shares only</span></div>
-      <div class="row fade" style="--d:1.4s">Two rules <span>from 6 months of data</span></div>
-      <div class="row fade" style="--d:1.6s">$20,000 <span>per trade</span></div>
-      <div class="row fade" style="--d:1.8s">0.7% stop <span>120 bar time exit</span></div>
-      <div class="row fade" style="--d:2.0s">2 trades a day <span>$300 daily halt · flat by 15:50</span></div>
-      <div class="row dark fade" style="--d:2.2s">Same Alpaca CLI path <span>same journal</span></div>
+      <div class="row fade" style="--d:var(--c-spy, 4.2s)">SPY and QQQ <span>shares only</span></div>
+      <div class="row fade" style="--d:var(--c-rules, 5.3s)">10:15 fade <span>13:00 gap follow</span></div>
+      <div class="row fade" style="--d:var(--c-twenty, 8.0s)">$20,000 <span>per trade</span></div>
+      <div class="row fade" style="--d:var(--c-twenty2, 8.9s)">0.7% stop <span>out after 120 minutes</span></div>
+      <div class="row fade" style="--d:var(--c-two, 9.5s)">2 trades a day <span>$300 daily halt</span></div>
+      <div class="row dark fade" style="--d:var(--c-flat, 11.0s)">Flat by 15:50 <span>same CLI, same journal</span></div>
     </div>
     """
     return page("Scene · Engine two", css, body)
@@ -302,16 +303,16 @@ def scene03() -> str:
     <div class="cols">
       <div class="col">
         <h2 class="fade" style="--d:.4s">The model answers one question</h2>
-        <div class="bubble fade" style="--d:1.4s"><b>T</b> · bearish · conviction <b>0.70</b>
+        <div class="bubble fade" style="--d:var(--c-model, 2.1s)"><b>T</b> · bearish · conviction <b>0.70</b>
           <span class="q">“Extended run into resistance on thin volume. Sell the premium.”</span></div>
       </div>
       <div class="col">
         <h2 class="fade" style="--d:.4s">Code does everything with a dollar sign</h2>
         <div class="stamps">
-          <div class="stamp land" style="--d:5.6s">Strike <span>0.15–0.30 delta · 30–45 days</span></div>
-          <div class="stamp land" style="--d:5.75s">Size <span>hard cap $3,000</span></div>
-          <div class="stamp land" style="--d:5.9s">Exit <span>50% profit · 2× stop, confirmed twice · 21 days</span></div>
-          <div class="stamp red land" style="--d:6.05s">Order <span>official Alpaca CLI</span></div>
+          <div class="stamp land" style="--d:var(--c-code, 7.6s)">Strike <span>0.15 to 0.30 delta · 30 to 45 days</span></div>
+          <div class="stamp land" style="--d:var(--c-code2, 8.3s)">Size <span>hard cap $3,000</span></div>
+          <div class="stamp land" style="--d:var(--c-code3, 9.0s)">Exit <span>50% profit · 2× stop, confirmed twice · 21 days</span></div>
+          <div class="stamp land" style="--d:var(--c-code4, 9.7s)">Order <span>official Alpaca CLI</span></div>
         </div>
       </div>
     </div>
@@ -323,19 +324,19 @@ def scene04() -> str:
     css = """
     .stage { background:var(--paper); }
     .h { position:absolute; left:120px; top:170px; } .h h1 { font-size:72px; }
-    .funnel { position:absolute; left:640px; top:300px; width:760px; display:flex; flex-direction:column; gap:16px; }
+    .funnel { position:absolute; left:640px; top:300px; width:900px; display:flex; flex-direction:column; gap:16px; }
     .gate { height:86px; border-radius:14px; background:#fff; border:2px solid var(--line); display:flex; align-items:center; padding:0 34px; font-size:34px; font-weight:800; color:var(--muted); }
-    .gate.g5 { animation: reject .45s 8.2s both; }
+    .gate.g5 { animation: reject .45s var(--c-dies, 12.4s) both; }
     @keyframes reject { to { background:var(--wash); border-color:var(--accent); color:var(--accent-dark); } }
-    .gate.g5 .no { margin-left:auto; color:var(--accent-dark); opacity:0; font-size:30px; animation: fade .3s 8.5s both; }
+    .gate.g5 .no { margin-left:auto; color:var(--accent-dark); opacity:0; font-size:30px; animation: fade .3s var(--c-dies, 12.4s) both; }
     .token { position:absolute; left:560px; top:322px; width:44px; height:44px; border-radius:50%; background:var(--ink);
-             animation: drop 8.4s cubic-bezier(.2,.7,.2,1) .8s both; }
-    @keyframes drop { 0% { transform: translateY(0); } 18% { transform: translateY(0); } 22% { transform: translateY(102px); }
-                      40% { transform: translateY(102px); } 44% { transform: translateY(204px); } 58% { transform: translateY(204px); }
-                      62% { transform: translateY(306px); } 76% { transform: translateY(306px); } 80%,100% { transform: translateY(408px); } }
+             animation: drop 6s cubic-bezier(.2,.7,.2,1) var(--c-drop, 1.2s) both; }
+    @keyframes drop { 0% { transform: translateY(0); } 25% { transform: translateY(0); } 30% { transform: translateY(102px); }
+                      45% { transform: translateY(102px); } 50% { transform: translateY(204px); } 65% { transform: translateY(204px); }
+                      70% { transform: translateY(306px); } 83% { transform: translateY(306px); } 88%,100% { transform: translateY(408px); } }
     .side { position:absolute; left:120px; top:320px; width:380px; font-size:30px; color:var(--muted); line-height:1.5; }
     .side b { color:var(--ink); display:block; font-size:44px; margin-bottom:12px; }
-    .note { position:absolute; left:120px; top:880px; font-size:40px; font-weight:800; color:var(--ink); animation: fade .4s 10.5s both; }
+    .note { position:absolute; left:120px; top:880px; font-size:40px; font-weight:800; color:var(--ink); animation: fade .4s var(--c-most, 13.8s) both; }
     """
     body = chrome("The rails", 4) + """
     <div class="h fade" style="--d:.2s"><h1>Then the idea has to survive the rails.</h1></div>
@@ -344,11 +345,11 @@ def scene04() -> str:
       <div class="gate g1 fade" style="--d:.4s">Conviction ≥ 0.60</div>
       <div class="gate g2 fade" style="--d:.5s">One position per name · 3 spreads max</div>
       <div class="gate g3 fade" style="--d:.6s">$3,000 cap per position</div>
-      <div class="gate g4 fade" style="--d:.7s">Strike rules · 0.15–0.30 delta · 30–45 days</div>
+      <div class="gate g4 fade" style="--d:.7s">Strike rules · 0.15 to 0.30 delta · 30 to 45 days</div>
       <div class="gate g5 fade" style="--d:.8s">Liquidity: unwind cost &lt; 1.5× credit <span class="no">rejected</span></div>
     </div>
     <div class="token"></div>
-    <div class="note">Most ideas die here. That's the point.</div>
+    <div class="note">Most ideas die here. On purpose.</div>
     """
     return page("Scene 4 · Rails", css, body)
 
@@ -359,27 +360,27 @@ def _ui_scene(n: int, kicker: str, title: str, img: str, focus: tuple[float, flo
     .stage { background:var(--paper); }
     .h { position:absolute; left:120px; top:150px; } .h h1 { font-size:64px; }
     .shot { position:absolute; left:120px; top:270px; width:1680px; height:757px; border-radius:18px; overflow:hidden; border:1px solid var(--line); box-shadow:0 20px 60px rgba(0,0,0,.12); }
-    .shot img { width:1680px; height:757px; display:block; }
+    .shot img { width:1680px; height:757px; display:block; transform: translateY(var(--imgy, 0px)); }
     .kb { position:relative; width:1680px; height:757px; }
     .focus { position:absolute; border-radius:14px; box-shadow: 0 0 0 4px var(--accent), 0 0 0 9999px rgba(250,248,245,.72); opacity:0; animation: fade .6s ease-out both; }
     """
     l, t, w, h = focus
-    body = chrome(kicker, n) + f"""
+    body = chrome(kicker, n + 1) + f"""
     <div class="h fade" style="--d:.2s"><h1>{title}</h1></div>
     <div class="shot fade" style="--d:.3s"><div class="kb"><img src="{img}">
-      <div class="focus" style="left:{l}%; top:{t}%; width:{w}%; height:{h}%; animation-delay:{start}s"></div></div></div>
+      <div class="focus" style="left:{l}%; top:{t}%; width:{w}%; height:{h}%; animation-delay:var(--c-ring, {start}s)"></div></div></div>
     """
     return page(f"Scene {n} · {kicker}", css, body)
 
 
 def scene05() -> str:
-    return _ui_scene(5, "Live app", "The live app. A no is logged like a fill.", "dash_overview.jpg",
+    return _ui_scene(5, "Live app", "The live app. Both engines, one book.", "dash_overview.jpg",
                      (83.0, 16.0, 14.8, 30.5), 2.6)
 
 
 def scene06() -> str:
-    return _ui_scene(6, "Live app", "Drawn from the same function the bot runs.", "dash_risk.jpg",
-                     (23.2, 89.8, 73.2, 8.4), 2.2)
+    return _ui_scene(6, "Live app", "That $3,000 comes from the same function the bot calls.", "dash_risk.jpg",
+                     (23.2, 89.8, 73.2, 8.4), 3.5)
 
 
 def scene07() -> str:
@@ -396,13 +397,14 @@ def scene07() -> str:
     .typed { display:inline; }
     .typed span { opacity:0; animation: fade .01s linear both; }
     .prompt { color:#7ee2a0; }
-    .out { margin-top:22px; color:#6f6f7a; white-space:pre; animation: fade .05s 4.6s both; }
+    .out { margin-top:22px; color:#6f6f7a; white-space:pre; animation: fade .05s var(--c-json, 5.0s) both; }
     .out b { color:#7ee2a0; font-weight:700; }
-    .jl { margin-top:24px; color:#6f6f7a; font-size:26px; animation: fade .05s 4.6s both; }
+    .jl { margin-top:24px; color:#6f6f7a; font-size:26px; animation: fade .05s var(--c-exit, 6.8s) both; }
     .jl b { color:#fff; }
+    .fc { margin-top:14px; color:#fff; font-size:30px; font-weight:800; animation: fade .05s var(--c-fails, 8.0s) both; }
     """
     # per-character typewriter: deterministic under seek (steps() on max-width is not, for wrapped text)
-    typed = "".join(f'<span style="animation-delay:{0.6 + k * 0.026:.3f}s">{c}</span>' for k, c in enumerate(cmd))
+    typed = "".join(f'<span style="animation-delay:{0.6 + k * 0.019:.3f}s">{c}</span>' for k, c in enumerate(cmd))
     body = chrome("Alpaca", 8) + f"""
     <div class="h fade" style="--d:.2s"><h1>Every order goes out through Alpaca's own CLI.</h1></div>
     <div class="term fade" style="--d:.3s">
@@ -412,7 +414,8 @@ def scene07() -> str:
   "id": "1c9e…a4f2",  "client_order_id": "oa-4dacc2da-8f31c0e2",
   "order_class": "mleg",  "status": <b>"accepted"</b>,  "legs": 2
 }}</div>
-      <div class="jl">data/cli_calls.jsonl · <b>exit 0 · 214 ms</b> · fails closed on any error</div>
+      <div class="jl">data/cli_calls.jsonl · {{"argv":["alpaca","order","submit",…],"ok":true,<b>"exit_code":0,"ms":171</b>}}</div>
+      <div class="fc">If the CLI fails, nothing opens.</div>
     </div>
     """
     return page("Scene 7 · Alpaca CLI", css, body)
@@ -422,40 +425,40 @@ def scene08() -> str:
     css = """
     .stage { background:var(--paper); }
     .h { position:absolute; left:120px; top:160px; } .h h1 { font-size:72px; }
-    .row { position:absolute; left:120px; top:420px; display:flex; gap:16px; }
+    .row { position:absolute; left:120px; top:420px; display:flex; gap:14px; }
     .dot { width:46px; height:46px; border-radius:50%; background:var(--ink); }
     .dot.r { animation: red .35s ease-out both; animation-delay: var(--d); }
     @keyframes red { to { background: var(--loss); transform: scale(1.12); } }
-    .dot.g { animation: grey .5s ease-out 9.4s both; }
+    .dot.g { animation: grey .5s ease-out var(--c-floor, 10.7s) both; }
     @keyframes grey { to { background:#d9d5cf; } }
-    .dot.k { animation: keep .5s ease-out 9.4s both; }
+    .dot.k { animation: keep .5s ease-out var(--c-floor, 10.7s) both; }
     @keyframes keep { to { background:var(--gain); } }
     .lbl { position:absolute; left:120px; top:340px; font-size:34px; font-weight:800; color:var(--muted); }
-    .zero { position:absolute; left:1560px; top:300px; font-size:240px; font-weight:900; letter-spacing:-12px; color:var(--gain); line-height:1; animation: fade .4s 11.2s both; }
+    .zero { position:absolute; left:1560px; top:300px; font-size:240px; font-weight:900; letter-spacing:-12px; color:var(--gain); line-height:1; animation: fade .4s var(--c-zero, 13.0s) both; }
     .zero small { display:block; font-size:34px; letter-spacing:0; color:var(--muted); font-weight:700; margin-top:-10px; }
     .cap { position:absolute; left:120px; top:540px; font-size:40px; line-height:1.5; max-width:1300px; color:var(--ink); }
-    .cap .a { animation: fade .4s 4.2s both; display:block; }
-    .cap .b { animation: fade .4s 9.6s both; display:block; }
+    .cap .a { animation: fade .4s var(--c-eight, 4.5s) both; display:block; }
+    .cap .b { animation: fade .4s var(--c-five, 12.0s) both; display:block; }
     .tests { position:absolute; left:120px; bottom:120px; font-size:28px; font-weight:700; color:var(--muted); }
     """
     reds = {1, 4, 6, 9, 12, 15, 18, 21}
     keeps = {2, 7, 11, 16, 20}
     dots = []
-    for k in range(22):
+    for k in range(23):
         if k in reds:
-            dots.append(f'<div class="dot r" style="--d:{4.3 + 0.08 * len([r for r in reds if r < k]):.2f}s"></div>')
+            dots.append(f'<div class="dot r" style="--d:calc(var(--c-eight, 4.5s) + {0.08 * len([r for r in reds if r < k]):.2f}s)"></div>')
         elif k in keeps:
             dots.append('<div class="dot k"></div>')
         else:
             dots.append('<div class="dot g"></div>')
     body = chrome("Proof", 9) + f"""
     <div class="h fade" style="--d:.2s"><h1>We replayed a day of real option chains first.</h1></div>
-    <div class="lbl fade" style="--d:.5s">22 spreads the old gate would have opened</div>
+    <div class="lbl fade" style="--d:.5s">23 spreads the open gate would have taken</div>
     <div class="row fade" style="--d:.6s">{"".join(dots)}</div>
     <div class="cap"><span class="a"><b style="color:var(--loss)">8</b> were already past their own stop on the quotes they were picked from.</span>
       <span class="b">With the liquidity floor: <b style="color:var(--gain)">5 admitted, 0 past the stop.</b></span></div>
     <div class="zero">0<small>past the stop</small></div>
-    <div class="tests">276 tests · replay of the 2026-09-01 chain snapshots · seven mutation checks</div>
+    <div class="tests">276 tests · replay of the Sept 1 chain snapshots</div>
     """
     return page("Scene 8 · Proof", css, body)
 
@@ -466,7 +469,7 @@ def scene09(n: dict) -> str:
     .brand .name, .foot, .pn { color:#fff; } .brand .kick { color:#9a9aa3; }
     .h { position:absolute; left:120px; top:170px; } .h h1 { font-size:64px; color:#fff; }
     .url { position:absolute; left:120px; top:380px; font-size:88px; font-weight:900; color:#fff; letter-spacing:-2px; }
-    .url span { color:var(--accent); }
+    .url span { color:#fff; }
     .line { position:absolute; left:124px; top:520px; font-size:40px; color:#d9d9de; font-weight:600; line-height:1.6; }
     .line b { color:#fff; }
     .repo { position:absolute; left:124px; bottom:130px; font-size:30px; color:#9a9aa3; font-weight:600; }
@@ -474,10 +477,10 @@ def scene09(n: dict) -> str:
     """
     body = chrome("Results", 10) + f"""
     <div class="h fade" style="--d:.2s"><h1>Every idea and every no is on the dashboard. Go check it.</h1></div>
-    <div class="url fade" style="--d:2.4s">optionsagent-production<span>.up.railway.app</span></div>
-    <div class="line fade" style="--d:3.4s">Paper account <b>{n['account_number']}</b> · $100,000 start · equity <b>{money(n['equity'])}</b><br>
+    <div class="url fade" style="--d:var(--c-dash, 7.3s)">optionsagent-production<span>.up.railway.app</span></div>
+    <div class="line fade" style="--d:.4s">Paper account <b>{n['account_number']}</b> · $100,000 start · equity <b>{money(n['equity'])}</b><br>
       {n['fills_total']} filled orders in the window · {n['fills_options']} options · snapshot {n['as_of']}</div>
-    <div class="repo fade" style="--d:4.4s"><b>github.com/Jhosshua/OptionsAgent</b> · MIT · team Convexity</div>
+    <div class="repo fade" style="--d:var(--c-check, 8.4s)"><b>github.com/Jhosshua/OptionsAgent</b> · MIT · team Convexity</div>
     {alpaca("idle", "right:130px; bottom:110px; width:240px; height:240px;")}
     """
     return page("Scene 9 · Results", css, body)
@@ -501,7 +504,7 @@ def onepager(n: dict) -> str:
     .box { border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-top:6px; background:var(--paper); }
     .box p { font-size:11.2px; }
     .kv { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:10px; margin-top:8px; }
-    .kv div { border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+    .kv > div { border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
     .kv .l { font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
     .kv .v { font-size:18px; font-weight:900; letter-spacing:-.4px; margin-top:2px; }
     .foot { position:absolute; left:48px; right:48px; bottom:26px; font-size:10px; color:var(--faint); font-weight:600; display:flex; justify-content:space-between; }
@@ -509,26 +512,26 @@ def onepager(n: dict) -> str:
     body = f"""
     <div class="top"><div class="mark">{W_MARK.format(s=18, c="#fff")}</div><div class="name">Wingspan</div><div class="kick">Alpaca AI Trading Agents Hackathon 2026 · team Convexity</div></div>
     <h1>An options agent that mostly says no.</h1>
-    <div class="lede">A language model may propose a trade. Code decides every strike, size and exit, and Alpaca's official CLI places every order. Paper account {n['account_number']}, $100,000 start. Everything below describes the code that is running today.</div>
+    <div class="lede">A language model may propose a trade. Code decides every strike, size and exit, and Alpaca's official CLI places every order. Paper account {n['account_number']}, $100,000 start. This page describes the code that is running today.</div>
 
     <h2>The customer problem</h2>
-    <p>Point a language model at a brokerage account and it will always find a trade. It never says no, and it cannot count contracts. In our own first dry run the sizing math wanted 178 contracts on one idea. Wingspan is built for a developer who wants to hand an LLM an Alpaca account and not babysit it.</p>
+    <p>Point a language model at a brokerage account and it will always find a trade. It never says no, and it cannot count contracts. Our own first dry run wanted 178 contracts on one idea. Wingspan is built for a developer who wants to hand an LLM an Alpaca account and not babysit it.</p>
 
     <div class="grid">
       <div>
         <h2>Engine one · credit spread seller</h2>
         <p>Once a day at 10:15 ET, DeepSeek reads 13 liquid names with forty days of price context and answers one question per name: is there a trade, which direction, how sure. It cannot name a strike, a size or an exit, and it cannot place an order.</p>
-        <p>Code then picks the contracts: a short strike at 0.15 to 0.30 delta, 30 to 45 days out, at most $2 wide. Five gates follow. Conviction of at least 0.60. One position per name, three spreads at most. A hard cap of $3,000 of defined risk per position. The strike rules. And a liquidity floor: credit of at least ten cents, and the cost to unwind on the same quotes under 1.5 times the credit, so the exit rule cannot stop the trade out on its own entry.</p>
-        <p>One multi leg limit order goes out at the net credit. The fill is confirmed and the unfilled remainder is cancelled. Only the filled count is booked.</p>
-        <p>Exits run every twenty minutes with no AI: take profit at half the credit; stop at twice the credit, only after 10:00 ET and only when two consecutive sweeps agree; forced close at 21 days to expiry. A spread is marked closed only when the unwind actually fills.</p>
+        <p>Code picks the contracts (short strike at 0.15 to 0.30 delta, 30 to 45 days out, at most $2 wide) and runs five gates: conviction of at least 0.60, one position per name and six open legs at most, a $3,000 cap per position, the strike rules, and a liquidity floor of ten cents credit with an unwind cost under 1.5 times the credit, so the exit rule cannot stop the trade out on its own entry.</p>
+        <p>One multi leg limit order goes out at the net credit. Only the filled count is booked; the remainder is cancelled.</p>
+        <p>Exits run every twenty minutes with no AI: half the credit, or twice the credit after 10:00 ET on two consecutive sweeps, or 21 days to expiry. A spread is closed only when the unwind fills.</p>
       </div>
       <div>
         <h2>Engine two · share scalper</h2>
-        <p>No AI in it. Two rules on SPY and QQQ, mined from six months of minute bars and frozen. At 10:15 ET it fades a close that overshoots both the session VWAP and the first fifteen minutes' range. At 13:00 ET it follows a QQQ gap larger than 0.8%. Twenty thousand dollars a trade, two trades a day, a 0.7% stop, a time exit after 120 bars, flat by 15:50 ET, and a $300 daily loss halt.</p>
+        <p>No AI in it. Two rules on SPY and QQQ, mined from six months of minute bars and frozen on August 28. At 10:15 ET it fades a close that overshoots both the session VWAP and the first fifteen minutes' range. At 13:00 ET it follows a QQQ gap larger than 0.8%. Twenty thousand dollars a trade, two trades a day, a 0.7% stop, out after 120 minutes, flat by 15:50 ET, and a $300 daily loss halt.</p>
         <h2>Alpaca infrastructure</h2>
-        <p>Account, positions, clock and every order run through the official Alpaca CLI as a subprocess inside the container, pinned to a checksummed release. Each call is journaled with its exit code and latency. A lost reply is looked up by our own client order id before it is called a failure. On any error the trade does not happen; the one exception is the scalper's end of day flatten, which may fall back to the SDK and says so in the journal. Option chains come from a read only market data sidecar, stock bars from a hosted Alpaca data relay. It runs on Railway as Linux cron with the public dashboard reading the same journals and rendering the rails from the same functions the bot calls.</p>
+        <p>Account, positions, clock and every order run through the official Alpaca CLI as a subprocess inside the container, pinned to a checksummed release. Each call is journaled with its exit code and latency. A lost reply is looked up by our own client order id before it is called a failure. On any error nothing opens; the one exception is the scalper's end of day flatten, which may fall back to the SDK and says so in the journal. Option chains come from a read only market data sidecar, stock bars from a hosted Alpaca data relay. Railway runs it as cron; the public dashboard renders the rails from the same functions the bot calls.</p>
         <h2>What we proved before trading</h2>
-        <p>We replayed the previous day's real option chains. Eight of the twenty two spreads the old gate would have opened were already past their own stop on the quotes they were picked from. With the liquidity floor: five admitted, zero past the stop. 276 tests; the gate, the cap, fill confirmation and the CLI path each have a mutation check.</p>
+        <p>We replayed the September 1 option chains. Eight of the twenty three spreads the open gate would have taken were already past their own stop on the quotes they were picked from. With the liquidity floor: five admitted, zero past the stop. 276 tests.</p>
       </div>
     </div>
 
@@ -538,7 +541,7 @@ def onepager(n: dict) -> str:
       <div><div class="l">Filled orders in the window</div><div class="v">{n['fills_total']} <span style="font-size:12px; color:var(--muted); font-weight:700;">· {n['fills_options']} options</span></div></div>
       <div><div class="l">Max risk per position</div><div class="v">$3,000</div></div>
     </div>
-    <div class="box"><p><b>Disclosure.</b> The harness predates the event (July 2026). Built inside the window: the share scalper and its study, the Railway deployment, the DeepSeek proposer, the dashboard rework, the CLI transport, and the open gate with its cap and liquidity floor. The competition account was created on August 30 and nothing else has traded on it.</p></div>
+    <div class="box"><p><b>Disclosure.</b> The harness predates the event (July 2026). Built inside the window: the share scalper and its study, the Railway deployment, the DeepSeek proposer, the dashboard rework, the CLI transport, and the open gate with its cap and liquidity floor. The account was created August 30; nothing else has traded on it.</p></div>
     <div class="foot"><span>github.com/Jhosshua/OptionsAgent · MIT</span><span>optionsagent-production.up.railway.app</span></div>
     """
     return page("One-pager", css, body)

@@ -47,7 +47,7 @@ problems in the plan; all fixed and pinned by tests before the first deploy:**
   credit is short.BID − long.ASK, the exit sweep prices the unwind at short.ASK −
   long.BID, so the bid/ask is paid twice and the 2x-credit stop fires at t=0 on any
   spread whose quoted width exceeds its credit. Replay of the 09-01 chain
-  snapshots: 8 of 22 pickable shapes were past the stop on the quotes they were
+  snapshots: 8 of 23 pickable shapes were past the stop on the quotes they were
   picked from (WBD bull credit 0.07 / unwind 0.45 ⇒ −$1,140 on 30 contracts).
   Fix: research_rules now requires credit ≥ $0.10 and unwind-now < 1.5× credit
   (`RESEARCH_RULES_MIN_CREDIT`, `RESEARCH_RULES_MAX_CLOSE_COST_X`); run_cycle passes

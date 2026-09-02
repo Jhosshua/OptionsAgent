@@ -52,7 +52,7 @@ Alpaca · Alpaca CLI · DeepSeek · Python · Railway · Options · Credit sprea
      judged_against), tail cli_calls.jsonl (an order submit through the CLI),
      `alpaca order list` on the competition account.
 3:20 What went wrong and what we changed (60 s). The gate that vetoed
-     everything for a week; the replay that showed 8 of 22 spreads were losers
+     everything for a week; the replay that showed 8 of 23 spreads were losers
      at entry; the liquidity floor; the cap. Honest about a quiet day = zero
      trades.
 4:20 Results + close (40 s). [[equity, fills, refusals]] and the one-line
@@ -113,7 +113,7 @@ traded on it.
 ## 10. Social posts (optional, up to 5; tag @lablabai @AlpacaHQ)
 1. Day 1: "Entering the Alpaca AI Trading Agents Hackathon with an options
    agent whose AI can't place an order. Code picks every strike, size and exit."
-2. The bug: "Replayed yesterday's option chains: 8 of 22 spreads my gate would
+2. The bug: "Replayed yesterday's option chains: 8 of 23 spreads my gate would
    have opened were already past their own stop on the entry quotes. Fixed
    before the first trade. Build in public means showing the misses."
 3. The CLI: "Every order now goes through Alpaca's official CLI, journaled with
