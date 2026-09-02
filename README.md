@@ -117,9 +117,10 @@ credit-spread seller had **zero fills** on the competition account before
 
 `config/config.json` holds tunables (strategy phase allowlist, delta/DTE targets, conviction
 thresholds, exit targets). The rails in `harness/risk_rails.py` (conviction floor, max positions,
-DTE close, and the historical credit-spread winner profile) live in code by design. Sizing is full-deploy per operator decision 2026-07-03:
-conviction-scaled fraction of available buying power, no percentage caps — `OA_MAX_POSITION_USD`
-env var is the tighten-only emergency brake.
+DTE close, the credit-spread gate in both its modes, the research_rules liquidity floor) live in
+code by design. Sizing is full-deploy per operator decision 2026-07-03: conviction-scaled fraction
+of available buying power, no percentage caps — `OA_MAX_POSITION_USD` is the tighten-only absolute
+ceiling, set to $3,000 on Railway since 2026-09-01 and mandatory while the gate is `research_rules`.
 
 ## Optional Public market-data sidecar
 

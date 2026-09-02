@@ -107,7 +107,10 @@ Full design rationale: `RESEARCH.md` (3 research passes, verified findings + exp
 
 - **Language:** Python 3, mirrors DeterministicAgent's style (small pure modules, fail-open data
   adapters, a verifier per module).
-- **Broker:** Alpaca paper via `alpaca-py`. PAPER ONLY — `make_client()` refuses any non-paper
+- **Broker:** Alpaca paper. Transport = the official **Alpaca CLI** on Railway since 2026-09-01
+  (`OA_BROKER_TRANSPORT=cli`, `harness/alpaca_cli.py`, every call journaled, fail-closed, no SDK
+  fallback); `alpaca-py` remains the default `sdk` transport and the market-data client.
+  PAPER ONLY — `make_client()` refuses any non-paper
   endpoint. Order prefix `oa-`.
 - **LLM:** the DeepSeek chat-completions API (`harness/proposer.py`, `OA_LLM_PROVIDER=deepseek`,
   `DEEPSEEK_API_KEY`, `OA_DEEPSEEK_MODEL`, default `deepseek-v4-pro`, JSON-object mode, temperature

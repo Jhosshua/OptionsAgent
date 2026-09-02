@@ -14,9 +14,11 @@ read-only HTTPS GET — the same pattern DTA uses for its orderflow relay, so a
 consumer written for one works for the other.
 
 The multi-day credit-spread seller is a separate pipeline from this 0DTE relay.
-Its current archived-winner overfit is applied in `run_cycle.py` after option
-contract selection and does not use relay data. The relay remains historical and
-not deployed with the retired Railway service.
+Its gate (`OA_CREDIT_SPREAD_GATE`: the archived-winner profile by default,
+`research_rules` for the 2026-09 hackathon window) is applied in `run_cycle.py`
+after option contract selection and does not use relay data. This publisher is
+off by default (`OA_MARKETDATA_ENABLED`) on the current Railway deployment; the
+fleet's stock data now comes from the hosted AlpacaRelay proxy instead.
 
 ## What it serves
 

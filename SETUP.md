@@ -56,8 +56,11 @@ submit paper orders when proposals, gates, and market conditions all pass.
 > section is kept because the volume layout, cron design and env-var mechanics it
 > describes are still exactly how the current deployment works.
 
-Everything operational: where it runs, the env vars, how to redeploy, watch, and stop it. The current code also contains an intentionally overfit,
-hard-coded credit-spread winner profile documented in `OVERFIT_ANALYSIS.md`.
+Everything operational: where it runs, the env vars, how to redeploy, watch, and stop it. The
+credit-spread seller has two gate modes (`OA_CREDIT_SPREAD_GATE`): the intentionally overfit
+winner profile documented in `OVERFIT_ANALYSIS.md` (default) and `research_rules` (hackathon
+window, 2026-09-01, see README). Broker calls go through the official Alpaca CLI when
+`OA_BROKER_TRANSPORT=cli` (Railway since 2026-09-01).
 
 ## Where it runs
 
@@ -91,7 +94,10 @@ hard-coded credit-spread winner profile documented in `OVERFIT_ANALYSIS.md`.
 | `OA_LLM_ATTEMPTS` | `3` | Attempts on transient errors (key errors are not retried) |
 | `OA_CLAUDE_CLI` / `OA_CLAUDE_MODEL` | — | Only read when `OA_LLM_PROVIDER=claude_cli` |
 | `DISCORD_WEBHOOK_URL` | `#options-agent` webhook | Channel 1522587333822513253, StockBot guild |
-| `OA_MAX_POSITION_USD` | (unset) | OPTIONAL tighten-only emergency brake: absolute $ ceiling per position |
+| `OA_MAX_POSITION_USD` | (unset) | Tighten-only absolute $ ceiling per position. **Set to `3000` on Railway since 2026-09-01**; REQUIRED whenever the gate below is `research_rules` (the cycle refuses to run without it) |
+| `OA_CREDIT_SPREAD_GATE` | `winner_profile` | Which gate judges a picker-approved credit spread: `winner_profile` = the frozen CCL/SOFI/F table; `research_rules` = any watchlist name, credit ≥ $0.10, unwind-now < 1.5× credit. **`research_rules` on Railway for the hackathon window (2026-09-01)**. Junk values fall back to the strict mode |
+| `OA_BROKER_TRANSPORT` | `sdk` | `cli` routes every account / position / clock / order call through the official Alpaca CLI (`harness/alpaca_cli.py`, journaled to `data/cli_calls.jsonl`, fail-closed). **`cli` on Railway since 2026-09-01**; the Dockerfile installs the binary |
+| `OA_ALPACA_CLI` | `alpaca` | Path or name of the Alpaca CLI binary (tests point it at a fake) |
 | `OA_MAX_TOKENS` | (unset, default 4096) | Proposer output ceiling |
 | `OA_TRADING_ENABLED` | `false` in template; `true` locally | Explicit cron trading gate; paper-only local run |
 | `OA_DASHBOARD_HOST` | `127.0.0.1` | Dashboard bind address. **Railway sets `0.0.0.0`** so the router can reach it; `127.0.0.1` is loopback-only and correct for a local run |

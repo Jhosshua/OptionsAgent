@@ -11,8 +11,12 @@
 > **CURRENT IMPLEMENTATION NOTE — 2026-09-01:** The active runtime is a Railway
 > container (see SETUP.md). The DeepSeek API is the proposal boundary since
 > 2026-09-01 (evening); the Claude Code CLI is no longer in the image. Public.com remains read-only options data and Alpaca
-> remains the paper-only account/order boundary. The Railway design below is
-> once again the live one.
+> remains the paper-only account/order boundary, reached through the official
+> Alpaca CLI (`OA_BROKER_TRANSPORT=cli`, `harness/alpaca_cli.py`) since the
+> 2026-09-01 hackathon go-live. The credit-spread gate has two modes
+> (`OA_CREDIT_SPREAD_GATE`: `winner_profile` default, `research_rules` for the
+> hackathon window, coupled to `OA_MAX_POSITION_USD=3000`). The Railway design
+> below is once again the live one.
 
 > **Research update 2026-08-27:** The archived 0DTE scalp replay supports a
 > hard 11:30 ET entry cutoff and two-entry daily cap, now implemented in `ScalpRails`. The

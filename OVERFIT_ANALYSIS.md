@@ -1,8 +1,11 @@
 # OptionsAgent historical analysis — 2026-08-27
 
-> **CURRENT RUNTIME NOTE — 2026-08-28:** This is an historical research report. The bot is now
-> operated locally in Alpaca paper mode, with proposals supplied by the authenticated Claude Code
-> CLI and market data supplied read-only by Public.com. The old Railway deployment is not active.
+> **CURRENT RUNTIME NOTE — 2026-09-01:** This is an historical research report. The bot runs on
+> Railway (new project, 2026-09-01) with the DeepSeek API as proposer, Public.com as read-only
+> options data, and the official Alpaca CLI as the paper-order transport. The winner profile this
+> report produced is still the DEFAULT gate (`OA_CREDIT_SPREAD_GATE=winner_profile`); for the
+> Alpaca hackathon window it is bypassed by `research_rules` (see README / MEMORY.md 2026-09-01).
+> (The 2026-08-28 note that stood here described the local Claude-CLI runtime, since replaced.)
 
 This report is based on the archived Railway volume in `data/` and is
 reproducible with:
@@ -115,6 +118,7 @@ option chain bid/ask and per-contract Greeks while Alpaca remains execution-only
 by default and has not been live-smoke-tested because no Public credentials were available in the
 repository environment.
 
-This repository remains **not deployed**. The original Railway project,
-volume, broker keys, LLM key, and Discord webhook were deleted on 2026-08-02;
-restarting requires a new paper account and a new Railway deployment target.
+At the time of this report (2026-08-27) the repository was **not deployed**: the
+original Railway project, volume, broker keys, LLM key, and Discord webhook had
+been deleted on 2026-08-02. It has since been redeployed to a new Railway project
+(2026-09-01) on a new paper account; see SETUP.md.
