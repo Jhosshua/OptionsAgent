@@ -159,7 +159,7 @@ class Cdp:
         self.n += 1
         await self.ws.send(json.dumps({"id": self.n, "method": method, "params": params}))
         while True:
-            msg = json.loads(await self.ws.recv())
+            msg = json.loads(await asyncio.wait_for(self.ws.recv(), timeout=25))
             if msg.get("id") == self.n:
                 if "error" in msg:
                     raise RuntimeError(f"{method}: {msg['error']}")
@@ -172,9 +172,10 @@ class Cdp:
 
 async def capture_scene(cdp: Cdp, i: int, dur: float, fps: int, cues: dict[str, str] | None = None) -> int:
     url = (SCENES / f"Scene{i:02d}.dc.html").resolve().as_uri()
+    await cdp.call("Page.bringToFront")   # Chrome stops painting background tabs; a hidden tab stalls captureScreenshot
     await cdp.call("Page.navigate", url=url)
     await asyncio.sleep(0.4)
-    await cdp.eval("document.fonts.ready.then(() => true)", await_promise=True)
+    await asyncio.wait_for(cdp.eval("document.fonts.ready.then(() => true)", await_promise=True), 20)
     # make every animation deterministic: pause, then seek per frame
     await cdp.eval(f"document.documentElement.style.setProperty('--dur', '{dur:.3f}s'); true")
     for var, val in (cues or {}).items():
@@ -186,12 +187,28 @@ async def capture_scene(cdp: Cdp, i: int, dur: float, fps: int, cues: dict[str, 
     for f in frames_dir.glob("*.jpg"):
         f.unlink()
     total = int(round(dur * fps))
-    for k in range(total):
+    k = 0
+    stalls = 0
+    while k < total:
         t_ms = k * 1000.0 / fps
-        await cdp.eval(f"document.getAnimations({{subtree:true}}).forEach(a => {{ a.pause(); a.currentTime = {t_ms:.2f}; }}); true")
-        shot = await cdp.call("Page.captureScreenshot", format="jpeg", quality=92, fromSurface=True,
-                              clip={"x": 0, "y": 0, "width": 1920, "height": 1080, "scale": 1})
+        try:
+            await cdp.eval(f"document.getAnimations({{subtree:true}}).forEach(a => {{ a.pause(); a.currentTime = {t_ms:.2f}; }}); true")
+            shot = await cdp.call("Page.captureScreenshot", format="jpeg", quality=92, fromSurface=True,
+                                  clip={"x": 0, "y": 0, "width": 1920, "height": 1080, "scale": 1})
+        except asyncio.TimeoutError:
+            stalls += 1
+            print(f"scene {i}: CDP stalled at frame {k}, re-navigating (stall {stalls})", flush=True)
+            if stalls > 5:
+                raise
+            await cdp.call("Page.bringToFront")
+            await cdp.call("Page.navigate", url=url)
+            await asyncio.sleep(0.6)
+            await cdp.eval(f"document.documentElement.style.setProperty('--dur', '{dur:.3f}s'); true")
+            for var, val in (cues or {}).items():
+                await cdp.eval(f"document.documentElement.style.setProperty('--{var}', '{val}'); true")
+            continue
         (frames_dir / f"{k:05d}.jpg").write_bytes(base64.b64decode(shot["data"]))
+        k += 1
     return total
 
 
