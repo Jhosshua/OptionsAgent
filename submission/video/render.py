@@ -84,24 +84,16 @@ CUES = {
     10: {"c-reply": "reply", "c-logged": "logged", "c-fails": "fails"},
     11: {"c-eight": "eight", "c-floor": "fixed", "c-five": "fifteen", "c-zero": "zero"},
     12: {"c-is": "discipline", "c-isnt": "printer"},
-    13: {"c-dash": "dashboard", "c-check": "check"},
+    13: {"c-dash": "dashboard", "c-check": "every", "c-thanks": "check"},
 }
 
 # Cue words: the first matching spoken word sets the CSS variable on the scene, so reveals land on the voice.
 
 
 def results_narration(n: dict) -> str:
-    eq = n.get("equity")
-    pnl = None if eq is None else eq - 100_000
-    if pnl is None:
-        money_line = "The account is flat."
-    else:
-        dollars = int(round(abs(pnl)))
-        money_line = "Flat so far." if dollars == 0 else f"{'Up' if pnl > 0 else 'Down'} {dollars} dollars so far."
-    fills = n.get("fills_options") or 0
-    fill_line = "No option bets have filled yet." if fills == 0 else f"{fills} option bet{'s' if fills != 1 else ''} filled."
-    return (f"Two trading days on a fresh practice account. {money_line} {fill_line} "
-            "Every idea, and every no, is on the dashboard. Go check it. Thanks for watching.")
+    """Closing line. No live numbers on purpose: the dashboard is the results page."""
+    return ("Everything it does is on the dashboard, live. Every idea, and every no, with the rule that said it. "
+            "Go check it. Thanks for watching.")
 
 
 def word_cues(words_path: Path) -> list[tuple[float, str]]:

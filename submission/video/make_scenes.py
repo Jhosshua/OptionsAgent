@@ -504,24 +504,23 @@ def scene12() -> str:
 
 
 def scene13(n: dict) -> str:
+    """Closing: where to look. No numbers; the dashboard is live."""
     css = """
     .stage { background:#18181c; }
-    .h h1 { font-size:60px; }
-    .url { position:absolute; left:120px; top:380px; font-size:88px; font-weight:900; color:#fff; letter-spacing:-2px; }
-    .line { position:absolute; left:124px; top:520px; font-size:38px; color:#d9d9de; font-weight:600; line-height:1.6; }
-    .line b { color:#fff; }
+    .h h1 { font-size:64px; }
+    .url { position:absolute; left:120px; top:420px; font-size:88px; font-weight:900; color:#fff; letter-spacing:-2px; }
+    .line { position:absolute; left:124px; top:560px; font-size:40px; color:#d9d9de; font-weight:600; line-height:1.6; }
     .repo { position:absolute; left:124px; bottom:130px; font-size:30px; color:#9a9aa3; font-weight:600; }
     .repo b { color:#fff; }
     """
     body = chrome("Go check it", 13) + f"""
-    <div class="h fade" style="--d:.2s"><h1>Every idea and every no is on the dashboard. Go check it.</h1></div>
-    <div class="url fade" style="--d:var(--c-dash, 7.3s)">optionsagent-production.up.railway.app</div>
-    <div class="line fade" style="--d:.4s">Practice account <b>{n['account_number']}</b> · $100,000 start · now <b>{money(n['equity'])}</b><br>
-      {n['fills_total']} completed orders in the window · {n['fills_options']} option bets · snapshot {n['as_of']}</div>
-    <div class="repo fade" style="--d:var(--c-check, 8.4s)"><b>github.com/Jhosshua/OptionsAgent</b> · MIT · team Convexity</div>
+    <div class="h fade" style="--d:.2s"><h1>Every idea, and every no, is on the dashboard. Live.</h1></div>
+    <div class="url fade" style="--d:var(--c-dash, 3.0s)">optionsagent-production.up.railway.app</div>
+    <div class="line fade" style="--d:var(--c-check, 5.0s)">Practice account, $100,000 start. Watch it decide, and watch it say no.</div>
+    <div class="repo fade" style="--d:var(--c-thanks, 7.0s)"><b>github.com/Jhosshua/OptionsAgent</b> · MIT · team Convexity</div>
     {alpaca("idle", "right:130px; bottom:110px; width:240px; height:240px;")}
     """
-    return page("Scene 13 · Results", css, body, dark=True)
+    return page("Scene 13 · Go check it", css, body, dark=True)
 
 
 # --------------------------------------------------------------------------- one-pager
