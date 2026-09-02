@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <script src="./support.js"></script>
 </head>
-<body>
+<body class="">
 <x-dc>
 <helmet>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800;6..12,900&display=swap">
@@ -17,7 +17,7 @@ html,body { margin:0; }
 body { width:1920px; height:1080px; overflow:hidden; background:var(--bg); color:var(--ink);
        font-family:"Nunito Sans","Avenir Next","Segoe UI",sans-serif; -webkit-font-smoothing:antialiased; }
 a { color:var(--accent-dark); } a:hover { color:var(--accent); }
-.stage { position:relative; width:1920px; height:1080px; overflow:hidden; background:var(--bg); }
+.stage { position:relative; width:1920px; height:1080px; overflow:hidden; background:var(--paper); }
 .topbar { position:absolute; left:0; top:0; width:1920px; height:12px; background:var(--accent); }
 .brand { position:absolute; left:96px; top:56px; display:flex; align-items:center; gap:14px; }
 .brand .mark { width:44px; height:44px; border-radius:12px; background:var(--accent); display:grid; place-items:center; }
@@ -25,61 +25,39 @@ a { color:var(--accent-dark); } a:hover { color:var(--accent); }
 .brand .kick { color:var(--muted); font-weight:600; font-size:24px; margin-left:10px; }
 .foot { position:absolute; left:96px; bottom:48px; color:var(--faint); font-size:24px; font-weight:600; }
 .pn { position:absolute; right:96px; bottom:48px; color:var(--faint); font-size:24px; font-weight:600; }
-h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
-.rise { animation: rise .7s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--d, 0s); }
-.pop  { animation: pop .55s cubic-bezier(.34,1.56,.64,1) both; animation-delay: var(--d, 0s); }
+h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.05; }
+.h { position:absolute; left:120px; top:160px; } .h h1 { font-size:72px; max-width:1680px; }
 .fade { animation: fade .6s ease-out both; animation-delay: var(--d, 0s); }
-@keyframes rise { from { opacity:0; transform: translateY(28px); } to { opacity:1; transform:none; } }
-@keyframes pop  { from { opacity:0; transform: scale(.82); } to { opacity:1; transform: scale(1); } }
+.pop  { animation: pop .5s cubic-bezier(.2,.8,.3,1.1) both; animation-delay: var(--d, 0s); }
 @keyframes fade { from { opacity:0; } to { opacity:1; } }
+@keyframes pop  { from { opacity:0; transform: scale(.86); } to { opacity:1; transform: scale(1); } }
 .kb { animation: kb var(--dur) linear both; transform-origin: 50% 40%; }
 @keyframes kb { from { transform: scale(1); } to { transform: scale(1.035); } }
-.chip { display:inline-flex; align-items:center; gap:12px; padding:14px 26px; border-radius:999px; background:var(--wash);
-        color:var(--accent-dark); font-weight:800; font-size:30px; }
 .card { background:#fff; border:1px solid var(--line); border-radius:var(--radius); box-shadow:0 10px 30px rgba(0,0,0,.06); }
-/* alpaca mascot */
+.dark .stage { background:#18181c; } .dark .brand .name, .dark .foot, .dark .pn, .dark h1 { color:#fff; } .dark .brand .kick { color:#9a9aa3; }
+/* alpaca mascot (cover and closing scene only) */
 .alpaca { position:absolute; width:260px; height:260px; }
 .alpaca .leg { transform-origin: 50% 0; }
 .alpaca.walk .leg.a { animation: step .5s ease-in-out infinite alternate; }
 .alpaca.walk .leg.b { animation: step .5s ease-in-out infinite alternate-reverse; }
 .alpaca.walk .body, .alpaca.idle .body { animation: bob 1.1s ease-in-out infinite alternate; transform-origin:50% 100%; }
-.alpaca .head { transform-origin: 30% 90%; }
-.alpaca.nod .head { animation: nod 1.6s ease-in-out infinite; }
 .alpaca .lid { transform-origin: 50% 50%; animation: blink 3.4s linear infinite; }
 @keyframes step  { from { transform: rotate(-14deg); } to { transform: rotate(14deg); } }
 @keyframes bob   { from { transform: translateY(0); } to { transform: translateY(-7px); } }
-@keyframes nod   { 0%,60%,100% { transform: rotate(0); } 75% { transform: rotate(9deg); } 90% { transform: rotate(-4deg); } }
 @keyframes blink { 0%,92%,100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
 
-    .stage { background:#18181c; }
-    .brand .name, .foot, .pn { color:#fff; } .brand .kick { color:#9a9aa3; }
-    .h { position:absolute; left:120px; top:160px; } .h h1 { font-size:72px; color:#fff; }
-    .term { position:absolute; left:120px; top:320px; width:1680px; height:600px; border-radius:18px; background:#0f0f12; border:1px solid #2a2a30; padding:38px 44px; font-family: "SF Mono", Menlo, monospace; font-size:30px; line-height:1.55; color:#e8e8ec; }
-    .dots { display:flex; gap:10px; margin-bottom:26px; } .dots i { width:14px; height:14px; border-radius:50%; background:#3a3a42; display:block; }
-    .cmd { white-space:pre-wrap; word-break:break-all; color:#e8e8ec; }
-    .typed { display:inline; }
-    .typed span { opacity:0; animation: fade .01s linear both; }
-    .prompt { color:#7ee2a0; }
-    .out { margin-top:22px; color:#6f6f7a; white-space:pre; animation: fade .05s var(--c-json, 5.0s) both; }
-    .out b { color:#7ee2a0; font-weight:700; }
-    .jl { margin-top:24px; color:#6f6f7a; font-size:26px; animation: fade .05s var(--c-exit, 6.8s) both; }
-    .jl b { color:#fff; }
-    .fc { margin-top:14px; color:#fff; font-size:30px; font-weight:800; animation: fade .05s var(--c-fails, 8.0s) both; }
+    .h { top:150px; } .h h1 { font-size:60px; }
+    .shot { position:absolute; left:120px; top:270px; width:1680px; height:757px; border-radius:18px; overflow:hidden; border:1px solid var(--line); box-shadow:0 20px 60px rgba(0,0,0,.12); }
+    .shot img { width:1680px; height:757px; display:block; }
+    .kb { position:relative; width:1680px; height:757px; }
+    .focus { position:absolute; border-radius:14px; box-shadow: 0 0 0 4px var(--accent), 0 0 0 9999px rgba(250,248,245,.72); opacity:0; animation: fade .6s ease-out both; }
     </style>
 </helmet>
 <div class="stage">
-<div class="topbar"></div><div class="brand rise" style="--d:.05s"><div class="mark"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5 L6.5 16 H9.5 L12 10.5 L14.5 16 H17.5 L21.5 8.5"/></svg></div><div class="name">Wingspan</div><div class="kick">Alpaca</div></div><div class="foot">Alpaca AI Trading Agents Hackathon 2026 · paper account PA371G5THNUO</div><div class="pn">8 / 10</div>
-    <div class="h fade" style="--d:.2s"><h1>Every order goes out through Alpaca's own CLI.</h1></div>
-    <div class="term fade" style="--d:.3s">
-      <div class="dots"><i></i><i></i><i></i></div>
-      <div class="cmd"><span class="prompt">$ </span><span class="typed"><span style="animation-delay:0.600s">a</span><span style="animation-delay:0.619s">l</span><span style="animation-delay:0.638s">p</span><span style="animation-delay:0.657s">a</span><span style="animation-delay:0.676s">c</span><span style="animation-delay:0.695s">a</span><span style="animation-delay:0.714s"> </span><span style="animation-delay:0.733s">o</span><span style="animation-delay:0.752s">r</span><span style="animation-delay:0.771s">d</span><span style="animation-delay:0.790s">e</span><span style="animation-delay:0.809s">r</span><span style="animation-delay:0.828s"> </span><span style="animation-delay:0.847s">s</span><span style="animation-delay:0.866s">u</span><span style="animation-delay:0.885s">b</span><span style="animation-delay:0.904s">m</span><span style="animation-delay:0.923s">i</span><span style="animation-delay:0.942s">t</span><span style="animation-delay:0.961s"> </span><span style="animation-delay:0.980s">-</span><span style="animation-delay:0.999s">-</span><span style="animation-delay:1.018s">o</span><span style="animation-delay:1.037s">r</span><span style="animation-delay:1.056s">d</span><span style="animation-delay:1.075s">e</span><span style="animation-delay:1.094s">r</span><span style="animation-delay:1.113s">-</span><span style="animation-delay:1.132s">c</span><span style="animation-delay:1.151s">l</span><span style="animation-delay:1.170s">a</span><span style="animation-delay:1.189s">s</span><span style="animation-delay:1.208s">s</span><span style="animation-delay:1.227s"> </span><span style="animation-delay:1.246s">m</span><span style="animation-delay:1.265s">l</span><span style="animation-delay:1.284s">e</span><span style="animation-delay:1.303s">g</span><span style="animation-delay:1.322s"> </span><span style="animation-delay:1.341s">-</span><span style="animation-delay:1.360s">-</span><span style="animation-delay:1.379s">q</span><span style="animation-delay:1.398s">t</span><span style="animation-delay:1.417s">y</span><span style="animation-delay:1.436s"> </span><span style="animation-delay:1.455s">1</span><span style="animation-delay:1.474s">5</span><span style="animation-delay:1.493s"> </span><span style="animation-delay:1.512s">-</span><span style="animation-delay:1.531s">-</span><span style="animation-delay:1.550s">t</span><span style="animation-delay:1.569s">y</span><span style="animation-delay:1.588s">p</span><span style="animation-delay:1.607s">e</span><span style="animation-delay:1.626s"> </span><span style="animation-delay:1.645s">l</span><span style="animation-delay:1.664s">i</span><span style="animation-delay:1.683s">m</span><span style="animation-delay:1.702s">i</span><span style="animation-delay:1.721s">t</span><span style="animation-delay:1.740s"> </span><span style="animation-delay:1.759s">-</span><span style="animation-delay:1.778s">-</span><span style="animation-delay:1.797s">l</span><span style="animation-delay:1.816s">i</span><span style="animation-delay:1.835s">m</span><span style="animation-delay:1.854s">i</span><span style="animation-delay:1.873s">t</span><span style="animation-delay:1.892s">-</span><span style="animation-delay:1.911s">p</span><span style="animation-delay:1.930s">r</span><span style="animation-delay:1.949s">i</span><span style="animation-delay:1.968s">c</span><span style="animation-delay:1.987s">e</span><span style="animation-delay:2.006s">=</span><span style="animation-delay:2.025s">-</span><span style="animation-delay:2.044s">0</span><span style="animation-delay:2.063s">.</span><span style="animation-delay:2.082s">2</span><span style="animation-delay:2.101s">8</span><span style="animation-delay:2.120s"> </span><span style="animation-delay:2.139s">-</span><span style="animation-delay:2.158s">-</span><span style="animation-delay:2.177s">t</span><span style="animation-delay:2.196s">i</span><span style="animation-delay:2.215s">m</span><span style="animation-delay:2.234s">e</span><span style="animation-delay:2.253s">-</span><span style="animation-delay:2.272s">i</span><span style="animation-delay:2.291s">n</span><span style="animation-delay:2.310s">-</span><span style="animation-delay:2.329s">f</span><span style="animation-delay:2.348s">o</span><span style="animation-delay:2.367s">r</span><span style="animation-delay:2.386s">c</span><span style="animation-delay:2.405s">e</span><span style="animation-delay:2.424s"> </span><span style="animation-delay:2.443s">d</span><span style="animation-delay:2.462s">a</span><span style="animation-delay:2.481s">y</span><span style="animation-delay:2.500s"> </span><span style="animation-delay:2.519s">-</span><span style="animation-delay:2.538s">-</span><span style="animation-delay:2.557s">l</span><span style="animation-delay:2.576s">e</span><span style="animation-delay:2.595s">g</span><span style="animation-delay:2.614s">s</span><span style="animation-delay:2.633s"> </span><span style="animation-delay:2.652s">'</span><span style="animation-delay:2.671s">[</span><span style="animation-delay:2.690s">{</span><span style="animation-delay:2.709s">"</span><span style="animation-delay:2.728s">s</span><span style="animation-delay:2.747s">y</span><span style="animation-delay:2.766s">m</span><span style="animation-delay:2.785s">b</span><span style="animation-delay:2.804s">o</span><span style="animation-delay:2.823s">l</span><span style="animation-delay:2.842s">"</span><span style="animation-delay:2.861s">:</span><span style="animation-delay:2.880s">"</span><span style="animation-delay:2.899s">T</span><span style="animation-delay:2.918s">2</span><span style="animation-delay:2.937s">6</span><span style="animation-delay:2.956s">1</span><span style="animation-delay:2.975s">0</span><span style="animation-delay:2.994s">0</span><span style="animation-delay:3.013s">2</span><span style="animation-delay:3.032s">C</span><span style="animation-delay:3.051s">0</span><span style="animation-delay:3.070s">0</span><span style="animation-delay:3.089s">0</span><span style="animation-delay:3.108s">3</span><span style="animation-delay:3.127s">0</span><span style="animation-delay:3.146s">0</span><span style="animation-delay:3.165s">0</span><span style="animation-delay:3.184s">0</span><span style="animation-delay:3.203s">"</span><span style="animation-delay:3.222s">,</span><span style="animation-delay:3.241s">"</span><span style="animation-delay:3.260s">s</span><span style="animation-delay:3.279s">i</span><span style="animation-delay:3.298s">d</span><span style="animation-delay:3.317s">e</span><span style="animation-delay:3.336s">"</span><span style="animation-delay:3.355s">:</span><span style="animation-delay:3.374s">"</span><span style="animation-delay:3.393s">s</span><span style="animation-delay:3.412s">e</span><span style="animation-delay:3.431s">l</span><span style="animation-delay:3.450s">l</span><span style="animation-delay:3.469s">"</span><span style="animation-delay:3.488s">,</span><span style="animation-delay:3.507s">"</span><span style="animation-delay:3.526s">r</span><span style="animation-delay:3.545s">a</span><span style="animation-delay:3.564s">t</span><span style="animation-delay:3.583s">i</span><span style="animation-delay:3.602s">o</span><span style="animation-delay:3.621s">_</span><span style="animation-delay:3.640s">q</span><span style="animation-delay:3.659s">t</span><span style="animation-delay:3.678s">y</span><span style="animation-delay:3.697s">"</span><span style="animation-delay:3.716s">:</span><span style="animation-delay:3.735s">"</span><span style="animation-delay:3.754s">1</span><span style="animation-delay:3.773s">"</span><span style="animation-delay:3.792s">}</span><span style="animation-delay:3.811s">,</span><span style="animation-delay:3.830s">{</span><span style="animation-delay:3.849s">"</span><span style="animation-delay:3.868s">s</span><span style="animation-delay:3.887s">y</span><span style="animation-delay:3.906s">m</span><span style="animation-delay:3.925s">b</span><span style="animation-delay:3.944s">o</span><span style="animation-delay:3.963s">l</span><span style="animation-delay:3.982s">"</span><span style="animation-delay:4.001s">:</span><span style="animation-delay:4.020s">"</span><span style="animation-delay:4.039s">T</span><span style="animation-delay:4.058s">2</span><span style="animation-delay:4.077s">6</span><span style="animation-delay:4.096s">1</span><span style="animation-delay:4.115s">0</span><span style="animation-delay:4.134s">0</span><span style="animation-delay:4.153s">2</span><span style="animation-delay:4.172s">C</span><span style="animation-delay:4.191s">0</span><span style="animation-delay:4.210s">0</span><span style="animation-delay:4.229s">0</span><span style="animation-delay:4.248s">3</span><span style="animation-delay:4.267s">2</span><span style="animation-delay:4.286s">0</span><span style="animation-delay:4.305s">0</span><span style="animation-delay:4.324s">0</span><span style="animation-delay:4.343s">"</span><span style="animation-delay:4.362s">,</span><span style="animation-delay:4.381s">"</span><span style="animation-delay:4.400s">s</span><span style="animation-delay:4.419s">i</span><span style="animation-delay:4.438s">d</span><span style="animation-delay:4.457s">e</span><span style="animation-delay:4.476s">"</span><span style="animation-delay:4.495s">:</span><span style="animation-delay:4.514s">"</span><span style="animation-delay:4.533s">b</span><span style="animation-delay:4.552s">u</span><span style="animation-delay:4.571s">y</span><span style="animation-delay:4.590s">"</span><span style="animation-delay:4.609s">,</span><span style="animation-delay:4.628s">"</span><span style="animation-delay:4.647s">r</span><span style="animation-delay:4.666s">a</span><span style="animation-delay:4.685s">t</span><span style="animation-delay:4.704s">i</span><span style="animation-delay:4.723s">o</span><span style="animation-delay:4.742s">_</span><span style="animation-delay:4.761s">q</span><span style="animation-delay:4.780s">t</span><span style="animation-delay:4.799s">y</span><span style="animation-delay:4.818s">"</span><span style="animation-delay:4.837s">:</span><span style="animation-delay:4.856s">"</span><span style="animation-delay:4.875s">1</span><span style="animation-delay:4.894s">"</span><span style="animation-delay:4.913s">}</span><span style="animation-delay:4.932s">]</span><span style="animation-delay:4.951s">'</span></span></div>
-      <div class="out">{
-  "id": "1c9e…a4f2",  "client_order_id": "oa-4dacc2da-8f31c0e2",
-  "order_class": "mleg",  "status": <b>"accepted"</b>,  "legs": 2
-}</div>
-      <div class="jl">data/cli_calls.jsonl · {"argv":["alpaca","order","submit",…],"ok":true,<b>"exit_code":0,"ms":171</b>}</div>
-      <div class="fc">If the CLI fails, nothing opens.</div>
-    </div>
+<div class="topbar"></div><div class="brand fade" style="--d:.05s"><div class="mark"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5 L6.5 16 H9.5 L12 10.5 L14.5 16 H17.5 L21.5 8.5"/></svg></div><div class="name">Wingspan</div><div class="kick">The live app</div></div><div class="foot">Alpaca AI Trading Agents Hackathon 2026 · paper account PA371G5THNUO</div><div class="pn">8 / 13</div>
+    <div class="h fade" style="--d:.2s"><h1>Every idea, and every no, on one page.</h1></div>
+    <div class="shot fade" style="--d:.3s"><div class="kb"><img src="dash_overview.jpg">
+      <div class="focus" style="left:83.0%; top:16.0%; width:14.8%; height:30.5%; animation-delay:var(--c-ring, 2.6s)"></div></div></div>
     
 </div>
 </x-dc>

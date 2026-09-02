@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <script src="./support.js"></script>
 </head>
-<body class="">
+<body class="dark">
 <x-dc>
 <helmet>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800;6..12,900&display=swap">
@@ -46,28 +46,45 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.05; }
 @keyframes bob   { from { transform: translateY(0); } to { transform: translateY(-7px); } }
 @keyframes blink { 0%,92%,100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
 
-    .h h1 { font-size:64px; }
-    .steps { position:absolute; left:120px; top:300px; width:1680px; display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:32px; }
-    .st { padding:36px 38px; min-height:520px; }
-    .st .n { width:56px; height:56px; border-radius:50%; background:var(--ink); color:#fff; display:grid; place-items:center; font-weight:900; font-size:28px; }
-    .st h3 { margin:22px 0 14px; font-size:36px; font-weight:900; letter-spacing:-.5px; }
-    .st p { margin:0; font-size:28px; line-height:1.5; color:var(--ink); }
-    .st p b { color:var(--accent-dark); }
-    .pay { margin-top:22px; height:120px; }
-    .pay path { fill:none; stroke:var(--ink); stroke-width:6; stroke-linecap:round; }
-    .pay .cap { stroke:var(--accent); }
-    .pay text { font-family:"Nunito Sans", sans-serif; font-weight:800; font-size:22px; fill:var(--muted); }
+    .stage { background:#18181c; }
+    .h h1 { font-size:60px; }
+    .url { position:absolute; left:120px; top:380px; font-size:88px; font-weight:900; color:#fff; letter-spacing:-2px; }
+    .line { position:absolute; left:124px; top:520px; font-size:38px; color:#d9d9de; font-weight:600; line-height:1.6; }
+    .line b { color:#fff; }
+    .repo { position:absolute; left:124px; bottom:130px; font-size:30px; color:#9a9aa3; font-weight:600; }
+    .repo b { color:#fff; }
     </style>
 </helmet>
 <div class="stage">
-<div class="topbar"></div><div class="brand fade" style="--d:.05s"><div class="mark"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5 L6.5 16 H9.5 L12 10.5 L14.5 16 H17.5 L21.5 8.5"/></svg></div><div class="name">Wingspan</div><div class="kick">Engine one</div></div><div class="foot">Alpaca AI Trading Agents Hackathon 2026 · paper account PA371G5THNUO</div><div class="pn">5 / 13</div>
-    <div class="h fade" style="--d:.2s"><h1>Engine one: a small, capped bet that the AI's idea holds.</h1></div>
-    <div class="steps">
-      <div class="st card pop" style="--d:var(--c-morning, 1.0s)"><div class="n">1</div><h3>Every morning, one question</h3><p>The AI reads six weeks of prices for thirteen well-known stocks and answers: <b>is there a bet here, and how sure am I?</b> That's all it's allowed to say.</p></div>
-      <div class="st card pop" style="--d:var(--c-fee, 6.0s)"><div class="n">2</div><h3>The rules build the bet</h3><p>Sell a contract five to six weeks out at a price the stock <b>probably won't reach</b>, and collect a fee. Buy a second contract behind it so <b>the most you can lose is fixed</b> before the order goes out.</p>
-        <svg class="pay" viewBox="0 0 460 120"><path d="M20 40 L230 40 L330 100"/><path class="cap" d="M330 100 L440 100"/><text x="20" y="28">keep the fee</text><text x="336" y="90">loss capped</text></svg></div>
-      <div class="st card pop" style="--d:var(--c-five, 12.0s)"><div class="n">3</div><h3>Five checks, any one says no</h3><p>Sure enough? Not already in this stock? Small enough? Far enough from today's price? And <b>cheap enough to get out of</b> if it goes wrong. Most ideas stop here.</p></div>
-    </div>
+<div class="topbar"></div><div class="brand fade" style="--d:.05s"><div class="mark"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5 L6.5 16 H9.5 L12 10.5 L14.5 16 H17.5 L21.5 8.5"/></svg></div><div class="name">Wingspan</div><div class="kick">Go check it</div></div><div class="foot">Alpaca AI Trading Agents Hackathon 2026 · paper account PA371G5THNUO</div><div class="pn">13 / 13</div>
+    <div class="h fade" style="--d:.2s"><h1>Every idea and every no is on the dashboard. Go check it.</h1></div>
+    <div class="url fade" style="--d:var(--c-dash, 7.3s)">optionsagent-production.up.railway.app</div>
+    <div class="line fade" style="--d:.4s">Practice account <b>PA371G5THNUO</b> · $100,000 start · now <b>$100,033.58</b><br>
+      6 completed orders in the window · 0 option bets · snapshot Wed Sep 02, 09:37 ET</div>
+    <div class="repo fade" style="--d:var(--c-check, 8.4s)"><b>github.com/Jhosshua/OptionsAgent</b> · MIT · team Convexity</div>
+    
+<svg class="alpaca idle" style="right:130px; bottom:110px; width:240px; height:240px;" viewBox="0 0 220 220" fill="none">
+  <g class="body">
+    <g class="leg a"><rect x="62" y="150" width="16" height="48" rx="7" fill="#ead9c0"/></g>
+    <g class="leg b"><rect x="88" y="150" width="16" height="48" rx="7" fill="#f3e6d2"/></g>
+    <g class="leg b"><rect x="122" y="150" width="16" height="48" rx="7" fill="#ead9c0"/></g>
+    <g class="leg a"><rect x="148" y="150" width="16" height="48" rx="7" fill="#f3e6d2"/></g>
+    <rect x="46" y="100" width="128" height="66" rx="33" fill="#f3e6d2"/>
+    <circle cx="50" cy="106" r="16" fill="#f3e6d2"/>
+    <rect x="146" y="44" width="30" height="76" rx="15" fill="#f3e6d2"/>
+    <g class="head">
+      <rect x="132" y="24" width="60" height="40" rx="19" fill="#f3e6d2"/>
+      <path d="M144 28 L150 8 L158 28 Z" fill="#f3e6d2"/>
+      <path d="M170 28 L178 9 L184 28 Z" fill="#f3e6d2"/>
+      <ellipse cx="182" cy="52" rx="9" ry="7" fill="#e6d3bb"/>
+      <circle cx="166" cy="42" r="3.6" fill="#222"/>
+      <rect class="lid" x="161" y="37" width="10" height="10" rx="5" fill="#f3e6d2" opacity="0"/>
+      <path d="M176 57 q4 3 8 0" stroke="#8b6f52" stroke-width="2" stroke-linecap="round"/>
+    </g>
+    <path d="M62 128 q-12 -2 -14 8" stroke="#e6d3bb" stroke-width="6" stroke-linecap="round"/>
+  </g>
+</svg>
+
     
 </div>
 </x-dc>

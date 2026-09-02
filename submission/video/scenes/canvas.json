@@ -1,4 +1,14 @@
 {
+ "pages": [
+  {
+   "id": "video",
+   "name": "Video scenes"
+  },
+  {
+   "id": "ideas",
+   "name": "Ideas + research"
+  }
+ ],
  "artboards": [
   {
    "file": "Main.dc.html",
@@ -6,7 +16,8 @@
    "y": 0,
    "w": 1920,
    "h": 1080,
-   "title": "Scene 1 \u00b7 Cover"
+   "title": "Scene 1 \u00b7 Cover",
+   "page": "video"
   },
   {
    "file": "Scene02.dc.html",
@@ -14,7 +25,8 @@
    "y": 0,
    "w": 1920,
    "h": 1080,
-   "title": "Scene 2"
+   "title": "Scene 2",
+   "page": "video"
   },
   {
    "file": "Scene03.dc.html",
@@ -22,7 +34,8 @@
    "y": 0,
    "w": 1920,
    "h": 1080,
-   "title": "Scene 3"
+   "title": "Scene 3",
+   "page": "video"
   },
   {
    "file": "Scene04.dc.html",
@@ -30,7 +43,8 @@
    "y": 1260,
    "w": 1920,
    "h": 1080,
-   "title": "Scene 4"
+   "title": "Scene 4",
+   "page": "video"
   },
   {
    "file": "Scene05.dc.html",
@@ -38,7 +52,8 @@
    "y": 1260,
    "w": 1920,
    "h": 1080,
-   "title": "Scene 5"
+   "title": "Scene 5",
+   "page": "video"
   },
   {
    "file": "Scene06.dc.html",
@@ -46,7 +61,8 @@
    "y": 1260,
    "w": 1920,
    "h": 1080,
-   "title": "Scene 6"
+   "title": "Scene 6",
+   "page": "video"
   },
   {
    "file": "Scene07.dc.html",
@@ -54,7 +70,8 @@
    "y": 2520,
    "w": 1920,
    "h": 1080,
-   "title": "Scene 7"
+   "title": "Scene 7",
+   "page": "video"
   },
   {
    "file": "Scene08.dc.html",
@@ -62,7 +79,8 @@
    "y": 2520,
    "w": 1920,
    "h": 1080,
-   "title": "Scene 8"
+   "title": "Scene 8",
+   "page": "video"
   },
   {
    "file": "Scene09.dc.html",
@@ -70,7 +88,8 @@
    "y": 2520,
    "w": 1920,
    "h": 1080,
-   "title": "Scene 9"
+   "title": "Scene 9",
+   "page": "video"
   },
   {
    "file": "Scene10.dc.html",
@@ -78,16 +97,77 @@
    "y": 3780,
    "w": 1920,
    "h": 1080,
-   "title": "Scene 10"
+   "title": "Scene 10",
+   "page": "video"
+  },
+  {
+   "file": "Scene11.dc.html",
+   "x": 2040,
+   "y": 3780,
+   "w": 1920,
+   "h": 1080,
+   "title": "Scene 11",
+   "page": "video"
+  },
+  {
+   "file": "Scene12.dc.html",
+   "x": 4080,
+   "y": 3780,
+   "w": 1920,
+   "h": 1080,
+   "title": "Scene 12",
+   "page": "video"
+  },
+  {
+   "file": "Scene13.dc.html",
+   "x": 0,
+   "y": 5040,
+   "w": 1920,
+   "h": 1080,
+   "title": "Scene 13",
+   "page": "video"
   },
   {
    "file": "OnePager.dc.html",
    "x": 2040,
-   "y": 3780,
+   "y": 5040,
    "w": 816,
    "h": 1056,
    "title": "One-pager (Letter)",
-   "print": "fixed"
+   "print": "fixed",
+   "page": "video"
+  },
+  {
+   "file": "IdeaCouchTrader.dc.html",
+   "x": 0,
+   "y": 0,
+   "w": 960,
+   "h": 540,
+   "page": "ideas"
+  },
+  {
+   "file": "IdeaGroupChat.dc.html",
+   "x": 1080,
+   "y": 0,
+   "w": 960,
+   "h": 540,
+   "page": "ideas"
+  },
+  {
+   "file": "IdeaCommuter.dc.html",
+   "x": 0,
+   "y": 680,
+   "w": 960,
+   "h": 540,
+   "page": "ideas"
+  },
+  {
+   "file": "IdeaCustomerNeed.dc.html",
+   "x": 1080,
+   "y": 680,
+   "w": 960,
+   "h": 540,
+   "page": "ideas"
   }
  ],
  "annotations": [
@@ -96,10 +176,20 @@
    "x": 0,
    "y": -220,
    "w": 900,
-   "text": "Wingspan hackathon video storyboard \u00b7 each artboard is one scene, 1920x1080, 24 fps. The video is rendered frame-by-frame from these exact files (submission/video/render.py). Motion is CSS; the renderer seeks it."
+   "page": "video",
+   "text": "Wingspan hackathon video. Each artboard is one scene, 1920x1080, 24 fps. The video is rendered frame-by-frame from these exact files (submission/video/render.py); reveals lock to the narration's word timings."
+  },
+  {
+   "id": "ideas-note",
+   "x": 0,
+   "y": -200,
+   "w": 900,
+   "page": "ideas",
+   "text": "Customer vignette directions. The couch trader is in the video; the other two are sketched here to compare. The research board lists the sources behind scene 3."
   }
  ],
  "launch": {
-  "view": "canvas"
+  "view": "canvas",
+  "page": "video"
  }
 }

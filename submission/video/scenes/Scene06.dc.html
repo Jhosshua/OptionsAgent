@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <script src="./support.js"></script>
 </head>
-<body>
+<body class="">
 <x-dc>
 <helmet>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800;6..12,900&display=swap">
@@ -17,7 +17,7 @@ html,body { margin:0; }
 body { width:1920px; height:1080px; overflow:hidden; background:var(--bg); color:var(--ink);
        font-family:"Nunito Sans","Avenir Next","Segoe UI",sans-serif; -webkit-font-smoothing:antialiased; }
 a { color:var(--accent-dark); } a:hover { color:var(--accent); }
-.stage { position:relative; width:1920px; height:1080px; overflow:hidden; background:var(--bg); }
+.stage { position:relative; width:1920px; height:1080px; overflow:hidden; background:var(--paper); }
 .topbar { position:absolute; left:0; top:0; width:1920px; height:12px; background:var(--accent); }
 .brand { position:absolute; left:96px; top:56px; display:flex; align-items:center; gap:14px; }
 .brand .mark { width:44px; height:44px; border-radius:12px; background:var(--accent); display:grid; place-items:center; }
@@ -25,45 +25,51 @@ a { color:var(--accent-dark); } a:hover { color:var(--accent); }
 .brand .kick { color:var(--muted); font-weight:600; font-size:24px; margin-left:10px; }
 .foot { position:absolute; left:96px; bottom:48px; color:var(--faint); font-size:24px; font-weight:600; }
 .pn { position:absolute; right:96px; bottom:48px; color:var(--faint); font-size:24px; font-weight:600; }
-h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
-.rise { animation: rise .7s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--d, 0s); }
-.pop  { animation: pop .55s cubic-bezier(.34,1.56,.64,1) both; animation-delay: var(--d, 0s); }
+h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.05; }
+.h { position:absolute; left:120px; top:160px; } .h h1 { font-size:72px; max-width:1680px; }
 .fade { animation: fade .6s ease-out both; animation-delay: var(--d, 0s); }
-@keyframes rise { from { opacity:0; transform: translateY(28px); } to { opacity:1; transform:none; } }
-@keyframes pop  { from { opacity:0; transform: scale(.82); } to { opacity:1; transform: scale(1); } }
+.pop  { animation: pop .5s cubic-bezier(.2,.8,.3,1.1) both; animation-delay: var(--d, 0s); }
 @keyframes fade { from { opacity:0; } to { opacity:1; } }
+@keyframes pop  { from { opacity:0; transform: scale(.86); } to { opacity:1; transform: scale(1); } }
 .kb { animation: kb var(--dur) linear both; transform-origin: 50% 40%; }
 @keyframes kb { from { transform: scale(1); } to { transform: scale(1.035); } }
-.chip { display:inline-flex; align-items:center; gap:12px; padding:14px 26px; border-radius:999px; background:var(--wash);
-        color:var(--accent-dark); font-weight:800; font-size:30px; }
 .card { background:#fff; border:1px solid var(--line); border-radius:var(--radius); box-shadow:0 10px 30px rgba(0,0,0,.06); }
-/* alpaca mascot */
+.dark .stage { background:#18181c; } .dark .brand .name, .dark .foot, .dark .pn, .dark h1 { color:#fff; } .dark .brand .kick { color:#9a9aa3; }
+/* alpaca mascot (cover and closing scene only) */
 .alpaca { position:absolute; width:260px; height:260px; }
 .alpaca .leg { transform-origin: 50% 0; }
 .alpaca.walk .leg.a { animation: step .5s ease-in-out infinite alternate; }
 .alpaca.walk .leg.b { animation: step .5s ease-in-out infinite alternate-reverse; }
 .alpaca.walk .body, .alpaca.idle .body { animation: bob 1.1s ease-in-out infinite alternate; transform-origin:50% 100%; }
-.alpaca .head { transform-origin: 30% 90%; }
-.alpaca.nod .head { animation: nod 1.6s ease-in-out infinite; }
 .alpaca .lid { transform-origin: 50% 50%; animation: blink 3.4s linear infinite; }
 @keyframes step  { from { transform: rotate(-14deg); } to { transform: rotate(14deg); } }
 @keyframes bob   { from { transform: translateY(0); } to { transform: translateY(-7px); } }
-@keyframes nod   { 0%,60%,100% { transform: rotate(0); } 75% { transform: rotate(9deg); } 90% { transform: rotate(-4deg); } }
 @keyframes blink { 0%,92%,100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
 
-    .stage { background:var(--paper); }
-    .h { position:absolute; left:120px; top:150px; } .h h1 { font-size:64px; }
-    .shot { position:absolute; left:120px; top:270px; width:1680px; height:757px; border-radius:18px; overflow:hidden; border:1px solid var(--line); box-shadow:0 20px 60px rgba(0,0,0,.12); }
-    .shot img { width:1680px; height:757px; display:block; transform: translateY(var(--imgy, 0px)); }
-    .kb { position:relative; width:1680px; height:757px; }
-    .focus { position:absolute; border-radius:14px; box-shadow: 0 0 0 4px var(--accent), 0 0 0 9999px rgba(250,248,245,.72); opacity:0; animation: fade .6s ease-out both; }
+    .h h1 { font-size:64px; }
+    .clock { position:absolute; left:120px; top:330px; width:520px; height:520px; }
+    .clock circle.face { fill:#fff; stroke:var(--line); stroke-width:6; }
+    .clock .hand { stroke:var(--ink); stroke-width:10; stroke-linecap:round; transform-origin: 260px 260px; animation: tick var(--dur) linear both; }
+    @keyframes tick { to { transform: rotate(720deg); } }
+    .clock text { font-family:"Nunito Sans", sans-serif; font-weight:800; font-size:28px; fill:var(--muted); }
+    .rules { position:absolute; left:720px; top:330px; width:1080px; display:flex; flex-direction:column; gap:20px; }
+    .r { padding:26px 32px; display:flex; align-items:center; gap:24px; font-size:34px; font-weight:800; }
+    .r .k { width:60px; height:60px; border-radius:16px; display:grid; place-items:center; font-size:30px; font-weight:900; color:#fff; flex:0 0 60px; }
+    .r span { font-size:26px; color:var(--muted); font-weight:600; display:block; margin-top:4px; }
+    .g { background:var(--gain); } .l { background:var(--loss); } .t { background:var(--ink); }
+    .note { position:absolute; left:120px; top:900px; font-size:38px; font-weight:800; animation: fade .5s var(--c-noai, 12s) both; }
     </style>
 </helmet>
 <div class="stage">
-<div class="topbar"></div><div class="brand rise" style="--d:.05s"><div class="mark"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5 L6.5 16 H9.5 L12 10.5 L14.5 16 H17.5 L21.5 8.5"/></svg></div><div class="name">Wingspan</div><div class="kick">Live app</div></div><div class="foot">Alpaca AI Trading Agents Hackathon 2026 · paper account PA371G5THNUO</div><div class="pn">6 / 10</div>
-    <div class="h fade" style="--d:.2s"><h1>The live app. Both engines, one book.</h1></div>
-    <div class="shot fade" style="--d:.3s"><div class="kb"><img src="dash_overview.jpg">
-      <div class="focus" style="left:83.0%; top:16.0%; width:14.8%; height:30.5%; animation-delay:var(--c-ring, 2.6s)"></div></div></div>
+<div class="topbar"></div><div class="brand fade" style="--d:.05s"><div class="mark"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5 L6.5 16 H9.5 L12 10.5 L14.5 16 H17.5 L21.5 8.5"/></svg></div><div class="name">Wingspan</div><div class="kick">Engine one · getting out</div></div><div class="foot">Alpaca AI Trading Agents Hackathon 2026 · paper account PA371G5THNUO</div><div class="pn">6 / 13</div>
+    <div class="h fade" style="--d:.2s"><h1>Getting out is decided by a clock and three rules. No AI.</h1></div>
+    <svg class="clock fade" style="--d:.4s" viewBox="0 0 520 520"><circle class="face" cx="260" cy="260" r="220"/><line class="hand" x1="260" y1="260" x2="260" y2="90"/><circle cx="260" cy="260" r="12" fill="#222"/><text x="200" y="470">every 20 minutes</text></svg>
+    <div class="rules">
+      <div class="r card pop" style="--d:var(--c-win, 3.5s)"><div class="k g">✓</div><div>Take the win at half<span>when the contract is worth half the fee you collected, buy it back</span></div></div>
+      <div class="r card pop" style="--d:var(--c-loss, 6.5s)"><div class="k l">✕</div><div>Cut the loss at double<span>only after 10 am, and only when two checks in a row agree</span></div></div>
+      <div class="r card pop" style="--d:var(--c-weeks, 9.5s)"><div class="k t">21</div><div>Never hold the last three weeks<span>that's when small moves start to hurt</span></div></div>
+    </div>
+    <div class="note">Same rules, every day, written before the trade, never bent after it.</div>
     
 </div>
 </x-dc>

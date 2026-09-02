@@ -34,28 +34,57 @@ HARD = 0.08           # near-hard cut elsewhere (on the sentence boundary)
 
 def xfade_for(k: int) -> float:
     """Transition length going INTO scene k+1 (1-based scene numbers k -> k+1)."""
-    return XFADE if k in (5, 6, 7) else HARD
+    return XFADE if k in (7, 8, 9) else HARD
 TAIL = 1.0            # silence after the last spoken word of each scene (plus the lead-in delay)
 DEFAULT_VOICE = "en-US-AndrewMultilingualNeural"
 DEFAULT_RATE = "+12%"
 
 # Narration per scene. Short sentences, spoken not read. Keep total ~105 s.
 NARRATION = {
-    1: "This is Wingspan. An options agent that mostly says no.",
-    2: "Point a language model at a brokerage account and it always finds a trade. "
-       "Our own first dry run wanted a hundred and seventy eight contracts on one idea. It never says no, and it can't count contracts.",
-    3: "So we split the job. The model answers one question: is there a trade, and how sure are you? Code does everything with a dollar sign on it.",
-    4: "Then the idea has to survive five gates. Any one of them can kill it. The last one is new: "
-       "if our own exit rule would stop the spread out on day one, it dies right here. Most ideas do.",
-    5: "The second engine has no AI at all. Two rules on SPY and QQQ, mined from six months of minute bars. "
-       "Twenty thousand a trade, two a day, and flat by ten to four.",
-    6: "This is the live app. Both engines, one book. From today's run, every idea the model has, and which gate said no, lands in that card. "
-       "A no gets logged like a fill.",
-    7: "The risk page isn't a copy of the rules. That three thousand comes from the same function the bot calls, so it can't drift.",
-    8: "Every order goes out through Alpaca's own command line tool. One process, one JSON reply, logged with its exit code. If the C L I fails, nothing opens.",
-    9: "Before the first order we replayed a day of real option chains. Eight of twenty three spreads the open gate would have taken "
-       "were already past their own stop. With the liquidity floor: five admitted, zero past the stop.",
-    10: None,  # built from live numbers in main()
+    1: "This is Wingspan. A trading helper that knows when to say no.",
+    2: "Meet the customer. Someone with a day job who trades options on their phone after work. "
+       "Tuesday, the phone buzzes: the bet is up thirty eight percent. Thursday: down twelve hundred for the week. "
+       "And at eight minutes to the close, they double the next bet to make it back. That last move is the one that empties accounts.",
+    3: "This is not one person's bad week. Everyday options traders lost two point one billion dollars in twenty months, "
+       "and most of it was the cost of trading, not bad picks. They are now up to sixty percent of same day S and P option trades. "
+       "And after a losing streak, people bet bigger and more often. The problem is not picking stocks. It's how much, when to get out, and knowing when to do nothing.",
+    4: "So that's what Wingspan does. The AI is allowed to have ideas. It might say: I think A T and T stays flat for a few weeks, and I'm seventy percent sure. "
+       "The rules decide everything else. How much: never more than three thousand dollars at risk. When to get out: on a clock. "
+       "And when to do nothing, which is most days. The AI never touches the money.",
+    5: "Here's engine one. Every morning it asks the AI one question about thirteen well known stocks: is there a bet here, and how sure are you. "
+       "If the answer is yes, the rules build a small bet. It sells a contract a few weeks out at a price the stock probably won't reach, and collects a fee. "
+       "Then it buys a second contract behind it, so the most it can lose is fixed before the order goes out. "
+       "Then five checks. Any one of them can say no, and most ideas stop right there.",
+    6: "Getting out is a separate program with no AI in it. Every twenty minutes it checks each bet against three rules. "
+       "Take the win when the contract is worth half the fee. Cut the loss at double the fee, but only after ten a m and only when two checks in a row agree. "
+       "And never hold into the last three weeks. Same rules every day, written before the trade, never bent after it.",
+    7: "Engine two has no AI at all. It trades shares of the two biggest index funds, SPY and QQQ, using two rules found in six months of data. "
+       "If the price runs too far too fast in the first forty five minutes, it bets on a pullback. If the market opened with a big jump, at one o'clock it goes with the jump. "
+       "Twenty thousand dollars a trade. Out at a small loss or after two hours. Two trades a day, and it stops after losing three hundred. Everything is closed by three fifty.",
+    8: "This is the live app. Both engines, one account. That card lists every idea the AI had today, and which rule said no. A no is written down exactly like a trade.",
+    9: "The limits page isn't a copy of the rules. That three thousand dollar cap comes from the same code that trades, so it can't drift.",
+    10: "Every order goes out through Alpaca's own command line tool. One process, one reply, logged with whether it worked. If the tool fails, nothing opens.",
+    11: "Before the first real bet, we replayed a real day of option prices. Eight of the twenty three bets the rules would have made were losers the moment they opened. "
+        "With the last check on: five bets allowed, zero losers on arrival.",
+    12: "Straight talk. This is a discipline machine, not a money printer. Two days on a practice account isn't a track record. "
+        "What you can verify today is the behavior: how it sizes, how it exits, and how often it says no.",
+    13: None,  # built from live numbers in main()
+}
+
+CUES = {
+    1: {"c-trading": "trading", "c-mostly": "say"},
+    2: {"c-phone": "buzzes", "c-lost": "thursday", "c-bigger": "double", "c-that": "empties"},
+    3: {"c-two": "billion", "c-sixty": "sixty", "c-streak": "streak", "c-problem": "problem"},
+    4: {"c-idea": "think", "c-much": "much", "c-when": "clock", "c-nothing": "nothing", "c-never": "never"},
+    5: {"c-morning": "morning", "c-fee": "sells", "c-five": "five"},
+    6: {"c-win": "win", "c-loss": "cut", "c-weeks": "weeks", "c-noai": "same"},
+    7: {"c-spy": "spy", "c-rules": "rules", "c-fast": "fast", "c-jump": "jump", "c-twenty": "twenty", "c-stop": "loss", "c-twoaday": "two", "c-closed": "closed"},
+    8: {"c-ring": "card"},
+    9: {"c-ring": "three"},
+    10: {"c-reply": "reply", "c-logged": "logged", "c-fails": "fails"},
+    11: {"c-eight": "eight", "c-floor": "check", "c-five": "five", "c-zero": "zero"},
+    12: {"c-is": "discipline", "c-isnt": "printer"},
+    13: {"c-dash": "dashboard", "c-check": "check"},
 }
 
 # Cue words: the first matching spoken word sets the CSS variable on the scene, so reveals land on the voice.
@@ -80,10 +109,11 @@ def results_narration(n: dict) -> str:
         money_line = "The account is flat."
     else:
         dollars = int(round(abs(pnl)))
-        money_line = ("Flat." if dollars == 0 else f"{'Up' if pnl > 0 else 'Down'} {dollars} dollars.")
+        money_line = "Flat so far." if dollars == 0 else f"{'Up' if pnl > 0 else 'Down'} {dollars} dollars so far."
     fills = n.get("fills_options") or 0
-    fill_line = "No option fills yet." if fills == 0 else f"{fills} option fill{'s' if fills != 1 else ''}."
-    return f"Two trading days on a fresh paper account. {money_line} {fill_line} Every idea, and every no, is on the dashboard. Go check it. Thanks for watching."
+    fill_line = "No option bets have filled yet." if fills == 0 else f"{fills} option bet{'s' if fills != 1 else ''} filled."
+    return (f"Two trading days on a fresh practice account. {money_line} {fill_line} "
+            "Every idea, and every no, is on the dashboard. Go check it. Thanks for watching.")
 
 
 def word_cues(words_path: Path) -> list[tuple[float, str]]:
@@ -236,7 +266,7 @@ async def main():
     # 1) narration + durations (+ per-word cues)
     sys.path.insert(0, str(HERE.parent))
     from build import live_numbers
-    NARRATION[10] = results_narration(live_numbers())
+    NARRATION[13] = results_narration(live_numbers())
     audio, durs, cues = {}, {}, {}
     for i, text in NARRATION.items():
         audio[i] = await narrate(i, text, voice, rate)

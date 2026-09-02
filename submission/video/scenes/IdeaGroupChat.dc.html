@@ -46,29 +46,14 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.05; }
 @keyframes bob   { from { transform: translateY(0); } to { transform: translateY(-7px); } }
 @keyframes blink { 0%,92%,100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
 
-    .h h1 { font-size:64px; }
-    .steps { position:absolute; left:120px; top:300px; width:1680px; display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:32px; }
-    .st { padding:36px 38px; min-height:520px; }
-    .st .n { width:56px; height:56px; border-radius:50%; background:var(--ink); color:#fff; display:grid; place-items:center; font-weight:900; font-size:28px; }
-    .st h3 { margin:22px 0 14px; font-size:36px; font-weight:900; letter-spacing:-.5px; }
-    .st p { margin:0; font-size:28px; line-height:1.5; color:var(--ink); }
-    .st p b { color:var(--accent-dark); }
-    .pay { margin-top:22px; height:120px; }
-    .pay path { fill:none; stroke:var(--ink); stroke-width:6; stroke-linecap:round; }
-    .pay .cap { stroke:var(--accent); }
-    .pay text { font-family:"Nunito Sans", sans-serif; font-weight:800; font-size:22px; fill:var(--muted); }
+    body { width:960px; height:540px; } .stage { width:960px; height:540px; padding:40px 44px; background:#fffdf8; border:2px dashed #cfc9bf; }
+    h1 { font-size:34px; margin:0 0 18px; }
+    .tag { display:inline-block; font-size:14px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:#fff; background:var(--gain); padding:4px 10px; border-radius:999px; margin-bottom:12px; }
+    p { margin:0 0 10px; font-size:20px; line-height:1.4; color:#3a3a42; }
     </style>
 </helmet>
 <div class="stage">
-<div class="topbar"></div><div class="brand fade" style="--d:.05s"><div class="mark"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5 L6.5 16 H9.5 L12 10.5 L14.5 16 H17.5 L21.5 8.5"/></svg></div><div class="name">Wingspan</div><div class="kick">Engine one</div></div><div class="foot">Alpaca AI Trading Agents Hackathon 2026 · paper account PA371G5THNUO</div><div class="pn">5 / 13</div>
-    <div class="h fade" style="--d:.2s"><h1>Engine one: a small, capped bet that the AI's idea holds.</h1></div>
-    <div class="steps">
-      <div class="st card pop" style="--d:var(--c-morning, 1.0s)"><div class="n">1</div><h3>Every morning, one question</h3><p>The AI reads six weeks of prices for thirteen well-known stocks and answers: <b>is there a bet here, and how sure am I?</b> That's all it's allowed to say.</p></div>
-      <div class="st card pop" style="--d:var(--c-fee, 6.0s)"><div class="n">2</div><h3>The rules build the bet</h3><p>Sell a contract five to six weeks out at a price the stock <b>probably won't reach</b>, and collect a fee. Buy a second contract behind it so <b>the most you can lose is fixed</b> before the order goes out.</p>
-        <svg class="pay" viewBox="0 0 460 120"><path d="M20 40 L230 40 L330 100"/><path class="cap" d="M330 100 L440 100"/><text x="20" y="28">keep the fee</text><text x="336" y="90">loss capped</text></svg></div>
-      <div class="st card pop" style="--d:var(--c-five, 12.0s)"><div class="n">3</div><h3>Five checks, any one says no</h3><p>Sure enough? Not already in this stock? Small enough? Far enough from today's price? And <b>cheap enough to get out of</b> if it goes wrong. Most ideas stop here.</p></div>
-    </div>
-    
+<h1>The group chat</h1><p>A friends' chat lights up with a hot tip; three people pile in; one screenshot of a big win, then silence.</p><p>Why: shows how ideas arrive in real life. Wingspan's point is that ideas are the cheap part.</p><p>Risk: more characters, harder to read in 12 seconds.</p>
 </div>
 </x-dc>
 </body>
