@@ -64,14 +64,15 @@ options trading" on the evidence judges will look at (the account's orders).
 - [x] **C2 Gate opened + cap set together.** `OA_CREDIT_SPREAD_GATE=research_rules` bypasses the CCL/SOFI/F winner table; `OA_MAX_POSITION_USD=3000` caps each position (≤ 15 contracts of a $2 spread). Whether a spread FILLS still depends on the picker finding a 0.15–0.30-delta, 30–45-DTE, ≤ $2-wide pair: watch Wed 10:15.
 - [x] **C3** README hackathon section: disclosure, account ID, requirements mapping, the two deliberate changes.
 - [x] **C5** 276 tests green, 7 mutation checks caught; deployed to Railway 2026-09-01 23:00 ET (416c1fea) and verified in-container (CLI binary, env, adapter smoke, dry-run mleg, cron). Adversarial review findings (immediate-stop spreads, no dedupe, scalper bypassing the CLI, fills booked unconfirmed) fixed BEFORE deploy; see MEMORY.md.
-- [ ] **C4** LICENSE (MIT) + public repo: still the operator's call (D3).
+- [x] **C4a** MIT LICENSE file added; git history + committed backup tarball scanned: no key-shaped strings, no webhooks, only .env.example ever committed.
+- [ ] **C4b** Flip the repo to public (operator's call, D3).
 
 ### 2. Trading window (Wed Sep 2, Thu Sep 3)
 - [ ] **T1** Watch every cycle on the comp account; confirm option fills appear in `/v2/orders` on PA371G5THNUO.
 - [ ] **T2** Thu Sep 3: no positions expiring Sep 3 unless intended (assignment counts in the EOD equity). Decide whether to flatten before Thu close or hold.
 - [ ] **T3** Snapshot the account (equity, orders, positions) Thu after close for the write-up.
 
-### 3. Submission assets (Thu Sep 3)
+### 3. Submission assets (drafts in submission/SUBMISSION.md as of 09-01 night: title, 254-char short desc, 272-word long desc, tags, video script, slide outline, one-page write-up, 5 social posts; Thursday numbers marked [[…]])
 - [ ] **S1** One-page write-up: AI logic (DeepSeek proposer, JSON schema, fail-closed), risk gates (rails, sizing, halts), Alpaca infra (Trading API + CLI/MCP, paper account, relay). Reuse OptionsAgent-Explained.pdf content.
 - [ ] **S2** Slide PDF (5 to 8 slides): problem, strategy, architecture, risk gates, live results, what it refused and why, next steps.
 - [ ] **S3** Video MP4, max 5 min: intro, walk the slides, show the dashboard and a journaled cycle, show the account orders page.
