@@ -28,7 +28,7 @@ SCENES = HERE / "scenes"
 sys.path.insert(0, str(HERE.parent))  # submission/
 from build import live_numbers, money  # noqa: E402
 
-TOTAL = 13
+TOTAL = 12
 
 FONT_LINK = ('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito+Sans:'
              'opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800;6..12,900&display=swap">')
@@ -63,11 +63,14 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.05; }
 /* alpaca mascot (cover and closing scene only) */
 .alpaca { position:absolute; width:260px; height:260px; }
 .alpaca .leg { transform-origin: 50% 0; }
-.alpaca.walk .leg.a { animation: step .5s ease-in-out infinite alternate; }
-.alpaca.walk .leg.b { animation: step .5s ease-in-out infinite alternate-reverse; }
-.alpaca.walk .body, .alpaca.idle .body { animation: bob 1.1s ease-in-out infinite alternate; transform-origin:50% 100%; }
+.alpaca.walk .leg.a { animation: stride .42s ease-in-out var(--walk-start, 0s) 5 both; }
+.alpaca.walk .leg.b { animation: stride .42s ease-in-out var(--walk-start, 0s) 5 reverse both; }
+.alpaca.walk .body { animation: trot .42s ease-in-out var(--walk-start, 0s) 5 both; transform-origin:50% 100%; }
+@keyframes stride { 0% { transform: rotate(0); } 25% { transform: rotate(-16deg); } 75% { transform: rotate(16deg); } 100% { transform: rotate(0); } }
+.alpaca.idle .body { animation: bob 1.6s ease-in-out infinite alternate; transform-origin:50% 100%; }
+@keyframes trot { 0%,100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-5px) rotate(1.2deg); } }
 .alpaca .lid { transform-origin: 50% 50%; animation: blink 3.4s linear infinite; }
-@keyframes step  { from { transform: rotate(-14deg); } to { transform: rotate(14deg); } }
+@keyframes step  { from { transform: rotate(-16deg); } to { transform: rotate(16deg); } }
 @keyframes bob   { from { transform: translateY(0); } to { transform: translateY(-7px); } }
 @keyframes blink { 0%,92%,100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
 """
@@ -155,25 +158,26 @@ def chrome(kicker: str, n: int) -> str:
 # --------------------------------------------------------------------------- scenes
 
 def scene01() -> str:
+    """Cover. The alpaca walks in first (2.1 s), stops; then the W draws and the title fades up."""
     css = """
     .stage { background:#18181c; }
     .panel { position:absolute; left:0; top:0; width:560px; height:1080px; background:var(--accent); }
     .bigw { position:absolute; left:110px; top:360px; }
-    .bigw path { stroke-dasharray: 60; stroke-dashoffset: 60; animation: draw .9s cubic-bezier(.2,.7,.2,1) .15s both; }
+    .bigw path { stroke-dasharray: 60; stroke-dashoffset: 60; animation: draw .9s cubic-bezier(.2,.7,.2,1) 2.3s both; }
     @keyframes draw { to { stroke-dashoffset: 0; } }
     .title { position:absolute; left:660px; top:340px; } .title h1 { font-size:168px; color:#fff; }
     .tag { position:absolute; left:664px; top:530px; font-size:56px; font-weight:700; color:#fff; letter-spacing:-.6px; }
     .meta { position:absolute; left:664px; bottom:64px; font-size:26px; color:#9a9aa3; font-weight:600; }
-    .walkin { position:absolute; right:120px; bottom:130px; animation: walkin 2.2s cubic-bezier(.3,.7,.3,1) var(--c-mostly, 1.9s) both; }
-    @keyframes walkin { from { transform: translateX(560px); } to { transform: translateX(0); } }
+    .walkin { position:absolute; right:120px; bottom:130px; --walk-start: 0s; animation: walkin 2.1s cubic-bezier(.35,.6,.35,1) 0s both; }
+    @keyframes walkin { from { transform: translateX(620px); } to { transform: translateX(0); } }
     """
     body = f"""
     <div class="panel"></div>
     <div class="bigw">{W_MARK.format(s=340, c="#fff")}</div>
-    <div class="title fade" style="--d:.9s"><h1>WINGSPAN</h1></div>
-    <div class="tag fade" style="--d:var(--c-trading, 1.6s)">A trading helper that knows when to say no.</div>
-    <div class="meta fade" style="--d:2.4s">Alpaca AI Trading Agents Hackathon 2026 · team Convexity · paper account PA371G5THNUO</div>
     <div class="walkin">{alpaca("walk", "position:relative; width:250px; height:250px;")}</div>
+    <div class="title fade" style="--d:2.9s"><h1>WINGSPAN</h1></div>
+    <div class="tag fade" style="--d:var(--c-trading, 3.6s)">A trading helper that knows when to say no.</div>
+    <div class="meta fade" style="--d:4.4s">Alpaca AI Trading Agents Hackathon 2026 · team Convexity · paper account PA371G5THNUO</div>
     """
     return page("Scene 1 · Cover", css, body)
 
@@ -256,7 +260,7 @@ def scene04() -> str:
     <div class="cols">
       <div class="col">
         <h2 class="fade" style="--d:.4s">The AI has ideas</h2>
-        <div class="bubble fade" style="--d:var(--c-idea, 3.0s)">“I think <b>AT&amp;T</b> stays flat or drifts up for a few weeks. I'm about <b>70%</b> sure.”</div>
+        <div class="bubble fade" style="--d:var(--c-idea, 3.0s)">“I think <b>Ford</b> stays flat or drifts up for a few weeks. I'm about <b>70%</b> sure.”</div>
       </div>
       <div class="col">
         <h2 class="fade" style="--d:.4s">The rules decide everything else</h2>
@@ -317,7 +321,7 @@ def scene06() -> str:
     """
     body = chrome("Engine one · getting out", 6) + """
     <div class="h fade" style="--d:.2s"><h1>Getting out is decided by a clock and three rules. No AI.</h1></div>
-    <svg class="clock fade" style="--d:.4s" viewBox="0 0 520 520"><circle class="face" cx="260" cy="260" r="220"/><line class="hand" x1="260" y1="260" x2="260" y2="90"/><circle cx="260" cy="260" r="12" fill="#222"/><text x="200" y="470">every 20 minutes</text></svg>
+    <svg class="clock fade" style="--d:.4s" viewBox="0 0 520 520"><circle class="face" cx="260" cy="260" r="220"/><line class="hand" x1="260" y1="260" x2="260" y2="90"/><circle cx="260" cy="260" r="12" fill="#222"/><text x="260" y="470" text-anchor="middle">every 20 minutes</text></svg>
     <div class="rules">
       <div class="r card pop" style="--d:var(--c-win, 3.5s)"><div class="k g">✓</div><div>Take the win at half<span>when the contract is worth half the fee you collected, buy it back</span></div></div>
       <div class="r card pop" style="--d:var(--c-loss, 6.5s)"><div class="k l">✕</div><div>Cut the loss at double<span>only after 10 am, and only when two checks in a row agree</span></div></div>
@@ -483,27 +487,7 @@ def scene11() -> str:
     return page("Scene 11 · Proof", css, body)
 
 
-def scene12() -> str:
-    """Honesty scene: what it is not."""
-    css = """
-    .h h1 { font-size:64px; }
-    .grid { position:absolute; left:120px; top:320px; width:1680px; display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:40px; }
-    .b { padding:40px 44px; }
-    .b h3 { margin:0 0 18px; font-size:30px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); }
-    .b p { margin:0; font-size:34px; line-height:1.5; }
-    .b.no h3 { color:var(--accent-dark); }
-    """
-    body = chrome("Straight talk", 12) + """
-    <div class="h fade" style="--d:.2s"><h1>What it is, and what it isn't.</h1></div>
-    <div class="grid">
-      <div class="b card pop" style="--d:var(--c-is, 1.5s)"><h3>It is</h3><p>A discipline machine. It puts the same small, capped bet on the same rules every day, and it writes down every idea it turned away, so you can check its work.</p></div>
-      <div class="b card no pop" style="--d:var(--c-isnt, 7.0s)"><h3>It isn't</h3><p>A money printer. Two days on a practice account is not a track record. What you can verify today is the behavior: how it sizes, how it exits, and how often it says no.</p></div>
-    </div>
-    """
-    return page("Scene 12 · Straight talk", css, body)
-
-
-def scene13(n: dict) -> str:
+def scene12(n: dict) -> str:
     """Closing: where to look. No numbers; the dashboard is live."""
     css = """
     .stage { background:#18181c; }
@@ -513,14 +497,14 @@ def scene13(n: dict) -> str:
     .repo { position:absolute; left:124px; bottom:130px; font-size:30px; color:#9a9aa3; font-weight:600; }
     .repo b { color:#fff; }
     """
-    body = chrome("Go check it", 13) + f"""
+    body = chrome("Go check it", 12) + f"""
     <div class="h fade" style="--d:.2s"><h1>Every idea, and every no, is on the dashboard. Live.</h1></div>
     <div class="url fade" style="--d:var(--c-dash, 3.0s)">optionsagent-production.up.railway.app</div>
     <div class="line fade" style="--d:var(--c-check, 5.0s)">Practice account, $100,000 start. Watch it decide, and watch it say no.</div>
     <div class="repo fade" style="--d:var(--c-thanks, 7.0s)"><b>github.com/Jhosshua/OptionsAgent</b> · MIT · team Convexity</div>
     {alpaca("idle", "right:130px; bottom:110px; width:240px; height:240px;")}
     """
-    return page("Scene 13 · Go check it", css, body, dark=True)
+    return page("Scene 12 · Go check it", css, body, dark=True)
 
 
 # --------------------------------------------------------------------------- one-pager
@@ -602,7 +586,7 @@ def main():
     SCENES.mkdir(parents=True, exist_ok=True)
     n = live_numbers()
     scenes = [scene01(), scene02(), scene03(), scene04(), scene05(), scene06(), scene07(), scene08(), scene09(),
-              scene10(), scene11(), scene12(), scene13(n)]
+              scene10(), scene11(), scene12(n)]
     assert len(scenes) == TOTAL
     for old in SCENES.glob("Scene*.dc.html"):
         old.unlink()

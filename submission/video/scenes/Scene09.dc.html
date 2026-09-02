@@ -38,11 +38,14 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.05; }
 /* alpaca mascot (cover and closing scene only) */
 .alpaca { position:absolute; width:260px; height:260px; }
 .alpaca .leg { transform-origin: 50% 0; }
-.alpaca.walk .leg.a { animation: step .5s ease-in-out infinite alternate; }
-.alpaca.walk .leg.b { animation: step .5s ease-in-out infinite alternate-reverse; }
-.alpaca.walk .body, .alpaca.idle .body { animation: bob 1.1s ease-in-out infinite alternate; transform-origin:50% 100%; }
+.alpaca.walk .leg.a { animation: stride .42s ease-in-out var(--walk-start, 0s) 5 both; }
+.alpaca.walk .leg.b { animation: stride .42s ease-in-out var(--walk-start, 0s) 5 reverse both; }
+.alpaca.walk .body { animation: trot .42s ease-in-out var(--walk-start, 0s) 5 both; transform-origin:50% 100%; }
+@keyframes stride { 0% { transform: rotate(0); } 25% { transform: rotate(-16deg); } 75% { transform: rotate(16deg); } 100% { transform: rotate(0); } }
+.alpaca.idle .body { animation: bob 1.6s ease-in-out infinite alternate; transform-origin:50% 100%; }
+@keyframes trot { 0%,100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-5px) rotate(1.2deg); } }
 .alpaca .lid { transform-origin: 50% 50%; animation: blink 3.4s linear infinite; }
-@keyframes step  { from { transform: rotate(-14deg); } to { transform: rotate(14deg); } }
+@keyframes step  { from { transform: rotate(-16deg); } to { transform: rotate(16deg); } }
 @keyframes bob   { from { transform: translateY(0); } to { transform: translateY(-7px); } }
 @keyframes blink { 0%,92%,100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
 
@@ -54,7 +57,7 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.05; }
     </style>
 </helmet>
 <div class="stage">
-<div class="topbar"></div><div class="brand fade" style="--d:.05s"><div class="mark"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5 L6.5 16 H9.5 L12 10.5 L14.5 16 H17.5 L21.5 8.5"/></svg></div><div class="name">Wingspan</div><div class="kick">The live app</div></div><div class="foot">Alpaca AI Trading Agents Hackathon 2026 · paper account PA371G5THNUO</div><div class="pn">9 / 13</div>
+<div class="topbar"></div><div class="brand fade" style="--d:.05s"><div class="mark"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5 L6.5 16 H9.5 L12 10.5 L14.5 16 H17.5 L21.5 8.5"/></svg></div><div class="name">Wingspan</div><div class="kick">The live app</div></div><div class="foot">Alpaca AI Trading Agents Hackathon 2026 · paper account PA371G5THNUO</div><div class="pn">9 / 12</div>
     <div class="h fade" style="--d:.2s"><h1>The limits page reads straight from the code that trades.</h1></div>
     <div class="shot fade" style="--d:.3s"><div class="kb"><img src="dash_risk.jpg">
       <div class="focus" style="left:18.58809523809524%; top:45.995640686922066%; width:78.53809523809524%; height:7.942668428005284%; animation-delay:var(--c-ring, 3.5s)"></div></div></div>

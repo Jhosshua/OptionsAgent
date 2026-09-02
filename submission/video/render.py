@@ -46,9 +46,9 @@ NARRATION = {
        "Tuesday, the phone buzzes: the bet is up thirty eight percent. Thursday: down twelve hundred for the week. "
        "And at eight minutes to the close, they double the next bet to make it back. That last move is the one that empties accounts.",
     3: "This is not one person's bad week. Everyday options traders lost two point one billion dollars in twenty months, "
-       "and most of it was the cost of trading, not bad picks. They are now up to sixty percent of same day S and P option trades. "
+       "and most of it was the cost of trading, not bad picks. They are now up to sixty percent of same-day S&P 500 option trades. "
        "And after a losing streak, people bet bigger and more often. The problem is not picking stocks. It's how much, when to get out, and knowing when to do nothing.",
-    4: "So that's what Wingspan does. The AI is allowed to have ideas. It might say: I think A T and T stays flat for a few weeks, and I'm seventy percent sure. "
+    4: "So that's what Wingspan does. The AI is allowed to have ideas. It might say: I think Ford stays flat for a few weeks, and I'm seventy percent sure. "
        "The rules decide everything else. How much: never more than three thousand dollars at risk. When to get out: on a clock. "
        "And when to do nothing, which is most days. The AI never touches the money.",
     5: "Here's engine one. Every morning it asks the AI one question about thirteen well known stocks: is there a bet here, and how sure are you. "
@@ -66,9 +66,7 @@ NARRATION = {
     10: "Every order goes out through Alpaca's own command line tool. One process, one reply, logged with whether it worked. If the tool fails, nothing opens.",
     11: "Before the first real bet, we replayed a real day of option prices. Eight of the twenty three bets the old rules would have made were losers the moment they opened. "
         "So we fixed how the pair is chosen, and added a last check that refuses anything still too expensive to get out of. Fifteen bets allowed. Zero losers on arrival.",
-    12: "Straight talk. This is a discipline machine, not a money printer. Two days on a practice account isn't a track record. "
-        "What you can verify today is the behavior: how it sizes, how it exits, and how often it says no.",
-    13: None,  # built from live numbers in main()
+    12: None,  # built in main()
 }
 
 CUES = {
@@ -83,8 +81,7 @@ CUES = {
     9: {"c-ring": "three"},
     10: {"c-reply": "reply", "c-logged": "logged", "c-fails": "fails"},
     11: {"c-eight": "eight", "c-floor": "fixed", "c-five": "fifteen", "c-zero": "zero"},
-    12: {"c-is": "discipline", "c-isnt": "printer"},
-    13: {"c-dash": "dashboard", "c-check": "every", "c-thanks": "check"},
+    12: {"c-dash": "dashboard", "c-check": "every", "c-thanks": "check"},
 }
 
 # Cue words: the first matching spoken word sets the CSS variable on the scene, so reveals land on the voice.
@@ -218,7 +215,7 @@ def assemble_scene(i: int, dur: float, fps: int, audio: Path) -> Path:
         "ffmpeg", "-y", "-loglevel", "error",
         "-framerate", str(fps), "-i", str(FRAMES / f"s{i:02d}" / "%05d.jpg"),
         "-i", str(audio),
-        "-filter_complex", f"[1:a]aresample=48000,aformat=channel_layouts=stereo,adelay={300 if i == 1 else 120}|{300 if i == 1 else 120},apad=whole_dur={dur:.3f}[a]",
+        "-filter_complex", f"[1:a]aresample=48000,aformat=channel_layouts=stereo,adelay={2300 if i == 1 else 120}|{2300 if i == 1 else 120},apad=whole_dur={dur:.3f}[a]",
         "-map", "0:v", "-map", "[a]", "-t", f"{dur:.3f}",
         "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", "-r", str(fps),
         "-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-ac", "2", str(seg),
@@ -263,12 +260,12 @@ async def main():
     # 1) narration + durations (+ per-word cues)
     sys.path.insert(0, str(HERE.parent))
     from build import live_numbers
-    NARRATION[13] = results_narration(live_numbers())
+    NARRATION[12] = results_narration(live_numbers())
     audio, durs, cues = {}, {}, {}
     for i, text in NARRATION.items():
         audio[i] = await narrate(i, text, voice, rate)
-        durs[i] = round(probe_duration(audio[i]) + TAIL, 3)
-        lead = 0.30 if i == 1 else 0.12
+        durs[i] = round(probe_duration(audio[i]) + TAIL + (2.3 if i == 1 else 0.0), 3)
+        lead = 2.30 if i == 1 else 0.12
         cues[i] = cue_vars(i, FRAMES / f"narr-{i:02d}.words.json", lead)
         missing = [k for k in CUES.get(i, {}) if k not in cues[i]]
         if missing:
