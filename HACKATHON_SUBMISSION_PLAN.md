@@ -65,7 +65,7 @@ options trading" on the evidence judges will look at (the account's orders).
 - [x] **C3** README hackathon section: disclosure, account ID, requirements mapping, the two deliberate changes.
 - [x] **C5** 276 tests green, 7 mutation checks caught; deployed to Railway 2026-09-01 23:00 ET (416c1fea) and verified in-container (CLI binary, env, adapter smoke, dry-run mleg, cron). Adversarial review findings (immediate-stop spreads, no dedupe, scalper bypassing the CLI, fills booked unconfirmed) fixed BEFORE deploy; see MEMORY.md.
 - [x] **C4a** MIT LICENSE file added; git history + committed backup tarball scanned: no key-shaped strings, no webhooks, only .env.example ever committed.
-- [ ] **C4b** Flip the repo to public (operator's call, D3).
+- [x] **C4b** Repo PUBLIC + MIT (operator approved 09-01 23:10 ET).
 
 ### 2. Trading window (Wed Sep 2, Thu Sep 3)
 - [ ] **T1** Watch every cycle on the comp account; confirm option fills appear in `/v2/orders` on PA371G5THNUO.
@@ -73,7 +73,8 @@ options trading" on the evidence judges will look at (the account's orders).
 - [ ] **T3** Snapshot the account (equity, orders, positions) Thu after close for the write-up.
 
 ### 3. Submission assets (drafts in submission/SUBMISSION.md as of 09-01 night: title, 254-char short desc, 272-word long desc, tags, video script, slide outline, one-page write-up, 5 social posts; Thursday numbers marked [[…]])
-- [ ] **S1** One-page write-up: AI logic (DeepSeek proposer, JSON schema, fail-closed), risk gates (rails, sizing, halts), Alpaca infra (Trading API + CLI/MCP, paper account, relay). Reuse OptionsAgent-Explained.pdf content.
+- [x] **S1..S6 BUILT 09-01 23:20 ET** by `python3 submission/build.py` (re-run Thursday for final numbers): `submission/out/` cover.png (1920x1080), Wingspan-Slides.pdf (9 pages), Wingspan-OnePager.pdf (1 page), Wingspan-Video.mp4 (4:08, h264+aac, narrated), dashboard shots in submission/shots/. Copy for the form in submission/SUBMISSION.md.
+- [x] **S1** One-page write-up: AI logic (DeepSeek proposer, JSON schema, fail-closed), risk gates (rails, sizing, halts), Alpaca infra (Trading API + CLI/MCP, paper account, relay). Reuse OptionsAgent-Explained.pdf content.
 - [ ] **S2** Slide PDF (5 to 8 slides): problem, strategy, architecture, risk gates, live results, what it refused and why, next steps.
 - [ ] **S3** Video MP4, max 5 min: intro, walk the slides, show the dashboard and a journaled cycle, show the account orders page.
 - [ ] **S4** Cover image 16:9 PNG (Wingspan brand exists in `dashboard/brand/`).

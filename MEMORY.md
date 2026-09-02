@@ -89,6 +89,8 @@ from inside the container: `/usr/local/bin/alpaca` 0.0.14; the three vars presen
 Alpaca body; cron running with `/etc/cron.d/optionsagent`. Public `/api/risk` reports
 gate=research_rules, cap=$3,000, transport=cli.
 
+**Submission pack (09-01 23:20 ET):** repo flipped PUBLIC with MIT (history + backup tarball scanned clean first). `submission/build.py` renders everything from live numbers (Alpaca CLI + dashboard API): cover.png, 9-slide PDF, 1-page write-up PDF, and a narrated MP4 (macOS `say` Samantha + ffmpeg, 4:08). Re-run Thursday after the close. Form copy in `submission/SUBMISSION.md` (short desc 254/255 chars). Only the team leader can submit on lablab.
+
 **Watch on 09-02:** the 10:15 ET cycle's `judged_against` row, the first
 `cli_calls.jsonl` rows from the container, and whether any spread actually
 fills (the picker still binds; a quiet-IV day can legitimately yield zero).
