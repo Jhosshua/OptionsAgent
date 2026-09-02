@@ -21,12 +21,27 @@ DATE=$(TZ=America/New_York date +%Y%m%d)
 LOCKS_DIR="$PWD/data/.locks"
 mkdir -p "$LOCKS_DIR" 2>/dev/null
 find "$LOCKS_DIR" -maxdepth 1 -type d -name 'entry_*' -mtime +7 -exec rmdir {} \; 2>/dev/null || true
-MARKER="$LOCKS_DIR/entry_${DATE}"
+# Entry windows (ET, "HH:MM-HH:MM", comma separated). Default = the historical
+# single 10:15-10:27 window. OA_ENTRY_WINDOWS="10:15-10:27,14:00-14:12" adds an
+# afternoon cycle (hackathon option, 2026-09-02); each window has its own
+# once-per-day marker, and the rails' one-position-per-name / max-open checks
+# keep a second cycle from doubling up on a name already open.
+WINDOWS=$(grep -E '^OA_ENTRY_WINDOWS=' .env 2>/dev/null | tail -1 | cut -d= -f2- | tr -d ' "')
+WINDOWS="${WINDOWS:-10:15-10:27}"
+NOW=$((10#$HOUR * 60 + 10#$MIN))
+MARKER=""
+IFS=',' read -ra WLIST <<< "$WINDOWS"
+for W in "${WLIST[@]}"; do
+  S="${W%-*}"; E="${W#*-}"
+  SM=$((10#${S%:*} * 60 + 10#${S#*:})); EM=$((10#${E%:*} * 60 + 10#${E#*:}))
+  if [ "$NOW" -ge "$SM" ] && [ "$NOW" -le "$EM" ]; then MARKER="$LOCKS_DIR/entry_${DATE}_${S/:/}"; break; fi
+done
+# Backward compatible: the first window keeps the old marker name so a day already
+# claimed under the old scheme is not re-run after a redeploy.
+[ -n "$MARKER" ] && [ "${MARKER##*_}" = "1015" ] && MARKER="$LOCKS_DIR/entry_${DATE}"
+if [ -z "$MARKER" ]; then exit 0; fi
 
-# Window: 10:15-10:27 ET
-if [ "$HOUR" != "10" ] || [ "$MIN" -lt 15 ] || [ "$MIN" -gt 27 ]; then exit 0; fi
-
-# Atomic once-per-day claim (mkdir is the lock).
+# Atomic once-per-window claim (mkdir is the lock).
 if ! mkdir "$MARKER" 2>/dev/null; then exit 0; fi
 
 # Holiday/weekend guard via broker clock (fail-closed).

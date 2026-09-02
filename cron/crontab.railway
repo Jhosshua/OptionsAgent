@@ -9,8 +9,9 @@ SHELL=/bin/bash
 PATH=/usr/local/bin:/usr/bin:/bin
 TZ=America/New_York
 
-# Daily entry cycle — self-gates to the 10:15-10:27 ET window, once/day (atomic volume lock).
-*/5 10 * * 1-5 root /Users/mo/OptionsAgent/cron/entry.sh >> /proc/1/fd/1 2>&1
+# Entry cycle — self-gates to OA_ENTRY_WINDOWS (default 10:15-10:27 ET), once per window (atomic volume lock).
+# The 14 hour is listed so an optional afternoon window can fire without a redeploy.
+*/5 10,14 * * 1-5 root /Users/mo/OptionsAgent/cron/entry.sh >> /proc/1/fd/1 2>&1
 # Exit sweep — every 20 min on weekdays; self-gates to market hours via the broker clock.
 */20 9-16 * * 1-5 root /Users/mo/OptionsAgent/cron/exits.sh >> /proc/1/fd/1 2>&1
 # 0DTE ORB scalper — one fused entry+exit tick every minute during RTH. ISOLATED from the

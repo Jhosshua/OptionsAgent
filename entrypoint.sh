@@ -45,7 +45,7 @@ secret_keys = [
     # Credit-spread gate mode (winner_profile | research_rules) and the broker
     # transport (sdk | cli). Hackathon 2026-09-01: both are set on Railway and
     # MUST reach the cron .env or the container silently runs the old path.
-    "OA_CREDIT_SPREAD_GATE", "OA_BROKER_TRANSPORT", "OA_ALPACA_CLI",
+    "OA_CREDIT_SPREAD_GATE", "OA_BROKER_TRANSPORT", "OA_ALPACA_CLI", "OA_ENTRY_WINDOWS",
     # Alert transport. Either a webhook, OR the fleet's bot token + channel —
     # harness/notify.py accepts both. With neither, every alert is log-only and
     # a fail-closed no-trade day passes in total silence.

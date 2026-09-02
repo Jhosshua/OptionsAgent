@@ -157,11 +157,26 @@ def select_credit_spread(
         ]
         if not candidates:
             continue
-        long = min(candidates, key=lambda q: abs(q.strike - short.strike))
-        legs = SpreadLegs(short=short, long=long)
-        if legs.net_credit <= 0:
-            continue  # a "credit" spread that costs money is a data-quality red flag
-        # rank by credit captured per dollar of defined risk, tempered by the
+        # 2026-09-02: the nearest strike used to be taken blindly. On sub-$50
+        # names that is the tightest pair, which pays the smallest credit and
+        # costs the most to unwind relative to it (T: $1 wide = 11c credit,
+        # 18c to unwind; $2 wide = 17c credit, 23c to unwind). The exit rule
+        # prices the unwind at short.ask - long.bid, so among the long strikes
+        # inside max_width pick the pair with the lowest unwind-to-credit
+        # ratio, then the larger credit. Max loss per contract grows with
+        # width, but the dollar cap bounds contracts, so total risk does not.
+        pairs = []
+        for cand in candidates:
+            cand_legs = SpreadLegs(short=short, long=cand)
+            if cand_legs.net_credit <= 0:
+                continue  # a "credit" spread that costs money is a data-quality red flag
+            unwind = short.ask - cand.bid
+            pairs.append((unwind / cand_legs.net_credit, -cand_legs.net_credit, cand_legs))
+        if not pairs:
+            continue
+        pairs.sort(key=lambda t: (t[0], t[1]))
+        legs = pairs[0][2]
+        # rank shorts by credit captured per dollar of defined risk, tempered by the
         # wheel scorer's preference for lower delta / shorter DTE
         score = (legs.net_credit / legs.width) * (1 - abs(short.delta)) * (250 / (short.dte + 5))
         if score > best_score:
