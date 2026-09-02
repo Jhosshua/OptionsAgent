@@ -22,9 +22,9 @@ restyle and a "never loses" promise a paper bot has not earned). Both remain
 on page two of the canvas. Working files: `dashboard/brand/`.
 
 **Verified:** full suite 233 passed; page rendered in Chrome from a static
-server, mark crisp at 34px and 14px, favicon shows in the tab. NOT redeployed
-to Railway; the live dashboard still shows the old brand until
-`railway up --service OptionsAgent`.
+server, mark crisp at 34px and 14px, favicon shows in the tab. Deployed to
+Railway the same evening on the operator's "push it now" (`railway up
+--service OptionsAgent`); the live page served the Wingspan markup ~50s later.
 
 ## 2026-09-01 — DASHBOARD UI AUDIT: THE ENGINE THAT WAS ACTUALLY TRADING WAS INVISIBLE
 
