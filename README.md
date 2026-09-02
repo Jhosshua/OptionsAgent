@@ -42,8 +42,12 @@ credit-spread seller had **zero fills** on the competition account before
 - *Autonomous:* Linux cron in the container runs the daily proposal cycle,
   the 20-minute exit sweep and the per-minute scalper; no human in the loop.
 - *Options:* the seller opens defined-risk vertical credit spreads (short
-  strike 0.15–0.30 delta, 30–45 DTE, width ≤ $2), exits at 50% profit, 2x-credit
-  stop, or 21 DTE.
+  strike 0.15 to 0.30 delta, 30 to 45 DTE, width at most $2), exits at 50% profit,
+  a 2x-credit stop confirmed over two consecutive 20-minute sweeps after 10:00 ET,
+  or 21 DTE.
+- *Second engine:* a share scalper with no AI (`run_scalp_equity.py`): two rules
+  on SPY and QQQ mined from six months of minute bars, $20k a trade, two trades a
+  day, 0.7% stop, 120-bar time exit, flat by 15:50 ET, $300 daily loss halt.
 - *AI logic:* DeepSeek (`deepseek-v4-pro`, JSON mode, temperature 0) proposes
   `{underlying, strategy_type, direction, conviction, thesis}` once a day over a
   13-name watchlist. It never picks a strike, size, or exit; it cannot place an
@@ -57,8 +61,11 @@ credit-spread seller had **zero fills** on the competition account before
   (`OA_BROKER_TRANSPORT=cli`, `harness/alpaca_cli.py`): account, positions,
   clock, order submit (single-leg and `mleg` spreads), order status and cancel
   all run as `alpaca …` subprocesses inside the container; every call is
-  journaled to `data/cli_calls.jsonl`. Option chains come from a read-only
-  Public.com sidecar, stock bars from a hosted Alpaca market-data relay.
+  journaled to `data/cli_calls.jsonl` and any error fails the trade. The one
+  exception is the scalper's 15:50 flatten, which may fall back to the SDK and
+  journals that it did. Option chains come from a read-only Public.com sidecar,
+  stock bars from a hosted Alpaca market-data relay; market data never goes
+  through the CLI.
 
 **Two deliberate changes for the competition window (2026-09-01 night):**
 1. `OA_CREDIT_SPREAD_GATE=research_rules`: the frozen in-sample winner table
@@ -67,8 +74,9 @@ credit-spread seller had **zero fills** on the competition account before
    records the gate mode it was judged under (`judged_against`).
 2. `OA_MAX_POSITION_USD=3000`: sizing is a share of buying power (30%–100%),
    which on a $100k account would have meant ~178 contracts per idea. The cap
-   makes the worst case ≈ $3,000 minus credit per position, ≈ $18k across all
-   six slots. The two changes ship together on purpose.
+   makes the worst case about $3,000 minus credit per position. The six-slot
+   cap counts option legs, so at most three spreads can be open, about $9k of
+   defined risk in total. The two changes ship together on purpose.
 
 ## Status (2026-09-01)
 

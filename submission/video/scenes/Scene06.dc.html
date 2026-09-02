@@ -33,7 +33,7 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
 @keyframes pop  { from { opacity:0; transform: scale(.82); } to { opacity:1; transform: scale(1); } }
 @keyframes fade { from { opacity:0; } to { opacity:1; } }
 .kb { animation: kb var(--dur) linear both; transform-origin: 50% 40%; }
-@keyframes kb { from { transform: scale(1); } to { transform: scale(1.06); } }
+@keyframes kb { from { transform: scale(1); } to { transform: scale(1.035); } }
 .chip { display:inline-flex; align-items:center; gap:12px; padding:14px 26px; border-radius:999px; background:var(--wash);
         color:var(--accent-dark); font-weight:800; font-size:30px; }
 .card { background:#fff; border:1px solid var(--line); border-radius:var(--radius); box-shadow:0 10px 30px rgba(0,0,0,.06); }
@@ -55,14 +55,15 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
     .h { position:absolute; left:120px; top:150px; } .h h1 { font-size:64px; }
     .shot { position:absolute; left:120px; top:270px; width:1680px; height:757px; border-radius:18px; overflow:hidden; border:1px solid var(--line); box-shadow:0 20px 60px rgba(0,0,0,.12); }
     .shot img { width:1680px; height:757px; display:block; }
+    .kb { position:relative; width:1680px; height:757px; }
     .focus { position:absolute; border-radius:14px; box-shadow: 0 0 0 4px var(--accent), 0 0 0 9999px rgba(250,248,245,.72); opacity:0; animation: fade .6s ease-out both; }
     </style>
 </helmet>
 <div class="stage">
-<div class="topbar"></div><div class="brand rise" style="--d:.05s"><div class="mark"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5 L6.5 16 H9.5 L12 10.5 L14.5 16 H17.5 L21.5 8.5"/></svg></div><div class="name">Wingspan</div><div class="kick">Live app</div></div><div class="foot">Alpaca AI Trading Agents Hackathon 2026 · paper account PA371G5THNUO</div><div class="pn">6 / 9</div>
-    <div class="h fade" style="--d:.2s"><h1>Drawn from the same function the bot runs.</h1></div>
-    <div class="shot fade" style="--d:.3s"><div class="kb"><img src="dash_risk.jpg"></div>
-      <div class="focus" style="left:22.0%; top:88.0%; width:75.5%; height:10.0%; animation-delay:2.2s"></div></div>
+<div class="topbar"></div><div class="brand rise" style="--d:.05s"><div class="mark"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5 L6.5 16 H9.5 L12 10.5 L14.5 16 H17.5 L21.5 8.5"/></svg></div><div class="name">Wingspan</div><div class="kick">Live app</div></div><div class="foot">Alpaca AI Trading Agents Hackathon 2026 · paper account PA371G5THNUO</div><div class="pn">5 / 10</div>
+    <div class="h fade" style="--d:.2s"><h1>The live app. A no is logged like a fill.</h1></div>
+    <div class="shot fade" style="--d:.3s"><div class="kb"><img src="dash_overview.jpg">
+      <div class="focus" style="left:83.0%; top:16.0%; width:14.8%; height:30.5%; animation-delay:2.6s"></div></div></div>
     
 </div>
 </x-dc>

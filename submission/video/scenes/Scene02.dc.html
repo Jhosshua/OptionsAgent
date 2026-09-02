@@ -33,7 +33,7 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
 @keyframes pop  { from { opacity:0; transform: scale(.82); } to { opacity:1; transform: scale(1); } }
 @keyframes fade { from { opacity:0; } to { opacity:1; } }
 .kb { animation: kb var(--dur) linear both; transform-origin: 50% 40%; }
-@keyframes kb { from { transform: scale(1); } to { transform: scale(1.06); } }
+@keyframes kb { from { transform: scale(1); } to { transform: scale(1.035); } }
 .chip { display:inline-flex; align-items:center; gap:12px; padding:14px 26px; border-radius:999px; background:var(--wash);
         color:var(--accent-dark); font-weight:800; font-size:30px; }
 .card { background:#fff; border:1px solid var(--line); border-radius:var(--radius); box-shadow:0 10px 30px rgba(0,0,0,.06); }
@@ -53,18 +53,53 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
 
     .stage { background:var(--paper); }
     .who { position:absolute; left:120px; top:180px; color:var(--muted); font-weight:700; font-size:26px; letter-spacing:.06em; text-transform:uppercase; }
-    .line { position:absolute; left:120px; top:240px; font-size:60px; font-weight:800; letter-spacing:-.8px; line-height:1.2; max-width:1400px; }
-    .num { position:absolute; left:112px; top:440px; font-size:420px; font-weight:900; letter-spacing:-18px; line-height:1; color:var(--ink); }
-    .cap { position:absolute; left:126px; top:900px; font-size:44px; font-weight:600; color:var(--muted); }
-    .cap b { color:var(--accent-dark); font-weight:800; }
+    .dev { position:absolute; left:120px; top:300px; width:560px; height:560px; }
+    .dev .brows { transform-origin: 210px 130px; animation: worry .5s ease-out 6.0s both; }
+    @keyframes worry { to { transform: translateY(-9px) rotate(-6deg); } }
+    .dev .mouth { animation: flat .5s ease-out 6.0s both; }
+    @keyframes flat { to { d: path("M196 176 q14 -6 28 0"); } }
+    .dev .bang { opacity:0; animation: pop .35s cubic-bezier(.34,1.56,.64,1) 6.2s both; }
+    .say { position:absolute; padding:26px 34px; border-radius:26px; font-size:38px; font-weight:700; line-height:1.35; box-shadow:0 10px 30px rgba(0,0,0,.06); }
+    .say.me { left:560px; top:330px; background:#fff; border:1px solid var(--line); border-bottom-left-radius:6px; animation: pop .45s cubic-bezier(.2,.8,.3,1.1) 1.0s both; }
+    .say.llm { left:760px; top:480px; background:var(--ink); color:#fff; border-bottom-right-radius:6px; max-width:900px; animation: pop .45s cubic-bezier(.2,.8,.3,1.1) 2.8s both; }
+    .say.llm b { color:#ff8a8e; font-weight:900; }
+    .tag { font-size:22px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:#9a9aa3; display:block; margin-bottom:6px; }
+    .say.me .tag { color:var(--muted); }
+    .meter { position:absolute; left:760px; top:690px; width:900px; }
+    .meter .l { display:flex; justify-content:space-between; font-size:26px; font-weight:800; color:var(--muted); margin-bottom:12px; }
+    .meter .l b { color:var(--loss); }
+    .meter .bar { height:30px; border-radius:10px; background:#e6e1da; overflow:hidden; }
+    .meter .bar i { display:block; height:100%; width:0; background:var(--loss); animation: fill 1.6s cubic-bezier(.2,.7,.2,1) 4.4s both; }
+    @keyframes fill { to { width:100%; } }
+    .meter { opacity:0; animation: fade .3s 4.3s both; }
+    .line { position:absolute; left:120px; top:930px; font-size:44px; font-weight:800; letter-spacing:-.6px; animation: fade .5s 7.4s both; }
+    .line em { font-style:normal; color:var(--accent-dark); }
     </style>
 </helmet>
 <div class="stage">
-<div class="topbar"></div><div class="brand rise" style="--d:.05s"><div class="mark"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5 L6.5 16 H9.5 L12 10.5 L14.5 16 H17.5 L21.5 8.5"/></svg></div><div class="name">Wingspan</div><div class="kick">The problem</div></div><div class="foot">Alpaca AI Trading Agents Hackathon 2026 · paper account PA371G5THNUO</div><div class="pn">2 / 9</div>
-    <div class="who fade" style="--d:.2s">Customer: a developer pointing an LLM at an Alpaca account</div>
-    <div class="line fade" style="--d:.4s">Give a language model a brokerage account and it will always find a trade.<br>It never says no, and it can't count contracts.</div>
-    <div class="num fade" style="--d:5.2s">178</div>
-    <div class="cap fade" style="--d:6.2s">contracts on <b>one idea</b>. Our first dry run, $100k paper account, before the cap.</div>
+<div class="topbar"></div><div class="brand rise" style="--d:.05s"><div class="mark"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5 L6.5 16 H9.5 L12 10.5 L14.5 16 H17.5 L21.5 8.5"/></svg></div><div class="name">Wingspan</div><div class="kick">The problem</div></div><div class="foot">Alpaca AI Trading Agents Hackathon 2026 · paper account PA371G5THNUO</div><div class="pn">2 / 10</div>
+    <div class="who fade" style="--d:.2s">A developer points a language model at an Alpaca account</div>
+    
+<svg class="dev" viewBox="0 0 420 420" fill="none" style="">
+  <rect x="60" y="300" width="300" height="18" rx="9" fill="#e6e1da"/>
+  <rect x="150" y="236" width="150" height="70" rx="8" fill="#3a3a42"/>
+  <rect x="158" y="244" width="134" height="52" rx="4" fill="#5d5d68"/>
+  <rect x="140" y="300" width="170" height="10" rx="5" fill="#2a2a30"/>
+  <path d="M110 300 q0 -80 60 -100 l60 0 q60 20 60 100 Z" fill="#222"/>
+  <path d="M170 210 q-40 20 -30 90" stroke="#222" stroke-width="26" stroke-linecap="round"/>
+  <path d="M250 210 q40 20 30 90" stroke="#222" stroke-width="26" stroke-linecap="round"/>
+  <circle cx="210" cy="150" r="56" fill="#f1c9a5"/>
+  <path d="M154 140 q10 -60 66 -58 q54 -2 60 58 q-20 -30 -60 -28 q-40 -2 -66 28 Z" fill="#2b2118"/>
+  <g class="brows"><path d="M184 128 l20 -4" stroke="#2b2118" stroke-width="5" stroke-linecap="round"/><path d="M216 124 l20 4" stroke="#2b2118" stroke-width="5" stroke-linecap="round"/></g>
+  <circle cx="192" cy="146" r="4.5" fill="#222"/><circle cx="228" cy="146" r="4.5" fill="#222"/>
+  <path class="mouth" d="M196 172 q14 10 28 0" stroke="#8b4a3c" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <text class="bang" x="292" y="96" font-family="Nunito Sans, sans-serif" font-weight="900" font-size="72" fill="#e5484d">!</text>
+</svg>
+
+    <div class="say me"><span class="tag">developer</span>Find me a trade.</div>
+    <div class="say llm"><span class="tag">language model</span>Sure. Selling <b>178</b> call spreads on T.</div>
+    <div class="meter"><div class="l"><span>Buying power on one idea</span><b>$35,600 of $100,000</b></div><div class="bar"><i></i></div></div>
+    <div class="line">It will always find a trade. It never says no, and it <em>can't count contracts.</em></div>
     
 </div>
 </x-dc>

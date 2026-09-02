@@ -33,7 +33,7 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
 @keyframes pop  { from { opacity:0; transform: scale(.82); } to { opacity:1; transform: scale(1); } }
 @keyframes fade { from { opacity:0; } to { opacity:1; } }
 .kb { animation: kb var(--dur) linear both; transform-origin: 50% 40%; }
-@keyframes kb { from { transform: scale(1); } to { transform: scale(1.06); } }
+@keyframes kb { from { transform: scale(1); } to { transform: scale(1.035); } }
 .chip { display:inline-flex; align-items:center; gap:12px; padding:14px 26px; border-radius:999px; background:var(--wash);
         color:var(--accent-dark); font-weight:800; font-size:30px; }
 .card { background:#fff; border:1px solid var(--line); border-radius:var(--radius); box-shadow:0 10px 30px rgba(0,0,0,.06); }
@@ -51,49 +51,34 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
 @keyframes nod   { 0%,60%,100% { transform: rotate(0); } 75% { transform: rotate(9deg); } 90% { transform: rotate(-4deg); } }
 @keyframes blink { 0%,92%,100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
 
-    .stage { background:#18181c; }
-    .brand .name, .foot, .pn { color:#fff; } .brand .kick { color:#9a9aa3; }
-    .h { position:absolute; left:120px; top:170px; } .h h1 { font-size:64px; color:#fff; }
-    .url { position:absolute; left:120px; top:380px; font-size:88px; font-weight:900; color:#fff; letter-spacing:-2px; }
-    .url span { color:var(--accent); }
-    .line { position:absolute; left:124px; top:520px; font-size:40px; color:#d9d9de; font-weight:600; line-height:1.6; }
-    .line b { color:#fff; }
-    .repo { position:absolute; left:124px; bottom:130px; font-size:30px; color:#9a9aa3; font-weight:600; }
-    .repo b { color:#fff; }
+    .stage { background:var(--paper); }
+    .h { position:absolute; left:120px; top:160px; } .h h1 { font-size:72px; }
+    .row { position:absolute; left:120px; top:420px; display:flex; gap:16px; }
+    .dot { width:46px; height:46px; border-radius:50%; background:var(--ink); }
+    .dot.r { animation: red .35s ease-out both; animation-delay: var(--d); }
+    @keyframes red { to { background: var(--loss); transform: scale(1.12); } }
+    .dot.g { animation: grey .5s ease-out 9.4s both; }
+    @keyframes grey { to { background:#d9d5cf; } }
+    .dot.k { animation: keep .5s ease-out 9.4s both; }
+    @keyframes keep { to { background:var(--gain); } }
+    .lbl { position:absolute; left:120px; top:340px; font-size:34px; font-weight:800; color:var(--muted); }
+    .zero { position:absolute; left:1560px; top:300px; font-size:240px; font-weight:900; letter-spacing:-12px; color:var(--gain); line-height:1; animation: fade .4s 11.2s both; }
+    .zero small { display:block; font-size:34px; letter-spacing:0; color:var(--muted); font-weight:700; margin-top:-10px; }
+    .cap { position:absolute; left:120px; top:540px; font-size:40px; line-height:1.5; max-width:1300px; color:var(--ink); }
+    .cap .a { animation: fade .4s 4.2s both; display:block; }
+    .cap .b { animation: fade .4s 9.6s both; display:block; }
+    .tests { position:absolute; left:120px; bottom:120px; font-size:28px; font-weight:700; color:var(--muted); }
     </style>
 </helmet>
 <div class="stage">
-<div class="topbar"></div><div class="brand rise" style="--d:.05s"><div class="mark"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5 L6.5 16 H9.5 L12 10.5 L14.5 16 H17.5 L21.5 8.5"/></svg></div><div class="name">Wingspan</div><div class="kick">Results</div></div><div class="foot">Alpaca AI Trading Agents Hackathon 2026 · paper account PA371G5THNUO</div><div class="pn">9 / 9</div>
-    <div class="h fade" style="--d:.2s"><h1>Every idea and every no is on the dashboard. Go check it.</h1></div>
-    <div class="url fade" style="--d:2.4s">optionsagent-production<span>.up.railway.app</span></div>
-    <div class="line fade" style="--d:3.4s">Paper account <b>PA371G5THNUO</b> · $100,000 start · equity <b>$100,034.43</b><br>
-      6 filled orders in the window · 0 options · snapshot Wed Sep 02, 00:56 ET</div>
-    <div class="repo fade" style="--d:4.4s"><b>github.com/Jhosshua/OptionsAgent</b> · MIT · team Convexity</div>
-    
-<svg class="alpaca idle" style="right:130px; bottom:110px; width:240px; height:240px;" viewBox="0 0 220 220" fill="none">
-  <g class="body">
-    <g class="leg a"><rect x="62" y="150" width="16" height="48" rx="7" fill="#ead9c0"/></g>
-    <g class="leg b"><rect x="88" y="150" width="16" height="48" rx="7" fill="#f3e6d2"/></g>
-    <g class="leg b"><rect x="122" y="150" width="16" height="48" rx="7" fill="#ead9c0"/></g>
-    <g class="leg a"><rect x="148" y="150" width="16" height="48" rx="7" fill="#f3e6d2"/></g>
-    <rect x="46" y="100" width="128" height="66" rx="33" fill="#f3e6d2"/>
-    <circle cx="50" cy="106" r="16" fill="#f3e6d2"/>
-    <rect x="146" y="44" width="30" height="76" rx="15" fill="#f3e6d2"/>
-    <g class="head">
-      <rect x="132" y="24" width="60" height="40" rx="19" fill="#f3e6d2"/>
-      <path d="M144 28 L150 8 L158 28 Z" fill="#f3e6d2"/>
-      <path d="M170 28 L178 9 L184 28 Z" fill="#f3e6d2"/>
-      <path d="M147 26 L150 15 L154 26 Z" fill="#e5484d" opacity=".55"/>
-      <path d="M173 26 L177 15 L181 26 Z" fill="#e5484d" opacity=".55"/>
-      <ellipse cx="182" cy="52" rx="9" ry="7" fill="#e6d3bb"/>
-      <circle cx="166" cy="42" r="3.6" fill="#222"/>
-      <rect class="lid" x="161" y="37" width="10" height="10" rx="5" fill="#f3e6d2" opacity="0"/>
-      <path d="M176 57 q4 3 8 0" stroke="#8b6f52" stroke-width="2" stroke-linecap="round"/>
-    </g>
-    <path d="M62 128 q-12 -2 -14 8" stroke="#e6d3bb" stroke-width="6" stroke-linecap="round"/>
-  </g>
-</svg>
-
+<div class="topbar"></div><div class="brand rise" style="--d:.05s"><div class="mark"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5 L6.5 16 H9.5 L12 10.5 L14.5 16 H17.5 L21.5 8.5"/></svg></div><div class="name">Wingspan</div><div class="kick">Proof</div></div><div class="foot">Alpaca AI Trading Agents Hackathon 2026 · paper account PA371G5THNUO</div><div class="pn">9 / 10</div>
+    <div class="h fade" style="--d:.2s"><h1>We replayed a day of real option chains first.</h1></div>
+    <div class="lbl fade" style="--d:.5s">22 spreads the old gate would have opened</div>
+    <div class="row fade" style="--d:.6s"><div class="dot g"></div><div class="dot r" style="--d:4.30s"></div><div class="dot k"></div><div class="dot g"></div><div class="dot r" style="--d:4.38s"></div><div class="dot g"></div><div class="dot r" style="--d:4.46s"></div><div class="dot k"></div><div class="dot g"></div><div class="dot r" style="--d:4.54s"></div><div class="dot g"></div><div class="dot k"></div><div class="dot r" style="--d:4.62s"></div><div class="dot g"></div><div class="dot g"></div><div class="dot r" style="--d:4.70s"></div><div class="dot k"></div><div class="dot g"></div><div class="dot r" style="--d:4.78s"></div><div class="dot g"></div><div class="dot k"></div><div class="dot r" style="--d:4.86s"></div></div>
+    <div class="cap"><span class="a"><b style="color:var(--loss)">8</b> were already past their own stop on the quotes they were picked from.</span>
+      <span class="b">With the liquidity floor: <b style="color:var(--gain)">5 admitted, 0 past the stop.</b></span></div>
+    <div class="zero">0<small>past the stop</small></div>
+    <div class="tests">276 tests · replay of the 2026-09-01 chain snapshots · seven mutation checks</div>
     
 </div>
 </x-dc>

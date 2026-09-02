@@ -4,10 +4,10 @@ Everything the lablab form asks for, in the order the form asks. Numbers marked
 `[[…]]` get filled in Thursday after the close from the account snapshot.
 
 ## 1. Project title
-Wingspan — an options agent that mostly says no
+Wingspan: an options agent that mostly says no
 
-## 2. Short description (≤ 255 chars; this one is 246)
-Autonomous options agent on Alpaca. DeepSeek proposes, deterministic Python decides every strike, size and exit, and the official Alpaca CLI places every order. Defined-risk credit spreads, a $3k cap per position, and a journal that records each refusal.
+## 2. Short description (max 255 chars)
+Autonomous options agent on Alpaca. DeepSeek proposes, code decides every strike, size and exit, and the official Alpaca CLI places every order. Defined risk credit spreads plus a no AI share scalper, a $3k cap per position, every refusal journaled.
 
 ## 3. Long description (≥ 100 words)
 Wingspan (repo: OptionsAgent) is an autonomous options-trading agent built on
@@ -18,15 +18,15 @@ The governing rule is simple: the AI proposes, the code disposes. Once a day
 DeepSeek reads a 13-name watchlist with fresh market context and answers one
 question per name: is there a trade, which strategy, which direction, how
 convinced? It may not name a strike, a size or an exit. A deterministic
-pipeline then picks the contracts (short strike at 0.15 to 0.30 delta, 30 to 45
-days out, at most $2 wide), sizes the position (conviction-scaled, hard-capped
+pipeline then picks the contracts (short strike at 0.15 to 0.30 delta, 30 to 45 days out, at most $2 wide), sizes the position (conviction-scaled, hard-capped
 at $3,000 of defined risk), checks that the spread is liquid enough that the
 exit rule will not stop it out on the same quotes it was opened on, and sends
 one multi-leg limit order through `alpaca order submit`. A separate exit sweep
-runs every 20 minutes with no AI in it: 50% profit target, 2x-credit stop
-confirmed over two sweeps, forced close at 21 days to expiry. A second engine,
-a share-based intraday scalper mined from six months of SPY/QQQ minute bars,
-trades the same account through the same CLI path.
+runs every 20 minutes with no AI in it: 50% profit target, a 2x credit stop
+confirmed over two sweeps after 10:00 ET, forced close at 21 days to expiry.
+A second engine has no AI at all: two rules on SPY and QQQ mined from six months
+of minute bars, $20k a trade, two trades a day, a 0.7% stop, flat by 15:50 ET.
+Both engines trade the same account through the same CLI path.
 
 What makes it different is what it refuses. Every proposal that dies at a gate
 is journaled with the gate that killed it and the thresholds it was judged
@@ -40,7 +40,7 @@ Alpaca · Alpaca CLI · DeepSeek · Python · Railway · Options · Credit sprea
 ## 5. Cover image
 16:9 PNG from the Wingspan brand (dashboard/brand/Main.dc.html). To render.
 
-## 6. Video (MP4, ≤ 5 min) — script
+## 6. Video (MP4, ≤ 5 min), script
 0:00 Who I am, what this is (20 s). "An options agent where the AI is the
      least trusted part."
 0:20 The rule (30 s). Slide: AI proposes {name, strategy, direction,
@@ -58,7 +58,7 @@ Alpaca · Alpaca CLI · DeepSeek · Python · Railway · Options · Credit sprea
 4:20 Results + close (40 s). [[equity, fills, refusals]] and the one-line
      lesson: robustness is a feature judges can verify, P/L on two days is not.
 
-## 7. Slide deck (PDF) — outline, 8 slides
+## 7. Slide deck (PDF), outline, 8 slides
 1. Title: Wingspan. One line. Account ID.
 2. The problem: LLMs generate plausible trades and cannot refuse bad ones.
 3. The rule: proposes vs disposes (diagram from README).

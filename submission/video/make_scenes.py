@@ -53,7 +53,7 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
 @keyframes pop  { from { opacity:0; transform: scale(.82); } to { opacity:1; transform: scale(1); } }
 @keyframes fade { from { opacity:0; } to { opacity:1; } }
 .kb { animation: kb var(--dur) linear both; transform-origin: 50% 40%; }
-@keyframes kb { from { transform: scale(1); } to { transform: scale(1.06); } }
+@keyframes kb { from { transform: scale(1); } to { transform: scale(1.035); } }
 .chip { display:inline-flex; align-items:center; gap:12px; padding:14px 26px; border-radius:999px; background:var(--wash);
         color:var(--accent-dark); font-weight:800; font-size:30px; }
 .card { background:#fff; border:1px solid var(--line); border-radius:var(--radius); box-shadow:0 10px 30px rgba(0,0,0,.06); }
@@ -129,7 +129,7 @@ def page(title: str, css: str, body: str) -> str:
 """
 
 
-def chrome(kicker: str, n: int, total: int = 9) -> str:
+def chrome(kicker: str, n: int, total: int = 10) -> str:
     return (f'<div class="topbar"></div>'
             f'<div class="brand rise" style="--d:.05s"><div class="mark">{W_MARK.format(s=28, c="#fff")}</div>'
             f'<div class="name">Wingspan</div><div class="kick">{kicker}</div></div>'
@@ -162,7 +162,108 @@ def scene01() -> str:
     return page("Scene 1 · Cover", css, body)
 
 
+
+# A flat developer at a laptop. Eyebrows and mouth are separate so the face can change.
+DEV_SVG = """
+<svg class="dev" viewBox="0 0 420 420" fill="none" style="{style}">
+  <rect x="60" y="300" width="300" height="18" rx="9" fill="#e6e1da"/>
+  <rect x="150" y="236" width="150" height="70" rx="8" fill="#3a3a42"/>
+  <rect x="158" y="244" width="134" height="52" rx="4" fill="#5d5d68"/>
+  <rect x="140" y="300" width="170" height="10" rx="5" fill="#2a2a30"/>
+  <path d="M110 300 q0 -80 60 -100 l60 0 q60 20 60 100 Z" fill="#222"/>
+  <path d="M170 210 q-40 20 -30 90" stroke="#222" stroke-width="26" stroke-linecap="round"/>
+  <path d="M250 210 q40 20 30 90" stroke="#222" stroke-width="26" stroke-linecap="round"/>
+  <circle cx="210" cy="150" r="56" fill="#f1c9a5"/>
+  <path d="M154 140 q10 -60 66 -58 q54 -2 60 58 q-20 -30 -60 -28 q-40 -2 -66 28 Z" fill="#2b2118"/>
+  <g class="brows"><path d="M184 128 l20 -4" stroke="#2b2118" stroke-width="5" stroke-linecap="round"/><path d="M216 124 l20 4" stroke="#2b2118" stroke-width="5" stroke-linecap="round"/></g>
+  <circle cx="192" cy="146" r="4.5" fill="#222"/><circle cx="228" cy="146" r="4.5" fill="#222"/>
+  <path class="mouth" d="M196 172 q14 10 28 0" stroke="#8b4a3c" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <text class="bang" x="292" y="96" font-family="Nunito Sans, sans-serif" font-weight="900" font-size="72" fill="#e5484d">!</text>
+</svg>
+"""
+
+
 def scene02() -> str:
+    """The problem, as a 10 second vignette: a developer hands an LLM the keys."""
+    css = """
+    .stage { background:var(--paper); }
+    .who { position:absolute; left:120px; top:180px; color:var(--muted); font-weight:700; font-size:26px; letter-spacing:.06em; text-transform:uppercase; }
+    .dev { position:absolute; left:120px; top:300px; width:560px; height:560px; }
+    .dev .brows { transform-origin: 210px 130px; animation: worry .5s ease-out 6.0s both; }
+    @keyframes worry { to { transform: translateY(-9px) rotate(-6deg); } }
+    .dev .mouth { animation: flat .5s ease-out 6.0s both; }
+    @keyframes flat { to { d: path("M196 176 q14 -6 28 0"); } }
+    .dev .bang { opacity:0; animation: pop .35s cubic-bezier(.34,1.56,.64,1) 6.2s both; }
+    .say { position:absolute; padding:26px 34px; border-radius:26px; font-size:38px; font-weight:700; line-height:1.35; box-shadow:0 10px 30px rgba(0,0,0,.06); }
+    .say.me { left:560px; top:330px; background:#fff; border:1px solid var(--line); border-bottom-left-radius:6px; animation: pop .45s cubic-bezier(.2,.8,.3,1.1) 1.0s both; }
+    .say.llm { left:760px; top:480px; background:var(--ink); color:#fff; border-bottom-right-radius:6px; max-width:900px; animation: pop .45s cubic-bezier(.2,.8,.3,1.1) 2.8s both; }
+    .say.llm b { color:#ff8a8e; font-weight:900; }
+    .tag { font-size:22px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:#9a9aa3; display:block; margin-bottom:6px; }
+    .say.me .tag { color:var(--muted); }
+    .meter { position:absolute; left:760px; top:690px; width:900px; }
+    .meter .l { display:flex; justify-content:space-between; font-size:26px; font-weight:800; color:var(--muted); margin-bottom:12px; }
+    .meter .l b { color:var(--loss); }
+    .meter .bar { height:30px; border-radius:10px; background:#e6e1da; overflow:hidden; }
+    .meter .bar i { display:block; height:100%; width:0; background:var(--loss); animation: fill 1.6s cubic-bezier(.2,.7,.2,1) 4.4s both; }
+    @keyframes fill { to { width:100%; } }
+    .meter { opacity:0; animation: fade .3s 4.3s both; }
+    .line { position:absolute; left:120px; top:930px; font-size:44px; font-weight:800; letter-spacing:-.6px; animation: fade .5s 7.4s both; }
+    .line em { font-style:normal; color:var(--accent-dark); }
+    """
+    body = chrome("The problem", 2) + f"""
+    <div class="who fade" style="--d:.2s">A developer points a language model at an Alpaca account</div>
+    {DEV_SVG.format(style="")}
+    <div class="say me"><span class="tag">developer</span>Find me a trade.</div>
+    <div class="say llm"><span class="tag">language model</span>Sure. Selling <b>178</b> call spreads on T.</div>
+    <div class="meter"><div class="l"><span>Buying power on one idea</span><b>$35,600 of $100,000</b></div><div class="bar"><i></i></div></div>
+    <div class="line">It will always find a trade. It never says no, and it <em>can't count contracts.</em></div>
+    """
+    return page("Scene 2 · Problem", css, body)
+
+
+def scene_scalper(n_index: int) -> str:
+    """Engine two: the share scalper. No AI. Two mined rules on SPY and QQQ."""
+    css = """
+    .stage { background:var(--paper); }
+    .h { position:absolute; left:120px; top:160px; } .h h1 { font-size:72px; }
+    .chart { position:absolute; left:120px; top:300px; width:1040px; height:600px; }
+    .chart .line { fill:none; stroke:var(--ink); stroke-width:5; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:2400; stroke-dashoffset:2400; animation: draw 3.2s cubic-bezier(.3,.6,.3,1) .6s both; }
+    @keyframes draw { to { stroke-dashoffset:0; } }
+    .chart .vwap { fill:none; stroke:var(--muted); stroke-width:3; stroke-dasharray:10 10; opacity:0; animation: fade .4s 1.0s both; }
+    .chart .range { fill:rgba(229,72,77,.08); stroke:var(--accent); stroke-width:2; opacity:0; animation: fade .4s 1.4s both; }
+    .chart text { font-family:"Nunito Sans", sans-serif; font-weight:800; }
+    .mk { opacity:0; animation: pop .4s cubic-bezier(.34,1.56,.64,1) both; }
+    .side { position:absolute; left:1240px; top:300px; width:560px; display:flex; flex-direction:column; gap:16px; }
+    .row { display:flex; justify-content:space-between; align-items:center; padding:20px 28px; border-radius:14px; background:#fff; border:1px solid var(--line); font-size:30px; font-weight:800; }
+    .row span { color:var(--muted); font-weight:700; font-size:26px; }
+    .row.dark { background:var(--ink); color:#fff; } .row.dark span { color:#c9c9d1; }
+    """
+    body = chrome("Engine two", n_index) + f"""
+    <div class="h fade" style="--d:.2s"><h1>The second engine trades shares. No AI in it.</h1></div>
+    <svg class="chart fade" style="--d:.4s" viewBox="0 0 1040 600">
+      <rect class="range" x="60" y="230" width="150" height="200" rx="8"/>
+      <text x="60" y="466" font-size="22" fill="#b8383c">opening range · first 15 min</text>
+      <path class="vwap" d="M60 340 C 260 330, 520 380, 980 300"/>
+      <text x="930" y="284" font-size="22" fill="#717171">VWAP</text>
+      <path class="line" d="M60 340 L110 290 L150 410 L210 250 L270 200 L330 300 L400 350 L470 300 L540 380 L610 330 L680 260 L760 230 L840 300 L920 270 L980 320"/>
+      <g class="mk" style="animation-delay:2.4s"><circle cx="270" cy="200" r="16" fill="#e5484d"/><text x="300" y="176" font-size="26" fill="#222">10:15 · fade the overshoot</text></g>
+      <g class="mk" style="animation-delay:3.4s"><circle cx="760" cy="230" r="16" fill="#067647"/><text x="640" y="196" font-size="26" fill="#222">13:00 · follow a big gap</text></g>
+      <line x1="60" y1="530" x2="980" y2="530" stroke="#ebebeb" stroke-width="2"/>
+      <text x="60" y="566" font-size="22" fill="#717171">09:30</text><text x="840" y="566" font-size="22" fill="#717171">15:50 flat</text>
+    </svg>
+    <div class="side">
+      <div class="row fade" style="--d:1.2s">SPY and QQQ <span>shares only</span></div>
+      <div class="row fade" style="--d:1.4s">Two rules <span>from 6 months of data</span></div>
+      <div class="row fade" style="--d:1.6s">$20,000 <span>per trade</span></div>
+      <div class="row fade" style="--d:1.8s">0.7% stop <span>120 bar time exit</span></div>
+      <div class="row fade" style="--d:2.0s">2 trades a day <span>$300 daily halt · flat by 15:50</span></div>
+      <div class="row dark fade" style="--d:2.2s">Same Alpaca CLI path <span>same journal</span></div>
+    </div>
+    """
+    return page("Scene · Engine two", css, body)
+
+
+def scene02_old() -> str:
     css = """
     .stage { background:var(--paper); }
     .who { position:absolute; left:120px; top:180px; color:var(--muted); font-weight:700; font-size:26px; letter-spacing:.06em; text-transform:uppercase; }
@@ -209,7 +310,7 @@ def scene03() -> str:
         <div class="stamps">
           <div class="stamp land" style="--d:5.6s">Strike <span>0.15–0.30 delta · 30–45 days</span></div>
           <div class="stamp land" style="--d:5.75s">Size <span>hard cap $3,000</span></div>
-          <div class="stamp land" style="--d:5.9s">Exit <span>50% profit · 2× stop · 21 days</span></div>
+          <div class="stamp land" style="--d:5.9s">Exit <span>50% profit · 2× stop, confirmed twice · 21 days</span></div>
           <div class="stamp red land" style="--d:6.05s">Order <span>official Alpaca CLI</span></div>
         </div>
       </div>
@@ -241,7 +342,7 @@ def scene04() -> str:
     <div class="side fade" style="--d:.5s"><b>Five gates</b>Any one can stop it. None can be loosened by config or by the model.</div>
     <div class="funnel">
       <div class="gate g1 fade" style="--d:.4s">Conviction ≥ 0.60</div>
-      <div class="gate g2 fade" style="--d:.5s">One position per name · six slots</div>
+      <div class="gate g2 fade" style="--d:.5s">One position per name · 3 spreads max</div>
       <div class="gate g3 fade" style="--d:.6s">$3,000 cap per position</div>
       <div class="gate g4 fade" style="--d:.7s">Strike rules · 0.15–0.30 delta · 30–45 days</div>
       <div class="gate g5 fade" style="--d:.8s">Liquidity: unwind cost &lt; 1.5× credit <span class="no">rejected</span></div>
@@ -259,13 +360,14 @@ def _ui_scene(n: int, kicker: str, title: str, img: str, focus: tuple[float, flo
     .h { position:absolute; left:120px; top:150px; } .h h1 { font-size:64px; }
     .shot { position:absolute; left:120px; top:270px; width:1680px; height:757px; border-radius:18px; overflow:hidden; border:1px solid var(--line); box-shadow:0 20px 60px rgba(0,0,0,.12); }
     .shot img { width:1680px; height:757px; display:block; }
+    .kb { position:relative; width:1680px; height:757px; }
     .focus { position:absolute; border-radius:14px; box-shadow: 0 0 0 4px var(--accent), 0 0 0 9999px rgba(250,248,245,.72); opacity:0; animation: fade .6s ease-out both; }
     """
     l, t, w, h = focus
     body = chrome(kicker, n) + f"""
     <div class="h fade" style="--d:.2s"><h1>{title}</h1></div>
-    <div class="shot fade" style="--d:.3s"><div class="kb"><img src="{img}"></div>
-      <div class="focus" style="left:{l}%; top:{t}%; width:{w}%; height:{h}%; animation-delay:{start}s"></div></div>
+    <div class="shot fade" style="--d:.3s"><div class="kb"><img src="{img}">
+      <div class="focus" style="left:{l}%; top:{t}%; width:{w}%; height:{h}%; animation-delay:{start}s"></div></div></div>
     """
     return page(f"Scene {n} · {kicker}", css, body)
 
@@ -277,7 +379,7 @@ def scene05() -> str:
 
 def scene06() -> str:
     return _ui_scene(6, "Live app", "Drawn from the same function the bot runs.", "dash_risk.jpg",
-                     (22.0, 88.0, 75.5, 10.0), 2.2)
+                     (23.2, 89.8, 73.2, 8.4), 2.2)
 
 
 def scene07() -> str:
@@ -301,7 +403,7 @@ def scene07() -> str:
     """
     # per-character typewriter: deterministic under seek (steps() on max-width is not, for wrapped text)
     typed = "".join(f'<span style="animation-delay:{0.6 + k * 0.026:.3f}s">{c}</span>' for k, c in enumerate(cmd))
-    body = chrome("Alpaca", 7) + f"""
+    body = chrome("Alpaca", 8) + f"""
     <div class="h fade" style="--d:.2s"><h1>Every order goes out through Alpaca's own CLI.</h1></div>
     <div class="term fade" style="--d:.3s">
       <div class="dots"><i></i><i></i><i></i></div>
@@ -310,7 +412,7 @@ def scene07() -> str:
   "id": "1c9e…a4f2",  "client_order_id": "oa-4dacc2da-8f31c0e2",
   "order_class": "mleg",  "status": <b>"accepted"</b>,  "legs": 2
 }}</div>
-      <div class="jl">data/cli_calls.jsonl · <b>exit 0 · 214 ms</b> · fail-closed, no backup path</div>
+      <div class="jl">data/cli_calls.jsonl · <b>exit 0 · 214 ms</b> · fails closed on any error</div>
     </div>
     """
     return page("Scene 7 · Alpaca CLI", css, body)
@@ -320,8 +422,8 @@ def scene08() -> str:
     css = """
     .stage { background:var(--paper); }
     .h { position:absolute; left:120px; top:160px; } .h h1 { font-size:72px; }
-    .row { position:absolute; left:120px; top:420px; display:flex; gap:22px; }
-    .dot { width:54px; height:54px; border-radius:50%; background:var(--ink); }
+    .row { position:absolute; left:120px; top:420px; display:flex; gap:16px; }
+    .dot { width:46px; height:46px; border-radius:50%; background:var(--ink); }
     .dot.r { animation: red .35s ease-out both; animation-delay: var(--d); }
     @keyframes red { to { background: var(--loss); transform: scale(1.12); } }
     .dot.g { animation: grey .5s ease-out 9.4s both; }
@@ -329,9 +431,9 @@ def scene08() -> str:
     .dot.k { animation: keep .5s ease-out 9.4s both; }
     @keyframes keep { to { background:var(--gain); } }
     .lbl { position:absolute; left:120px; top:340px; font-size:34px; font-weight:800; color:var(--muted); }
-    .zero { position:absolute; left:1440px; top:300px; font-size:300px; font-weight:900; letter-spacing:-12px; color:var(--gain); line-height:1; animation: fade .4s 11.2s both; }
+    .zero { position:absolute; left:1560px; top:300px; font-size:240px; font-weight:900; letter-spacing:-12px; color:var(--gain); line-height:1; animation: fade .4s 11.2s both; }
     .zero small { display:block; font-size:34px; letter-spacing:0; color:var(--muted); font-weight:700; margin-top:-10px; }
-    .cap { position:absolute; left:120px; top:560px; font-size:40px; line-height:1.5; max-width:1180px; color:var(--ink); }
+    .cap { position:absolute; left:120px; top:540px; font-size:40px; line-height:1.5; max-width:1300px; color:var(--ink); }
     .cap .a { animation: fade .4s 4.2s both; display:block; }
     .cap .b { animation: fade .4s 9.6s both; display:block; }
     .tests { position:absolute; left:120px; bottom:120px; font-size:28px; font-weight:700; color:var(--muted); }
@@ -346,7 +448,7 @@ def scene08() -> str:
             dots.append('<div class="dot k"></div>')
         else:
             dots.append('<div class="dot g"></div>')
-    body = chrome("Proof", 8) + f"""
+    body = chrome("Proof", 9) + f"""
     <div class="h fade" style="--d:.2s"><h1>We replayed a day of real option chains first.</h1></div>
     <div class="lbl fade" style="--d:.5s">22 spreads the old gate would have opened</div>
     <div class="row fade" style="--d:.6s">{"".join(dots)}</div>
@@ -370,7 +472,7 @@ def scene09(n: dict) -> str:
     .repo { position:absolute; left:124px; bottom:130px; font-size:30px; color:#9a9aa3; font-weight:600; }
     .repo b { color:#fff; }
     """
-    body = chrome("Results", 9) + f"""
+    body = chrome("Results", 10) + f"""
     <div class="h fade" style="--d:.2s"><h1>Every idea and every no is on the dashboard. Go check it.</h1></div>
     <div class="url fade" style="--d:2.4s">optionsagent-production<span>.up.railway.app</span></div>
     <div class="line fade" style="--d:3.4s">Paper account <b>{n['account_number']}</b> · $100,000 start · equity <b>{money(n['equity'])}</b><br>
@@ -381,10 +483,71 @@ def scene09(n: dict) -> str:
     return page("Scene 9 · Results", css, body)
 
 
+
+def onepager(n: dict) -> str:
+    css = """
+    @page { size: 8.5in 11in; margin: 0; }
+    html, body { width:816px; height:1056px; overflow:hidden; }
+    .stage { width:816px; height:1056px; background:#fff; padding:44px 48px 40px; position:relative; }
+    .top { display:flex; align-items:center; gap:10px; }
+    .top .mark { width:30px; height:30px; border-radius:8px; background:var(--accent); display:grid; place-items:center; }
+    .top .name { font-weight:800; font-size:18px; letter-spacing:-.3px; }
+    .top .kick { color:var(--muted); font-size:12px; font-weight:600; margin-left:6px; }
+    h1 { font-size:26px; letter-spacing:-.6px; margin:14px 0 4px; }
+    .lede { font-size:12.5px; color:var(--muted); font-weight:600; line-height:1.4; }
+    h2 { margin:14px 0 6px; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--accent-dark); }
+    p { margin:0 0 6px; font-size:11.6px; line-height:1.45; }
+    .grid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:0 28px; }
+    .box { border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-top:6px; background:var(--paper); }
+    .box p { font-size:11.2px; }
+    .kv { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:10px; margin-top:8px; }
+    .kv div { border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+    .kv .l { font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+    .kv .v { font-size:18px; font-weight:900; letter-spacing:-.4px; margin-top:2px; }
+    .foot { position:absolute; left:48px; right:48px; bottom:26px; font-size:10px; color:var(--faint); font-weight:600; display:flex; justify-content:space-between; }
+    """
+    body = f"""
+    <div class="top"><div class="mark">{W_MARK.format(s=18, c="#fff")}</div><div class="name">Wingspan</div><div class="kick">Alpaca AI Trading Agents Hackathon 2026 · team Convexity</div></div>
+    <h1>An options agent that mostly says no.</h1>
+    <div class="lede">A language model may propose a trade. Code decides every strike, size and exit, and Alpaca's official CLI places every order. Paper account {n['account_number']}, $100,000 start. Everything below describes the code that is running today.</div>
+
+    <h2>The customer problem</h2>
+    <p>Point a language model at a brokerage account and it will always find a trade. It never says no, and it cannot count contracts. In our own first dry run the sizing math wanted 178 contracts on one idea. Wingspan is built for a developer who wants to hand an LLM an Alpaca account and not babysit it.</p>
+
+    <div class="grid">
+      <div>
+        <h2>Engine one · credit spread seller</h2>
+        <p>Once a day at 10:15 ET, DeepSeek reads 13 liquid names with forty days of price context and answers one question per name: is there a trade, which direction, how sure. It cannot name a strike, a size or an exit, and it cannot place an order.</p>
+        <p>Code then picks the contracts: a short strike at 0.15 to 0.30 delta, 30 to 45 days out, at most $2 wide. Five gates follow. Conviction of at least 0.60. One position per name, three spreads at most. A hard cap of $3,000 of defined risk per position. The strike rules. And a liquidity floor: credit of at least ten cents, and the cost to unwind on the same quotes under 1.5 times the credit, so the exit rule cannot stop the trade out on its own entry.</p>
+        <p>One multi leg limit order goes out at the net credit. The fill is confirmed and the unfilled remainder is cancelled. Only the filled count is booked.</p>
+        <p>Exits run every twenty minutes with no AI: take profit at half the credit; stop at twice the credit, only after 10:00 ET and only when two consecutive sweeps agree; forced close at 21 days to expiry. A spread is marked closed only when the unwind actually fills.</p>
+      </div>
+      <div>
+        <h2>Engine two · share scalper</h2>
+        <p>No AI in it. Two rules on SPY and QQQ, mined from six months of minute bars and frozen. At 10:15 ET it fades a close that overshoots both the session VWAP and the first fifteen minutes' range. At 13:00 ET it follows a QQQ gap larger than 0.8%. Twenty thousand dollars a trade, two trades a day, a 0.7% stop, a time exit after 120 bars, flat by 15:50 ET, and a $300 daily loss halt.</p>
+        <h2>Alpaca infrastructure</h2>
+        <p>Account, positions, clock and every order run through the official Alpaca CLI as a subprocess inside the container, pinned to a checksummed release. Each call is journaled with its exit code and latency. A lost reply is looked up by our own client order id before it is called a failure. On any error the trade does not happen; the one exception is the scalper's end of day flatten, which may fall back to the SDK and says so in the journal. Option chains come from a read only market data sidecar, stock bars from a hosted Alpaca data relay. It runs on Railway as Linux cron with the public dashboard reading the same journals and rendering the rails from the same functions the bot calls.</p>
+        <h2>What we proved before trading</h2>
+        <p>We replayed the previous day's real option chains. Eight of the twenty two spreads the old gate would have opened were already past their own stop on the quotes they were picked from. With the liquidity floor: five admitted, zero past the stop. 276 tests; the gate, the cap, fill confirmation and the CLI path each have a mutation check.</p>
+      </div>
+    </div>
+
+    <h2>Numbers, straight from the account · {n['as_of']}</h2>
+    <div class="kv">
+      <div><div class="l">Equity</div><div class="v">{money(n['equity'])}</div></div>
+      <div><div class="l">Filled orders in the window</div><div class="v">{n['fills_total']} <span style="font-size:12px; color:var(--muted); font-weight:700;">· {n['fills_options']} options</span></div></div>
+      <div><div class="l">Max risk per position</div><div class="v">$3,000</div></div>
+    </div>
+    <div class="box"><p><b>Disclosure.</b> The harness predates the event (July 2026). Built inside the window: the share scalper and its study, the Railway deployment, the DeepSeek proposer, the dashboard rework, the CLI transport, and the open gate with its cap and liquidity floor. The competition account was created on August 30 and nothing else has traded on it.</p></div>
+    <div class="foot"><span>github.com/Jhosshua/OptionsAgent · MIT</span><span>optionsagent-production.up.railway.app</span></div>
+    """
+    return page("One-pager", css, body)
+
+
 def main():
     SCENES.mkdir(parents=True, exist_ok=True)
     n = live_numbers()
-    scenes = [scene01(), scene02(), scene03(), scene04(), scene05(), scene06(), scene07(), scene08(), scene09(n)]
+    scenes = [scene01(), scene02(), scene03(), scene04(), scene_scalper(5), scene05(), scene06(), scene07(), scene08(), scene09(n)]
     files = []
     for i, html in enumerate(scenes, 1):
         p = SCENES / f"Scene{i:02d}.dc.html"
@@ -392,10 +555,12 @@ def main():
         files.append(p.name)
     # Main.dc.html = the cover (entry artboard for the canvas)
     (SCENES / "Main.dc.html").write_text(scenes[0])
+    (SCENES / "OnePager.dc.html").write_text(onepager(n))
     boards = [{"file": "Main.dc.html", "x": 0, "y": 0, "w": 1920, "h": 1080, "title": "Scene 1 · Cover"}]
     for i, f in enumerate(files[1:], 2):
         col, row = (i - 1) % 3, (i - 1) // 3
         boards.append({"file": f, "x": col * 2040, "y": row * 1260, "w": 1920, "h": 1080, "title": f"Scene {i}"})
+    boards.append({"file": "OnePager.dc.html", "x": 2040, "y": 3 * 1260, "w": 816, "h": 1056, "title": "One-pager (Letter)", "print": "fixed"})
     canvas = {"artboards": boards,
               "annotations": [{"id": "brief", "x": 0, "y": -220, "w": 900,
                                "text": "Wingspan hackathon video storyboard · each artboard is one scene, 1920x1080, "

@@ -52,27 +52,25 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
 @keyframes blink { 0%,92%,100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
 
     .stage { background:#18181c; }
-    .panel { position:absolute; left:0; top:0; width:560px; height:1080px; background:var(--accent); }
-    .bigw { position:absolute; left:110px; top:360px; }
-    .bigw path { stroke-dasharray: 60; stroke-dashoffset: 60; animation: draw .9s cubic-bezier(.2,.7,.2,1) .15s both; }
-    @keyframes draw { to { stroke-dashoffset: 0; } }
-    .title { position:absolute; left:660px; top:340px; }
-    .title h1 { font-size:168px; color:#fff; }
-    .tag { position:absolute; left:664px; top:530px; font-size:56px; font-weight:700; color:#fff; letter-spacing:-.6px; }
-    .meta { position:absolute; left:664px; bottom:64px; font-size:26px; color:#9a9aa3; font-weight:600; }
-    .walkin { position:absolute; right:120px; bottom:130px; animation: walkin 2.2s cubic-bezier(.3,.7,.3,1) 1.9s both; }
-    @keyframes walkin { from { transform: translateX(560px); } to { transform: translateX(0); } }
+    .brand .name, .foot, .pn { color:#fff; } .brand .kick { color:#9a9aa3; }
+    .h { position:absolute; left:120px; top:170px; } .h h1 { font-size:64px; color:#fff; }
+    .url { position:absolute; left:120px; top:380px; font-size:88px; font-weight:900; color:#fff; letter-spacing:-2px; }
+    .url span { color:var(--accent); }
+    .line { position:absolute; left:124px; top:520px; font-size:40px; color:#d9d9de; font-weight:600; line-height:1.6; }
+    .line b { color:#fff; }
+    .repo { position:absolute; left:124px; bottom:130px; font-size:30px; color:#9a9aa3; font-weight:600; }
+    .repo b { color:#fff; }
     </style>
 </helmet>
 <div class="stage">
-
-    <div class="panel"></div>
-    <div class="bigw"><svg width="340" height="340" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5 L6.5 16 H9.5 L12 10.5 L14.5 16 H17.5 L21.5 8.5"/></svg></div>
-    <div class="title fade" style="--d:.9s"><h1>WINGSPAN</h1></div>
-    <div class="tag fade" style="--d:1.25s">An options agent that mostly says no.</div>
-    <div class="meta fade" style="--d:1.6s">Alpaca AI Trading Agents Hackathon 2026 · team Convexity · paper account PA371G5THNUO</div>
-    <div class="walkin">
-<svg class="alpaca walk" style="position:relative; width:250px; height:250px;" viewBox="0 0 220 220" fill="none">
+<div class="topbar"></div><div class="brand rise" style="--d:.05s"><div class="mark"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5 L6.5 16 H9.5 L12 10.5 L14.5 16 H17.5 L21.5 8.5"/></svg></div><div class="name">Wingspan</div><div class="kick">Results</div></div><div class="foot">Alpaca AI Trading Agents Hackathon 2026 · paper account PA371G5THNUO</div><div class="pn">10 / 10</div>
+    <div class="h fade" style="--d:.2s"><h1>Every idea and every no is on the dashboard. Go check it.</h1></div>
+    <div class="url fade" style="--d:2.4s">optionsagent-production<span>.up.railway.app</span></div>
+    <div class="line fade" style="--d:3.4s">Paper account <b>PA371G5THNUO</b> · $100,000 start · equity <b>$100,034.43</b><br>
+      6 filled orders in the window · 0 options · snapshot Wed Sep 02, 01:17 ET</div>
+    <div class="repo fade" style="--d:4.4s"><b>github.com/Jhosshua/OptionsAgent</b> · MIT · team Convexity</div>
+    
+<svg class="alpaca idle" style="right:130px; bottom:110px; width:240px; height:240px;" viewBox="0 0 220 220" fill="none">
   <g class="body">
     <g class="leg a"><rect x="62" y="150" width="16" height="48" rx="7" fill="#ead9c0"/></g>
     <g class="leg b"><rect x="88" y="150" width="16" height="48" rx="7" fill="#f3e6d2"/></g>
@@ -95,7 +93,7 @@ h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
     <path d="M62 128 q-12 -2 -14 8" stroke="#e6d3bb" stroke-width="6" stroke-linecap="round"/>
   </g>
 </svg>
-</div>
+
     
 </div>
 </x-dc>

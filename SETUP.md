@@ -36,14 +36,7 @@ icon explaining it in plain words). Any API/key/parse failure returns no proposa
 
 ### Restart / verification (Railway)
 
-```bash
-cd /Users/mo/OptionsAgent
-python3 -m pytest -q                       # locally, before deploying
-railway up --service OptionsAgent          # build + deploy
-railway logs --service OptionsAgent         # boot, secrets injected, alert transport
-railway ssh --service OptionsAgent 'claude --version'
-railway ssh --service OptionsAgent 'grep -E "^[0-9*]" /etc/cron.d/optionsagent'
-```
+> (Superseded 2026-09-01: the container does not carry the Claude CLI; the proposer is the DeepSeek API. The old paragraph about verifying `claude --version` in the container was removed.)
 
 `claude --version` matters more than it looks: `harness/proposer.py` FAILS CLOSED without the
 CLI, so a container missing it comes up green and never trades. The Dockerfile asserts it at

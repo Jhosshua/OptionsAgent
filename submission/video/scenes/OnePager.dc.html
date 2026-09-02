@@ -1,0 +1,114 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800;6..12,900&display=swap">
+  <style>
+:root { --ink:#222; --muted:#717171; --faint:#b0b0b0; --line:#ebebeb; --paper:#faf8f5; --bg:#fff;
+        --accent:#e5484d; --accent-dark:#b8383c; --wash:#fff3f3; --gain:#067647; --gain-wash:#eef8f2;
+        --loss:#c13515; --radius:16px; --dur:10s; }
+* { box-sizing:border-box; }
+html,body { margin:0; }
+body { width:1920px; height:1080px; overflow:hidden; background:var(--bg); color:var(--ink);
+       font-family:"Nunito Sans","Avenir Next","Segoe UI",sans-serif; -webkit-font-smoothing:antialiased; }
+a { color:var(--accent-dark); } a:hover { color:var(--accent); }
+.stage { position:relative; width:1920px; height:1080px; overflow:hidden; background:var(--bg); }
+.topbar { position:absolute; left:0; top:0; width:1920px; height:12px; background:var(--accent); }
+.brand { position:absolute; left:96px; top:56px; display:flex; align-items:center; gap:14px; }
+.brand .mark { width:44px; height:44px; border-radius:12px; background:var(--accent); display:grid; place-items:center; }
+.brand .name { font-weight:800; font-size:26px; letter-spacing:-.4px; }
+.brand .kick { color:var(--muted); font-weight:600; font-size:20px; margin-left:10px; }
+.foot { position:absolute; left:96px; bottom:48px; color:var(--faint); font-size:20px; font-weight:600; }
+.pn { position:absolute; right:96px; bottom:48px; color:var(--faint); font-size:20px; font-weight:600; }
+h1 { margin:0; font-weight:900; letter-spacing:-1.5px; line-height:1.02; }
+.rise { animation: rise .7s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--d, 0s); }
+.pop  { animation: pop .55s cubic-bezier(.34,1.56,.64,1) both; animation-delay: var(--d, 0s); }
+.fade { animation: fade .6s ease-out both; animation-delay: var(--d, 0s); }
+@keyframes rise { from { opacity:0; transform: translateY(28px); } to { opacity:1; transform:none; } }
+@keyframes pop  { from { opacity:0; transform: scale(.82); } to { opacity:1; transform: scale(1); } }
+@keyframes fade { from { opacity:0; } to { opacity:1; } }
+.kb { animation: kb var(--dur) linear both; transform-origin: 50% 40%; }
+@keyframes kb { from { transform: scale(1); } to { transform: scale(1.035); } }
+.chip { display:inline-flex; align-items:center; gap:12px; padding:14px 26px; border-radius:999px; background:var(--wash);
+        color:var(--accent-dark); font-weight:800; font-size:30px; }
+.card { background:#fff; border:1px solid var(--line); border-radius:var(--radius); box-shadow:0 10px 30px rgba(0,0,0,.06); }
+/* alpaca mascot */
+.alpaca { position:absolute; width:260px; height:260px; }
+.alpaca .leg { transform-origin: 50% 0; }
+.alpaca.walk .leg.a { animation: step .5s ease-in-out infinite alternate; }
+.alpaca.walk .leg.b { animation: step .5s ease-in-out infinite alternate-reverse; }
+.alpaca.walk .body, .alpaca.idle .body { animation: bob 1.1s ease-in-out infinite alternate; transform-origin:50% 100%; }
+.alpaca .head { transform-origin: 30% 90%; }
+.alpaca.nod .head { animation: nod 1.6s ease-in-out infinite; }
+.alpaca .lid { transform-origin: 50% 50%; animation: blink 3.4s linear infinite; }
+@keyframes step  { from { transform: rotate(-14deg); } to { transform: rotate(14deg); } }
+@keyframes bob   { from { transform: translateY(0); } to { transform: translateY(-7px); } }
+@keyframes nod   { 0%,60%,100% { transform: rotate(0); } 75% { transform: rotate(9deg); } 90% { transform: rotate(-4deg); } }
+@keyframes blink { 0%,92%,100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+
+    @page { size: 8.5in 11in; margin: 0; }
+    html, body { width:816px; height:1056px; overflow:hidden; }
+    .stage { width:816px; height:1056px; background:#fff; padding:44px 48px 40px; position:relative; }
+    .top { display:flex; align-items:center; gap:10px; }
+    .top .mark { width:30px; height:30px; border-radius:8px; background:var(--accent); display:grid; place-items:center; }
+    .top .name { font-weight:800; font-size:18px; letter-spacing:-.3px; }
+    .top .kick { color:var(--muted); font-size:12px; font-weight:600; margin-left:6px; }
+    h1 { font-size:26px; letter-spacing:-.6px; margin:14px 0 4px; }
+    .lede { font-size:12.5px; color:var(--muted); font-weight:600; line-height:1.4; }
+    h2 { margin:14px 0 6px; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--accent-dark); }
+    p { margin:0 0 6px; font-size:11.6px; line-height:1.45; }
+    .grid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:0 28px; }
+    .box { border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-top:6px; background:var(--paper); }
+    .box p { font-size:11.2px; }
+    .kv { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:10px; margin-top:8px; }
+    .kv div { border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+    .kv .l { font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+    .kv .v { font-size:18px; font-weight:900; letter-spacing:-.4px; margin-top:2px; }
+    .foot { position:absolute; left:48px; right:48px; bottom:26px; font-size:10px; color:var(--faint); font-weight:600; display:flex; justify-content:space-between; }
+    </style>
+</helmet>
+<div class="stage">
+
+    <div class="top"><div class="mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5 L6.5 16 H9.5 L12 10.5 L14.5 16 H17.5 L21.5 8.5"/></svg></div><div class="name">Wingspan</div><div class="kick">Alpaca AI Trading Agents Hackathon 2026 · team Convexity</div></div>
+    <h1>An options agent that mostly says no.</h1>
+    <div class="lede">A language model may propose a trade. Code decides every strike, size and exit, and Alpaca's official CLI places every order. Paper account PA371G5THNUO, $100,000 start. Everything below describes the code that is running today.</div>
+
+    <h2>The customer problem</h2>
+    <p>Point a language model at a brokerage account and it will always find a trade. It never says no, and it cannot count contracts. In our own first dry run the sizing math wanted 178 contracts on one idea. Wingspan is built for a developer who wants to hand an LLM an Alpaca account and not babysit it.</p>
+
+    <div class="grid">
+      <div>
+        <h2>Engine one · credit spread seller</h2>
+        <p>Once a day at 10:15 ET, DeepSeek reads 13 liquid names with forty days of price context and answers one question per name: is there a trade, which direction, how sure. It cannot name a strike, a size or an exit, and it cannot place an order.</p>
+        <p>Code then picks the contracts: a short strike at 0.15 to 0.30 delta, 30 to 45 days out, at most $2 wide. Five gates follow. Conviction of at least 0.60. One position per name, three spreads at most. A hard cap of $3,000 of defined risk per position. The strike rules. And a liquidity floor: credit of at least ten cents, and the cost to unwind on the same quotes under 1.5 times the credit, so the exit rule cannot stop the trade out on its own entry.</p>
+        <p>One multi leg limit order goes out at the net credit. The fill is confirmed and the unfilled remainder is cancelled. Only the filled count is booked.</p>
+        <p>Exits run every twenty minutes with no AI: take profit at half the credit; stop at twice the credit, only after 10:00 ET and only when two consecutive sweeps agree; forced close at 21 days to expiry. A spread is marked closed only when the unwind actually fills.</p>
+      </div>
+      <div>
+        <h2>Engine two · share scalper</h2>
+        <p>No AI in it. Two rules on SPY and QQQ, mined from six months of minute bars and frozen. At 10:15 ET it fades a close that overshoots both the session VWAP and the first fifteen minutes' range. At 13:00 ET it follows a QQQ gap larger than 0.8%. Twenty thousand dollars a trade, two trades a day, a 0.7% stop, a time exit after 120 bars, flat by 15:50 ET, and a $300 daily loss halt.</p>
+        <h2>Alpaca infrastructure</h2>
+        <p>Account, positions, clock and every order run through the official Alpaca CLI as a subprocess inside the container, pinned to a checksummed release. Each call is journaled with its exit code and latency. A lost reply is looked up by our own client order id before it is called a failure. On any error the trade does not happen; the one exception is the scalper's end of day flatten, which may fall back to the SDK and says so in the journal. Option chains come from a read only market data sidecar, stock bars from a hosted Alpaca data relay. It runs on Railway as Linux cron with the public dashboard reading the same journals and rendering the rails from the same functions the bot calls.</p>
+        <h2>What we proved before trading</h2>
+        <p>We replayed the previous day's real option chains. Eight of the twenty two spreads the old gate would have opened were already past their own stop on the quotes they were picked from. With the liquidity floor: five admitted, zero past the stop. 276 tests; the gate, the cap, fill confirmation and the CLI path each have a mutation check.</p>
+      </div>
+    </div>
+
+    <h2>Numbers, straight from the account · Wed Sep 02, 01:17 ET</h2>
+    <div class="kv">
+      <div><div class="l">Equity</div><div class="v">$100,034.43</div></div>
+      <div><div class="l">Filled orders in the window</div><div class="v">6 <span style="font-size:12px; color:var(--muted); font-weight:700;">· 0 options</span></div></div>
+      <div><div class="l">Max risk per position</div><div class="v">$3,000</div></div>
+    </div>
+    <div class="box"><p><b>Disclosure.</b> The harness predates the event (July 2026). Built inside the window: the share scalper and its study, the Railway deployment, the DeepSeek proposer, the dashboard rework, the CLI transport, and the open gate with its cap and liquidity floor. The competition account was created on August 30 and nothing else has traded on it.</p></div>
+    <div class="foot"><span>github.com/Jhosshua/OptionsAgent · MIT</span><span>optionsagent-production.up.railway.app</span></div>
+    
+</div>
+</x-dc>
+</body>
+</html>

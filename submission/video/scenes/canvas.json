@@ -71,6 +71,23 @@
    "w": 1920,
    "h": 1080,
    "title": "Scene 9"
+  },
+  {
+   "file": "Scene10.dc.html",
+   "x": 0,
+   "y": 3780,
+   "w": 1920,
+   "h": 1080,
+   "title": "Scene 10"
+  },
+  {
+   "file": "OnePager.dc.html",
+   "x": 0,
+   "y": 3780,
+   "w": 816,
+   "h": 1056,
+   "title": "One-pager (Letter)",
+   "print": "fixed"
   }
  ],
  "annotations": [

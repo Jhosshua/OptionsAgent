@@ -34,7 +34,7 @@ HARD = 0.08           # near-hard cut elsewhere (on the sentence boundary)
 
 def xfade_for(k: int) -> float:
     """Transition length going INTO scene k+1 (1-based scene numbers k -> k+1)."""
-    return XFADE if k in (4, 5, 6) else HARD
+    return XFADE if k in (5, 6, 7) else HARD
 TAIL = 1.0            # silence after the last spoken word of each scene (plus the lead-in delay)
 DEFAULT_VOICE = "en-US-AndrewMultilingualNeural"
 DEFAULT_RATE = "+12%"
@@ -42,20 +42,21 @@ DEFAULT_RATE = "+12%"
 # Narration per scene. Short sentences, spoken not read. Keep total ~105 s.
 NARRATION = {
     1: "This is Wingspan. An options agent that mostly says no.",
-    2: "Give a language model a brokerage account and it will always find a trade. It never says no, and it has no idea what a contract costs. "
-       "Our own first dry run wanted a hundred and seventy eight contracts on one idea.",
+    2: "Here's the problem. Point a language model at a brokerage account and it will always find a trade. "
+       "It never says no, and it can't count contracts. Our own first dry run wanted a hundred and seventy eight contracts on one idea.",
     3: "So we split the job. The model answers one question: is there a trade here, and how sure are you? "
        "Code does everything with a dollar sign on it.",
-    4: "Then the idea has to survive the rails. The one that matters is the last one. If the spread is so wide that our own exit rule "
-       "would stop it out on day one, it dies right here. Most ideas do. That's the point.",
-    5: "This is the live app. The card that matters is this one: every idea the model had today, and which gate said no. "
-       "A no gets logged exactly like a fill.",
-    6: "This page isn't a copy of the rules. It's drawn from the same function the bot runs. It can't drift, and it can't lie.",
-    7: "Every order goes out through Alpaca's own command line tool. One process, one JSON reply, logged with its exit code. "
-       "If the C L I fails, the trade doesn't happen. There is no backup path.",
-    8: "Before the first real order, we replayed a day of real option chains. Eight of the twenty two spreads the old gate would have "
+    4: "Then the idea has to survive five gates. A conviction floor. One position per name, three spreads at most. "
+       "A three thousand dollar cap. Strike rules. And a liquidity check: if our own exit rule would stop the spread out on day one, it dies right here.",
+    5: "There's a second engine, and it has no AI at all. Two rules on SPY and QQQ, mined from six months of minute bars. "
+       "Twenty thousand dollars a trade, a tight stop, two trades a day, flat by ten to four.",
+    6: "This is the live app. The card that matters lists every idea the model had today, and which gate said no. A no gets logged like a fill.",
+    7: "The risk page isn't a copy of the rules. It's drawn from the same function the bot runs, so it can't drift.",
+    8: "Every order goes out through Alpaca's own command line tool. One process, one JSON reply, logged with its exit code. "
+       "If the C L I fails, the trade doesn't happen.",
+    9: "Before the first real order we replayed a day of real option chains. Eight of the twenty two spreads the old gate would have "
        "opened were already past their own stop. With the liquidity floor: five admitted, zero past the stop.",
-    9: "Two trading days on a fresh paper account. Every idea, and every no, is on the dashboard. Go check it yourself. Thanks for watching.",
+    10: "Two trading days on a fresh paper account. Every idea, and every no, is on the dashboard. Go check it yourself. Thanks for watching.",
 }
 
 
