@@ -1,5 +1,31 @@
 # MEMORY.md — OptionsAgent
 
+## 2026-09-01 — DASHBOARD BRAND: "Wingspan" wordmark + W-wing mark
+
+**Decided:** the dashboard's logo and name are now **Wingspan** (wordmark) with
+a W-shaped mark made of two option-spread payoff diagrams, white on the existing
+`--accent` red. Applied in `dashboard/index.html` (sidebar brand block, footer
+"Wingspan · OptionsAgent v1.1.0", tab title "Wingspan · OptionsAgent", inline
+SVG favicon) and two CSS lines in `dashboard/app.css`. Nothing outside the
+dashboard was renamed: repo, Railway service, Discord channel and server
+version string all stay OptionsAgent.
+
+**Why:** the old brand was a bare "↗" glyph in a red square plus the literal
+project name. Wingspan keeps the current red, Nunito Sans and rounded-card
+theme untouched and means something to a spread trader (iron condor = bird,
+strike width = wings). Operator picked it from three directions on a design
+canvas ("implement wingspan").
+
+**Rejected:** Thetafox (theta glyph with fox ears, orange; would have changed
+the accent color) and Ratchet (dark, acid-yellow staircase mark; a full
+restyle and a "never loses" promise a paper bot has not earned). Both remain
+on page two of the canvas. Working files: `dashboard/brand/`.
+
+**Verified:** full suite 233 passed; page rendered in Chrome from a static
+server, mark crisp at 34px and 14px, favicon shows in the tab. NOT redeployed
+to Railway; the live dashboard still shows the old brand until
+`railway up --service OptionsAgent`.
+
 ## 2026-09-01 — DASHBOARD UI AUDIT: THE ENGINE THAT WAS ACTUALLY TRADING WAS INVISIBLE
 
 A browser audit of all six dashboard tabs (Overview, Positions, Trade history,

@@ -1,0 +1,16 @@
+{
+  "pages": [
+    { "id": "page-1", "name": "Wingspan" },
+    { "id": "page-2", "name": "Other directions" }
+  ],
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1180, "h": 720, "title": "Wingspan in the real sidebar", "page": "page-1" },
+    { "file": "DirectionA.dc.html", "x": 1260, "y": 0, "w": 480, "h": 640, "title": "A · Wingspan (chosen)", "page": "page-1" },
+    { "file": "DirectionB.dc.html", "x": 0, "y": 0, "w": 480, "h": 640, "title": "B · Thetafox", "page": "page-2" },
+    { "file": "DirectionC.dc.html", "x": 580, "y": 0, "w": 480, "h": 640, "title": "C · Ratchet", "page": "page-2" }
+  ],
+  "annotations": [
+    { "id": "pick-note", "x": 1260, "y": 720, "w": 480, "text": "Chosen 2026-09-01 and wired into dashboard/index.html. The mark is inline SVG (sidebar 24px, footer 14px, favicon 16px). Thetafox and Ratchet live on the second page.", "page": "page-1" }
+  ],
+  "launch": { "view": "canvas", "page": "page-1" }
+}
