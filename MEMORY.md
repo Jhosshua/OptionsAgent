@@ -91,6 +91,21 @@ gate=research_rules, cap=$3,000, transport=cli.
 
 **Submission pack (09-01 23:20 ET):** repo flipped PUBLIC with MIT (history + backup tarball scanned clean first). `submission/build.py` renders everything from live numbers (Alpaca CLI + dashboard API): cover.png, 9-slide PDF, 1-page write-up PDF, and a narrated MP4 (macOS `say` Samantha + ffmpeg, 4:08). Re-run Thursday after the close. Form copy in `submission/SUBMISSION.md` (short desc 254/255 chars). Only the team leader can submit on lablab.
 
+**Video v3 pipeline (09-02 ~01:10 ET), after the operator rejected v2 ("sound cuts off, slow, boring"):**
+`submission/video/make_scenes.py` emits nine animated 1920x1080 HTML artboards (Nunito Sans + the dashboard's
+tokens; CSS animations with fill-mode both), which double as the design canvas
+(https://claude.ai/code/artifact/b53639dd-0a0a-4d5b-97d4-570f4b6b8f34) and as the video source:
+`submission/video/render.py` drives the debug Chrome on :9222 over CDP (Host header must be `localhost:9222`),
+pauses every animation and seeks `currentTime` per frame at 24 fps, captures JPEG frames, then ffmpeg builds
+per-scene clips with the audio resampled to 48 kHz stereo, a 120–300 ms lead-in, and `apad=whole_dur` +
+`-t` (the v2 cut-off was `-shortest`), crossfades only around the app shots, `loudnorm` on the mix.
+Narration = edge-tts `en-US-AndrewMultilingualNeural` at +12% (free Microsoft neural voice; `say` was robotic).
+A design-review subagent rewrote the script PM-style (customer = a developer pointing an LLM at an Alpaca
+account; hook = the real "178 contracts on one idea" sizing number), one idea per scene, dim-mask highlights,
+22-dot proof visual, no count-ups. It also asked to CUT the alpaca mascot (judges are Alpaca staff); operator
+had asked for it, so it stays restrained in scenes 1 and 9 only. Scene 5's screenshot still shows an EMPTY
+"AI trade ideas" card: re-shoot after the 09-02 10:15 cycle and re-run make_scenes + render.
+
 **Watch on 09-02:** the 10:15 ET cycle's `judged_against` row, the first
 `cli_calls.jsonl` rows from the container, and whether any spread actually
 fills (the picker still binds; a quiet-IV day can legitimately yield zero).
