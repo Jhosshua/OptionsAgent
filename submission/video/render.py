@@ -64,8 +64,8 @@ NARRATION = {
     8: "This is the live app. Both engines, one account. That card lists every idea the AI had today, and which rule said no. A no is written down exactly like a trade.",
     9: "The limits page isn't a copy of the rules. That three thousand dollar cap comes from the same code that trades, so it can't drift.",
     10: "Every order goes out through Alpaca's own command line tool. One process, one reply, logged with whether it worked. If the tool fails, nothing opens.",
-    11: "Before the first real bet, we replayed a real day of option prices. Eight of the twenty three bets the rules would have made were losers the moment they opened. "
-        "With the last check on: five bets allowed, zero losers on arrival.",
+    11: "Before the first real bet, we replayed a real day of option prices. Eight of the twenty three bets the old rules would have made were losers the moment they opened. "
+        "So we fixed how the pair is chosen, and added a last check that refuses anything still too expensive to get out of. Fifteen bets allowed. Zero losers on arrival.",
     12: "Straight talk. This is a discipline machine, not a money printer. Two days on a practice account isn't a track record. "
         "What you can verify today is the behavior: how it sizes, how it exits, and how often it says no.",
     13: None,  # built from live numbers in main()
@@ -82,7 +82,7 @@ CUES = {
     8: {"c-ring": "card"},
     9: {"c-ring": "three"},
     10: {"c-reply": "reply", "c-logged": "logged", "c-fails": "fails"},
-    11: {"c-eight": "eight", "c-floor": "check", "c-five": "five", "c-zero": "zero"},
+    11: {"c-eight": "eight", "c-floor": "fixed", "c-five": "fifteen", "c-zero": "zero"},
     12: {"c-is": "discipline", "c-isnt": "printer"},
     13: {"c-dash": "dashboard", "c-check": "check"},
 }

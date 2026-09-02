@@ -1,5 +1,23 @@
 # ERRORS.md — OptionsAgent
 
+## 2026-09-02 — The nearest strike is the worst pair on cheap names
+
+**What did not work:** the first live cycle with the open gate rejected both AI ideas at the
+liquidity floor. The picker always paired the short contract with the nearest strike beyond it.
+On sub-$50 names that is a $0.50 or $1 pair paying 11 cents with a 17 to 21 cent unwind, so the
+floor (unwind under 1.5x credit) could never pass, and the day before, the same picker had
+produced the "8 of 23 already past the stop" result that the floor was added to catch.
+
+**What worked instead:** enumerate every long strike inside `max_width_usd` for each short and
+take the one with the lowest unwind-to-credit ratio (tie: larger credit). The $2-wide pairs on
+the same shorts sat at 1.32x to 1.35x. Total risk is unchanged because the dollar cap bounds
+the contract count. Sept 1 replay: 15 of 24 admitted, 0 past the stop. Second finding the same morning: ranking the SHORT strikes by the
+old score still put a failing pair first, so pairs that pass the floor now rank ahead of every pair that does not.
+
+**Note for next time:** when a new gate rejects everything, replay the picker's OTHER candidates
+before touching the gate. The gate was measuring the right thing; the picker was handing it the
+worst candidate.
+
 ## 2026-09-01 — Opening a gate without re-deriving what the exit will see
 
 **What did not work:** the first cut of `OA_CREDIT_SPREAD_GATE=research_rules`

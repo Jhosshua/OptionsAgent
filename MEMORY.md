@@ -128,6 +128,22 @@ is, engine one (3 steps), exits (clock + 3 rules), engine two (chart + 6 rows), 
 talk, results. Canvas got a second page "Ideas + research" with three vignette directions and a sources board.
 Bug found: a stale duplicate `CUES` dict in render.py overrode the new one (cues "not found"); removed.
 
+**09-02 10:15 ET, FIRST LIVE CYCLE (research_rules + CLI): worked end to end, no fill.** DeepSeek answered in
+118.8 s with T bearish (0.65) and PFE bearish (0.62); every broker call ran through the CLI (~220 ms each,
+journaled). Both died at the liquidity floor: credit 0.11, unwind 0.17 (1.55x) and 0.21 (1.9x). Replay of the
+09-02 snapshot in the container: the picker takes the NEAREST long strike (tightest pair = smallest credit,
+worst ratio); the $2-wide pairs on the same shorts were 1.35x / 1.32x and CCL/MARA/SOFI/EWZ all under 1.3x.
+**Fix shipped 10:40 ET (7ea7e31):** `select_credit_spread` chooses the long leg by lowest unwind/credit inside
+max_width (then larger credit); mutation check: nearest-strike breaks 3 tests. Sept 1 replay with the new picker:
+24 pickable, 15 admitted, 0 past the stop (old: 8 of 23 past). Second commit 126c077: pairs that pass the floor
+rank first (run_cycle passes RESEARCH_RULES_MAX_CLOSE_COST_X into the picker in research_rules mode); the 09-02
+T 27.5@30DTE short had out-scored the 28/30@44 pair that passed. Also wired `OA_ENTRY_WINDOWS` (default
+10:15-10:27; "10:15-10:27,14:00-14:12" adds an afternoon cycle; crontab hour list now 10,14; per-window lock
+markers, the first keeps the old name). NOT enabled without the operator. Two dashboard tests
+(`test_equity_scalp_journal_pairs_opens_with_closes`, `test_short_position_unrealized_pnl_is_positive_when_price_falls`)
+fail during market hours on 09-02 with the picker change reverted too: time-of-day dependent fixture, pre-existing.
+Engine two took its 10:15 trade (1 scalp open) through the CLI.
+
 **Watch on 09-02:** the 10:15 ET cycle's `judged_against` row, the first
 `cli_calls.jsonl` rows from the container, and whether any spread actually
 fills (the picker still binds; a quiet-IV day can legitimately yield zero).

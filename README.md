@@ -67,6 +67,15 @@ credit-spread seller had **zero fills** on the competition account before
   stock bars from a hosted Alpaca market-data relay; market data never goes
   through the CLI.
 
+**2026-09-02 10:15 ET, the first live cycle with the open gate:** DeepSeek proposed T and PFE
+bearish call spreads; both died at the liquidity floor (11 cent credit, 17 and 21 cents to
+unwind). Replaying the same chains showed the picker always paired the short with the
+nearest strike, which is the tightest and worst pair; the $2-wide pairs on the same shorts
+sat at 1.35x and 1.32x. Fixed the same morning: `select_credit_spread` now picks the long
+leg with the lowest unwind-to-credit ratio inside `max_width_usd` (Sept 1 replay: 15 of 24
+admitted, 0 past the stop; before, 8 of 23 were past it). `OA_ENTRY_WINDOWS` can add an
+afternoon cycle (off by default).
+
 **Two deliberate changes for the competition window (2026-09-01 night):**
 1. `OA_CREDIT_SPREAD_GATE=research_rules`: the frozen in-sample winner table
    (CCL bullish / SOFI bullish / F bearish only) is bypassed; any watchlist name

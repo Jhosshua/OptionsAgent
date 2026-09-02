@@ -386,14 +386,26 @@ def _ui_scene(n: int, kicker: str, title: str, img: str, focus: tuple[float, flo
     return page(f"Scene {n} · {kicker}", css, body)
 
 
+def _focus(key: str, default: tuple[float, float, float, float]) -> tuple[float, float, float, float]:
+    """Highlight rectangle measured from the live page at capture time
+    (scenes/focus.json, written by the screenshot step); falls back to the
+    hand-set default. Small padding so the ring does not touch the card."""
+    try:
+        r = json.loads((SCENES / "focus.json").read_text())[key]
+        pad_x, pad_y = 0.4, 0.9
+        return (r["l"] - pad_x, r["t"] - pad_y, r["w"] + 2 * pad_x, r["h"] + 2 * pad_y)
+    except Exception:
+        return default
+
+
 def scene08() -> str:
     return _ui_scene(8, "The live app", "Every idea, and every no, on one page.", "dash_overview.jpg",
-                     (83.0, 16.0, 14.8, 30.5), 2.6)
+                     _focus("overview", (83.0, 16.0, 14.8, 30.5)), 2.6)
 
 
 def scene09() -> str:
     return _ui_scene(9, "The live app", "The limits page reads straight from the code that trades.", "dash_risk.jpg",
-                     (23.2, 89.8, 73.2, 8.4), 3.5)
+                     _focus("risk", (23.2, 89.8, 73.2, 8.4)), 3.5)
 
 
 def scene10() -> str:
@@ -450,7 +462,7 @@ def scene11() -> str:
     .tests { position:absolute; left:120px; bottom:120px; font-size:28px; font-weight:700; color:var(--muted); }
     """
     reds = {1, 4, 6, 9, 12, 15, 18, 21}
-    keeps = {2, 7, 11, 16, 20}
+    keeps = {0, 2, 3, 5, 7, 8, 10, 11, 13, 14, 16, 17, 19, 20, 22}
     dots = []
     for k in range(23):
         if k in reds:
@@ -460,11 +472,11 @@ def scene11() -> str:
         else:
             dots.append('<div class="dot g"></div>')
     body = chrome("Proof", 11) + f"""
-    <div class="h fade" style="--d:.2s"><h1>Before the first real bet, we replayed a real day.</h1></div>
-    <div class="lbl fade" style="--d:.5s">23 bets the rules would have made without the last check</div>
+    <div class="h fade" style="--d:.2s"><h1>We replayed a real day before betting. It found a bug.</h1></div>
+    <div class="lbl fade" style="--d:.5s">23 bets the old rules would have made</div>
     <div class="row fade" style="--d:.6s">{"".join(dots)}</div>
-    <div class="cap"><span class="a"><b style="color:var(--loss)">8</b> were already losers the moment they opened. The price to get out was more than the fee coming in.</span>
-      <span class="b">With the last check on: <b style="color:var(--gain)">5 bets allowed, 0 losers on arrival.</b></span></div>
+    <div class="cap"><span class="a"><b style="color:var(--loss)">8</b> were losers the moment they opened: the price to get out was more than the fee coming in.</span>
+      <span class="b">Fixed how the pair is chosen, added the last check: <b style="color:var(--gain)">15 bets allowed, 0 losers on arrival.</b></span></div>
     <div class="zero">0<small>losers on arrival</small></div>
     <div class="tests">276 automated tests · replay of the Sept 1 option prices</div>
     """
@@ -558,7 +570,7 @@ def onepager(n: dict) -> str:
         <h2>Alpaca</h2>
         <p>Account, positions, the market clock and every order run through Alpaca's official command line tool inside the container, pinned to a checked release. Each call is written to a log with whether it worked and how long it took. A lost reply is looked up by our own order id before it is called a failure. If the tool fails, no new bet opens; the one exception is engine two's 3:50 close, which may fall back to the software library and says so in the log. Prices come from separate read only data feeds. It runs on Railway on a schedule, and the public dashboard draws its limits page from the same functions the bot calls.</p>
         <h2>Checked before the first bet</h2>
-        <p>We replayed the September 1 option prices. Eight of the twenty three bets the rules would have made without the last check were losers the moment they opened. With it: five bets allowed, zero losers on arrival. 276 automated tests.</p>
+        <p>We replayed the September 1 option prices. Eight of the twenty three bets the old rules would have made were losers the moment they opened. Two fixes: choose the pair that is cheapest to get out of, and refuse anything that still is not. Result: fifteen bets allowed, zero losers on arrival. On September 2 the live rules rejected both of the AI's ideas for exactly that reason, and the fix shipped the same morning. 280 automated tests.</p>
       </div>
     </div>
 
