@@ -78,6 +78,18 @@ The retirement notes below describe the FIRST Railway deployment (deleted
 > `OA_TRADING_ENABLED` defaults false in templates and is verified from the local `.env` before
 > paper cron may act. Never link or deploy this repo to `tqqq-qqq-paperbot`.
 
+> **2026-09-01 (night) HACKATHON MODE — read before touching the seller or the broker adapter:**
+> Three env switches are set on Railway for the Alpaca hackathon window (see README "Alpaca AI
+> Trading Agents Hackathon" and MEMORY.md 2026-09-01 night):
+> `OA_CREDIT_SPREAD_GATE=research_rules` (the frozen CCL/SOFI/F winner table is BYPASSED; the
+> picker's delta/DTE/width rules still bind), `OA_MAX_POSITION_USD=3000` (the per-position cap that
+> makes the open gate survivable on $100k; never unset one without the other), and
+> `OA_BROKER_TRANSPORT=cli` (every account/position/order/clock call goes through the official
+> Alpaca CLI, `harness/alpaca_cli.py`, journaled to `data/cli_calls.jsonl`, fail-closed, no SDK
+> fallback). Constraint 2 below ("rails only tighten") has exactly this one operator-approved
+> exception; the default of the gate env is the strict mode. After the hackathon, delete the gate
+> var to return to the research posture.
+
 > Read this first every session. Then read `MEMORY.md` and `ERRORS.md`.
 
 ## What this is

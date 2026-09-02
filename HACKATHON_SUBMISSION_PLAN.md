@@ -59,10 +59,10 @@ options trading" on the evidence judges will look at (the account's orders).
 - [ ] **D2** Team: message Sachal + Faruque (lablab team chat or Discord) tonight. Ask: who is leader, what have they built, will they submit this bot. If no answer by Wed noon ET, leave and create a solo team so the submit button is ours.
 - [ ] **D3** Public repo + MIT license, or keep private (allowed by Alpaca, penalized by lablab). Recommend public + MIT, secrets already gitignored (verify `.env` history first).
 
-### 1. Code (Wed Sep 2, must be live before Thu open)
-- [ ] **C1 MCP or CLI in the order path.** Install Alpaca CLI (`brew install alpacahq/tap/cli`, auth via `ALPACA_API_KEY`/`ALPACA_SECRET_KEY` env, JSON out). Route at least one real leg of the workflow through it (order submit, or account/positions reads) and journal the CLI call. Alternative: `uvx alpaca-mcp-server` and let the proposer read chains via MCP tools. CLI is the smaller change for a cron bot.
-- [ ] **C2 Get an option order filled on the comp account** before Thu EOD. For OptionsAgent that means the seller must actually open a spread: the overfit-profile gate (CCL/SOFI bullish, F bearish only) is the blocker. Decide: widen the profile gate for the hackathon (flag as a deliberate change) or add a small defined-risk options rule the rails already accept.
-- [ ] **C3** README: hackathon section with pre-event disclosure (repo existed before Aug 28, what was built when), account ID, how MCP/CLI is used, how to run.
+### 1. Code (DONE 2026-09-01 night, live for the Wed 10:15 ET cycle)
+- [x] **C1 CLI in the order path.** `harness/alpaca_cli.py` + `OA_BROKER_TRANSPORT=cli`; Dockerfile installs Alpaca CLI v0.0.14 (sha256 pinned). Account/positions/clock/order submit (incl. `mleg`)/get/cancel all go through `alpaca …`, journaled to `data/cli_calls.jsonl`, fail-closed. Verified against the real account (read-only) and with `--dry-run` for the spread body.
+- [x] **C2 Gate opened + cap set together.** `OA_CREDIT_SPREAD_GATE=research_rules` bypasses the CCL/SOFI/F winner table; `OA_MAX_POSITION_USD=3000` caps each position (≤ 15 contracts of a $2 spread). Whether a spread FILLS still depends on the picker finding a 0.15–0.30-delta, 30–45-DTE, ≤ $2-wide pair: watch Wed 10:15.
+- [x] **C3** README hackathon section: disclosure, account ID, requirements mapping, the two deliberate changes.
 - [ ] **C4** Add LICENSE (MIT) if going public. Scrub: `git log -p --all -S 'PK' | head`, `.env*` never committed, dashboard has no secrets.
 - [ ] **C5** Tests green after C1/C2 (233 currently). Deploy to Railway, verify the first cron cycle Wed 10:15 ET through the new path in the journal.
 

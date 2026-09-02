@@ -11,15 +11,28 @@ the sibling bots' (`da-`, `sa-`, etc.).
 
 from __future__ import annotations
 
+import json
 import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
+from harness import alpaca_cli
 from harness.contracts import OptionQuote
 from harness.env import env
 from harness.occ import parse_occ_symbol
 
 ORDER_PREFIX = "oa-"
+
+
+def _cli_order_result(order: dict[str, Any], client_order_id: str) -> dict[str, Any]:
+    """Normalize a CLI order body (raw Alpaca JSON) to the adapter's contract."""
+    if not isinstance(order, dict) or not order.get("id"):
+        raise alpaca_cli.CliError(f"order submit returned no order id: {str(order)[:200]}")
+    return {
+        "id": str(order["id"]),
+        "client_order_id": str(order.get("client_order_id") or client_order_id),
+        "status": _status_str(order.get("status")),
+    }
 
 
 def _f(val: Any) -> float | None:
@@ -122,6 +135,39 @@ class PaperClient:
         if (env("ALPACA_PAPER", "true") or "true").lower() != "true":
             raise RuntimeError("ALPACA_PAPER is not 'true'. Refusing to construct any client.")
 
+    # -- Alpaca CLI transport (OA_BROKER_TRANSPORT=cli) ----------------------
+
+    def _use_cli(self) -> bool:
+        return alpaca_cli.cli_enabled()
+
+    def _cli(self, args: list[str], *, expect_json: bool = True, timeout_s: float | None = None) -> Any:
+        """Run one `alpaca ...` command with THIS client's paper keys. Raises
+        CliError on any failure — no SDK fallback (see harness/alpaca_cli.py)."""
+        self._ensure_paper()
+        return alpaca_cli.run_cli(
+            args,
+            key_id=self.key_id,
+            secret_key=self.secret_key,
+            expect_json=expect_json,
+            timeout_s=timeout_s or alpaca_cli.DEFAULT_TIMEOUT_S,
+        )
+
+    def _cli_submit(self, args: list[str], client_order_id: str) -> dict[str, Any]:
+        """Submit via the CLI; if the submit call fails, look the order up by
+        OUR client_order_id before declaring failure. A timeout or lost reply
+        after Alpaca accepted the order would otherwise leave a live, untracked
+        position with no exit sweep watching it (2026-09-01 review)."""
+        try:
+            order = self._cli(args)
+        except alpaca_cli.CliError as first:
+            try:
+                order = self._cli(["order", "get-by-client-id", "--client-order-id", client_order_id])
+            except alpaca_cli.CliError:
+                raise first
+            if not isinstance(order, dict) or not order.get("id"):
+                raise first
+        return _cli_order_result(order, client_order_id)
+
     def _trading_client(self):
         self._ensure_paper()
         try:
@@ -143,6 +189,15 @@ class PaperClient:
     # -- account / positions ------------------------------------------------
 
     def account_state(self) -> dict[str, Any]:
+        if self._use_cli():
+            acct = self._cli(["account", "get"])
+            raw_obp = acct.get("options_buying_power")
+            if raw_obp is None:
+                raw_obp = acct.get("buying_power")
+            return {
+                "equity_usd": float(acct["equity"]),
+                "available_options_buying_power_usd": float(raw_obp) if raw_obp is not None else 0.0,
+            }
         acct = self._trading_client().get_account()
         # options_buying_power exists on TradeAccount but is Optional and can
         # come back None (e.g. options level not enabled) — a getattr default
@@ -160,6 +215,22 @@ class PaperClient:
     def list_positions(self) -> list[dict[str, Any]]:
         """Returns ALL positions (equities and options) — the equity legs
         matter too, e.g. to read a covered call's cost basis."""
+        if self._use_cli():
+            rows = self._cli(["position", "list"])
+            if rows is None:
+                rows = []
+            if not isinstance(rows, list):
+                raise alpaca_cli.CliError(f"position list returned {type(rows).__name__}, expected a list")
+            return [
+                {
+                    "symbol": p["symbol"],
+                    "qty": float(p["qty"]),
+                    "asset_class": _status_str(p.get("asset_class")),
+                    "cost_basis": float(p["cost_basis"]),
+                    "market_value": float(p["market_value"]),
+                }
+                for p in rows
+            ]
         positions = self._trading_client().get_all_positions()
         return [
             {
@@ -315,6 +386,17 @@ class PaperClient:
         if side not in ("buy", "sell"):
             raise ValueError(f"side must be buy or sell, got {side!r}")
         client_order_id = f"{prefix}{decision_id}-{uuid.uuid4().hex[:8]}"
+        if self._use_cli():
+            return self._cli_submit([
+                "order", "submit",
+                "--symbol", option_symbol,
+                "--qty", str(int(qty)),
+                "--side", side,
+                "--type", "limit",
+                f"--limit-price={round(limit_price, 2):.2f}",
+                "--time-in-force", "day",
+                "--client-order-id", client_order_id,
+            ], client_order_id)
         req = LimitOrderRequest(
             symbol=option_symbol,
             qty=qty,
@@ -327,15 +409,28 @@ class PaperClient:
         return {"id": str(order.id), "client_order_id": client_order_id, "status": _status_str(order.status)}
 
     def submit_equity_order(
-        self, *, symbol: str, side: str, qty: int, decision_id: str
+        self, *, symbol: str, side: str, qty: int, decision_id: str, prefix: str = ORDER_PREFIX,
     ) -> dict[str, Any]:
-        """Used for the covered-call share leg — Alpaca disallows an equity
-        leg inside an mleg order, so shares are always a separate order
-        submitted (and confirmed filled) before the call leg."""
+        """Market DAY share order. Used for the covered-call share leg (Alpaca
+        disallows an equity leg inside an mleg order) and, since 2026-09-01, by
+        the equity scalper (prefix `oae-`) so its orders ride the same broker
+        transport as everything else."""
+        if side not in ("buy", "sell"):
+            raise ValueError(f"side must be buy or sell, got {side!r}")
+        client_order_id = f"{prefix}{decision_id}-{uuid.uuid4().hex[:8]}"
+        if self._use_cli():
+            return self._cli_submit([
+                "order", "submit",
+                "--symbol", symbol,
+                "--qty", str(int(qty)),
+                "--side", side,
+                "--type", "market",
+                "--time-in-force", "day",
+                "--client-order-id", client_order_id,
+            ], client_order_id)
         from alpaca.trading.enums import OrderSide, TimeInForce
         from alpaca.trading.requests import MarketOrderRequest
 
-        client_order_id = f"{ORDER_PREFIX}{decision_id}-{uuid.uuid4().hex[:8]}"
         req = MarketOrderRequest(
             symbol=symbol,
             qty=qty,
@@ -363,6 +458,27 @@ class PaperClient:
 
         if not legs or len(legs) < 2:
             raise ValueError("mleg order needs at least 2 legs")
+        if self._use_cli():
+            client_order_id = f"{ORDER_PREFIX}{decision_id}-{uuid.uuid4().hex[:8]}"
+            legs_json = json.dumps(
+                [
+                    {"symbol": leg["symbol"], "side": leg["side"], "ratio_qty": str(int(leg["ratio_qty"]))}
+                    for leg in legs
+                ],
+                separators=(",", ":"),
+            )
+            # `--limit-price=-0.30`: the equals form is mandatory, a net-credit
+            # price starts with '-' and would otherwise be parsed as a flag.
+            return self._cli_submit([
+                "order", "submit",
+                "--order-class", "mleg",
+                "--legs", legs_json,
+                "--qty", str(int(qty)),
+                "--type", "limit",
+                f"--limit-price={round(limit_price, 2):.2f}",
+                "--time-in-force", "day",
+                "--client-order-id", client_order_id,
+            ], client_order_id)
         leg_requests = [
             OptionLegRequest(
                 symbol=leg["symbol"],
@@ -402,6 +518,14 @@ class PaperClient:
         }
 
     def get_order(self, order_id: str) -> dict[str, Any]:
+        if self._use_cli():
+            order = self._cli(["order", "get", "--order-id", str(order_id)])
+            return {
+                "id": str(order["id"]),
+                "status": _status_str(order.get("status")),
+                "filled_qty": float(order.get("filled_qty") or 0),
+                "filled_avg_price": _f(order.get("filled_avg_price")),
+            }
         order = self._trading_client().get_order_by_id(order_id)
         return {
             "id": str(order.id),
@@ -528,6 +652,10 @@ class PaperClient:
     def cancel_order(self, order_id: str) -> None:
         """Cancel a working order (e.g. a scalp entry limit that never filled)."""
         try:
+            if self._use_cli():
+                # 204 on success (empty body); 422 when no longer cancelable.
+                self._cli(["order", "cancel", "--order-id", str(order_id)], expect_json=False)
+                return
             self._trading_client().cancel_order_by_id(order_id)
         except Exception:
             pass
@@ -536,6 +664,9 @@ class PaperClient:
         """Broker market clock — the cron scripts' holiday/weekend guard.
         The cron time windows only know the ET wall clock, not the NYSE
         calendar; this is the authoritative check."""
+        if self._use_cli():
+            clock = self._cli(["clock"])
+            return bool(clock.get("is_open"))
         clock = self._trading_client().get_clock()
         return bool(clock.is_open)
 

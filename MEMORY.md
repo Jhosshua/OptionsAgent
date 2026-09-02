@@ -1,5 +1,91 @@
 # MEMORY.md — OptionsAgent
 
+## 2026-09-01 (night) — HACKATHON GO-LIVE: gate opened + $3k cap + Alpaca CLI in the order path
+
+**Context:** submitting to the lablab × Alpaca "AI Trading Agents Hackathon"
+(deadline Fri 09-04 11:00 ET; judges read total equity EOD Thu 09-03 on a fresh
+$100k paper account; the agent must use Alpaca's Trading API through the
+official MCP server or CLI and must trade options). Research + todo list:
+`HACKATHON_SUBMISSION_PLAN.md`. Account PA371G5THNUO qualifies (created 08-30,
+$100k, only this bot has traded it) but had **0 option fills**: all 14 seller
+proposals since 08-28 died at the contract picker or at the frozen winner-profile
+gate, and the 08-31/09-01 cycles were lost to the Claude CLI login bug. Neither
+this repo nor the wheel bot used MCP or CLI.
+
+**Decided (operator, "go live immediately, no shadow"):**
+1. `OA_CREDIT_SPREAD_GATE=research_rules` (new env, `risk_rails.active_credit_spread_gate()`
+   + `credit_spread_gate_decision()`): the `_CREDIT_SPREAD_OVERFIT_RULES` table is bypassed;
+   a picker-approved spread on ANY watchlist name may open. Default and any junk value =
+   `winner_profile` (strict). The reason string names the mode; every decision row carries
+   `judged_against` (gate mode, cap, concurrency, spread rules) so the row can be audited.
+2. `OA_MAX_POSITION_USD=3000` on Railway (existing tighten-only knob, was UNSET). Without it a
+   0.62-conviction idea on $100k options BP sizes to 35.6% = $35.6k = **178 contracts** of a
+   $2 spread (`run_cycle.py` `contracts = position_cap_usd / (width*100)`). With it: 15
+   contracts, worst case ≈ $3,000 − credit per position, 6 slots ⇒ ≈ $18k. The two changes
+   ship together on purpose; `tests/test_credit_spread_gate.py::test_cap_and_gate_arithmetic_on_a_100k_account`
+   pins the arithmetic.
+3. `OA_BROKER_TRANSPORT=cli` (new `harness/alpaca_cli.py`): `PaperClient.account_state`,
+   `list_positions`, `submit_single_leg_order`, `submit_equity_order`, `submit_mleg_order`,
+   `get_order`, `cancel_order`, `market_is_open` run `alpaca … -q` as a subprocess with an
+   explicit env (only PATH/HOME + this client's two keys; `ALPACA_PROFILE` cannot leak),
+   parse JSON, and journal every call to `data/cli_calls.jsonl`. **Fail-closed, no SDK
+   fallback** (a silent fallback would make the hackathon claim false). Net-credit limits use
+   the `--limit-price=-0.30` equals form: cobra would read a bare `-0.30` as a flag. Dockerfile
+   installs Alpaca CLI v0.0.14 (linux_amd64, sha256 pinned `6c82ef31…ba66`, verified).
+   Market data untouched (Public.com chains, AlpacaRelay bars).
+
+**Verified:** 262 tests (was 233). Real CLI smoke on the Mac through the adapter
+(account/positions/clock, 120–170 ms each, journal rows written). `--dry-run`
+mleg produced the exact Alpaca body. Mutation checks: forcing `winner_profile`
+→ 3 tests fail; dropping the cap → 2 fail; two-token `--limit-price` → 2 fail;
+swallowing a non-zero CLI exit → 1 fails. Docker daemon was down locally, so the
+image build is proven by the Railway build + in-container `alpaca version`.
+
+**Adversarial review before deploy (subagent, read-only) found three day-one
+problems in the plan; all fixed and pinned by tests before the first deploy:**
+- P0 *The open gate would have booked spreads already past their own stop.* Entry
+  credit is short.BID − long.ASK, the exit sweep prices the unwind at short.ASK −
+  long.BID, so the bid/ask is paid twice and the 2x-credit stop fires at t=0 on any
+  spread whose quoted width exceeds its credit. Replay of the 09-01 chain
+  snapshots: 8 of 22 pickable shapes were past the stop on the quotes they were
+  picked from (WBD bull credit 0.07 / unwind 0.45 ⇒ −$1,140 on 30 contracts).
+  Fix: research_rules now requires credit ≥ $0.10 and unwind-now < 1.5× credit
+  (`RESEARCH_RULES_MIN_CREDIT`, `RESEARCH_RULES_MAX_CLOSE_COST_X`); run_cycle passes
+  `close_cost_now`; None fails closed. Replay after the fix: 5 of 26 admitted
+  (CCL bull, MARA bull/bear, T bull/bear), **0 past the stop**.
+- P0 *No dedupe.* The proposer accepts any string and any count, nothing read the
+  open-structure registry, so "CCL bullish" twice or an off-list NVDA each got a
+  full $3k. Fix: `run_cycle.proposal_skip_reason()` — universe only, one per
+  underlying per cycle, skip names already open; `apply_opened_position` now counts
+  legs like the broker does. Plus `research_rules_missing_cap()`: a cycle REFUSES
+  to run in research_rules mode if `OA_MAX_POSITION_USD` is unset or unparsable
+  ("3,000" would have silently meant no cap ⇒ 178 contracts).
+- P0 *The equity scalper bypassed the adapter* (`_trading_client().submit_order`
+  direct), so "orders via CLI" would have been false. Fix: `_submit_market` →
+  `client.submit_equity_order(prefix="oae-")`; entries fail closed, the 15:50
+  flatten alone may fall back to the SDK, journaled as `eq_cli_fallback` and paged.
+- P1 *Fills.* Entries were booked at the requested count and exits marked
+  "closed" on submission. Fix: `execution.confirm_fill()` polls ≤30 s, cancels
+  the remainder, books the FILLED count (entry: `unfilled_cancelled` outcome and
+  no structure; exit: `exit_unfilled` row and the structure stays open; partial
+  unwind re-registers the remainder as `<id>-r<n>`). CLI submit failures are
+  reconciled via `order get-by-client-id` before being declared failures; the
+  CLI's own `--timeout` is set 10 s under the subprocess timeout.
+- Noted, not fixed: `exits.HAS_SHORT_CALL` omits bearish call spreads (no ex-div
+  check; irrelevant before Oct expiries). How Alpaca marks an open spread in
+  `equity` is unverified — compare `position list` current_price vs mid on 09-02.
+
+**Rejected:** MCP server as the transport (needs an MCP client in Python plus a
+long-running server in the container; the CLI is one binary and one
+subprocess). Loosening the picker's delta/DTE/width rules (the gate was the
+lever; the picker is research). Opening the phase to CSPs (a CSP's collateral
+is strike×100 and the same %-of-BP sizer would have sized in the tens of
+thousands).
+
+**Watch on 09-02:** the 10:15 ET cycle's `judged_against` row, the first
+`cli_calls.jsonl` rows from the container, and whether any spread actually
+fills (the picker still binds; a quiet-IV day can legitimately yield zero).
+
 ## 2026-09-01 — "Seller, last cycle" tile renamed "AI trade ideas" + info tooltip
 
 **Decided:** the Overview tile "Seller, last cycle / — proposals / AI call not

@@ -22,11 +22,12 @@ import time
 from typing import Any, Callable
 from urllib.parse import urlsplit
 
-from harness import notify, proposer
+from harness import alpaca_cli, notify, proposer
 from harness.env import ROOT, active_phase, config, env
 from harness.occ import parse_occ_symbol
 from harness.risk_rails import (
     _CREDIT_SPREAD_OVERFIT_RULES,
+    active_credit_spread_gate,
     active_equity_scalp_rails,
     active_rails,
 )
@@ -653,6 +654,17 @@ def build_payload(store: SnapshotStore, route: str) -> dict[str, Any]:
                 "paper_only": True,
                 "trading_enabled": _trading_enabled_from_dotenv(),
                 "allowed_profiles": _allowed_profiles(),
+                # Which gate judges a picker-approved spread, and the absolute
+                # per-position dollar cap (None = only the %-of-BP scaling).
+                # Both come from the SAME functions the entry cycle uses.
+                "credit_spread_gate": active_credit_spread_gate(),
+                "max_position_abs_usd": rails.max_position_abs_usd,
+                "spread_rules": {
+                    "short_delta": [config()["spreads"]["short_delta_min"], config()["spreads"]["short_delta_max"]],
+                    "dte": [config()["spreads"]["dte_min"], config()["spreads"]["dte_max"]],
+                    "max_width_usd": config()["spreads"]["max_width_usd"],
+                },
+                "broker_transport": alpaca_cli.transport(),
             },
             "proposer": {"provider": proposer.provider(), "model": proposer.model_name()},
             "equity_scalp_rails": {

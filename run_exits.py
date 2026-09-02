@@ -14,10 +14,13 @@ import logging
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
+from dataclasses import replace
+
 from harness import decision_log, exit_state, notify, structures
 from harness.alpaca_glue import make_client
 from harness.dividends import upcoming_dividend
 from harness.env import config
+from harness.execution import confirm_fill
 from harness.exits import (
     HAS_SHORT_CALL,
     LONG_TYPES,
@@ -284,10 +287,46 @@ def run() -> None:
 
         decision_id = decision_log.new_decision_id()
         orders = _close_structure(client, s, quotes, decision_id)
+        # Record "closed" only for what the unwind actually FILLED. A working
+        # day order that never fills used to be booked as closed and the spread
+        # vanished from the registry with no exit ever looking at it again
+        # (2026-09-01 review). One-order unwinds are confirmed here; the
+        # covered-straddle two-order path keeps the old behavior.
+        closed_contracts = s.contracts
+        if len(orders) == 1 and isinstance(orders[0], dict) and orders[0].get("id"):
+            fill = confirm_fill(client, orders[0]["id"], requested=s.contracts)
+            closed_contracts = int(fill["filled_qty"])
+            if closed_contracts < 1:
+                log.warning(
+                    "%s %s: unwind order %s (%s) did not fill; remainder cancelled, "
+                    "structure stays open for the next sweep",
+                    s.underlying, s.strategy_type, orders[0]["id"], fill["status"],
+                )
+                decision_log.record(
+                    {"kind": "exit_unfilled", "ts": decision_log.now_iso(), "structure_id": s.structure_id,
+                     "decision_id": decision_id, "underlying": s.underlying,
+                     "strategy_type": s.strategy_type, "reason": decision.reason, "fill": fill,
+                     "orders": orders}
+                )
+                notify.error(
+                    f"{s.underlying} {s.strategy_type}: exit order did not fill ({decision.reason}); "
+                    f"retrying next sweep"
+                )
+                continue
+            if closed_contracts < s.contracts:
+                remaining = s.contracts - closed_contracts
+                log.warning(
+                    "%s %s: partial unwind %d/%d; re-registering %d contracts as %s-r",
+                    s.underlying, s.strategy_type, closed_contracts, s.contracts, remaining, s.structure_id,
+                )
+                structures.record_opened(
+                    replace(s, structure_id=f"{s.structure_id}-r{closed_contracts}",
+                            contracts=remaining, opened_ts=decision_log.now_iso())
+                )
         if is_long:
-            pnl_usd = ((-net) - s.entry_net) * 100 * s.contracts
+            pnl_usd = ((-net) - s.entry_net) * 100 * closed_contracts
         else:
-            pnl_usd = (s.entry_net - net) * 100 * s.contracts
+            pnl_usd = (s.entry_net - net) * 100 * closed_contracts
         structures.record_closed(s.structure_id, reason=decision.reason, pnl_usd=pnl_usd)
         decision_log.record(
             {"kind": "exit", "ts": decision_log.now_iso(), "structure_id": s.structure_id,

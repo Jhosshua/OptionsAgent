@@ -24,6 +24,7 @@ from harness.contracts import (
 )
 from harness.env import allowed_strategies, config, universe
 from harness.execution import (
+    confirm_fill,
     execute_covered_call_on_owned_shares,
     execute_covered_straddle,
     execute_credit_spread,
@@ -38,7 +39,9 @@ from harness.proposer import propose_report
 from harness.risk_rails import (
     active_rails,
     apply_opened_position,
-    credit_spread_overfit_decision,
+    active_credit_spread_gate,
+    credit_spread_gate_decision,
+    research_rules_missing_cap,
     evaluate_proposal,
 )
 
@@ -128,11 +131,13 @@ def _select_and_price(proposal, chain, cfg, positions_raw, conviction_size_frac)
             structures.Leg(pair.long.symbol, "long", pair.long.right, pair.long.strike, _expiry_iso(pair.long.dte)),
         ]
         if st == "credit_spread":
-            overfit_ok, overfit_reason = credit_spread_overfit_decision(
+            overfit_ok, overfit_reason = credit_spread_gate_decision(
                 underlying=proposal.underlying,
                 direction=proposal.direction,
                 width=pair.width,
                 net_credit=pair.net_credit,
+                # what the exit sweep would pay to unwind on these same quotes
+                close_cost_now=pair.short.ask - pair.long.bid,
             )
             if not overfit_ok:
                 return None, None, None, 0, 0, None, overfit_reason
@@ -191,6 +196,23 @@ def _select_and_price(proposal, chain, cfg, positions_raw, conviction_size_frac)
         return legs, {"legs": pair}, execute_covered_straddle, pair.put.strike * 100, pair.total_credit, lots, None
 
     return None, None, None, 0, 0, None, f"strategy_type {st!r} not implemented"
+
+
+def proposal_skip_reason(
+    underlying: str, *, universe: list[str], seen_this_cycle: set[str], open_underlyings: set[str]
+) -> str | None:
+    """One position per underlying, universe names only (2026-09-01 review:
+    the proposer accepts any string and any count, and nothing consulted the
+    open-structure registry, so 'CCL bullish' twice or an off-list NVDA each
+    got its own full-size budget)."""
+    sym = str(underlying or "").strip().upper()
+    if sym not in {s.upper() for s in universe}:
+        return "skipped_not_in_universe"
+    if sym in seen_this_cycle:
+        return "skipped_duplicate_underlying_this_cycle"
+    if sym in open_underlyings:
+        return "skipped_underlying_already_open"
+    return None
 
 
 def run() -> None:
@@ -256,6 +278,37 @@ def run() -> None:
     )
 
     rails = active_rails()
+    gate_mode = active_credit_spread_gate()
+    # Log the thresholds every decision below is judged against, not just the
+    # verdict: a row that says "vetoed" or "executed" without the cap and gate
+    # that produced it cannot be audited later (fleet lesson, 2026-08).
+    judged_against = {
+        "credit_spread_gate": gate_mode,
+        "max_position_abs_usd": rails.max_position_abs_usd,
+        "max_concurrent_positions": rails.max_concurrent_positions,
+        "spread_rules": {
+            "short_delta": [cfg["spreads"]["short_delta_min"], cfg["spreads"]["short_delta_max"]],
+            "dte": [cfg["spreads"]["dte_min"], cfg["spreads"]["dte_max"]],
+            "max_width_usd": cfg["spreads"]["max_width_usd"],
+        },
+    }
+    log.info("cycle %s: judged against %s", cycle_id, judged_against)
+
+    if research_rules_missing_cap(gate_mode, rails):
+        msg = (
+            "research_rules gate is on but OA_MAX_POSITION_USD is unset or unparsable — "
+            "refusing to size against raw buying power; no trades this cycle"
+        )
+        log.error("cycle %s: %s", cycle_id, msg)
+        decision_log.record({
+            "kind": "cycle_refused", "cycle_id": cycle_id, "ts": decision_log.now_iso(),
+            "reason": msg, "judged_against": judged_against,
+        })
+        notify.error(msg)
+        return
+
+    open_underlyings = {s.underlying.upper() for s in structures.load_open()}
+    seen_this_cycle: set[str] = set()
 
     for proposal in proposals:
         decision_id = decision_log.new_decision_id()
@@ -267,7 +320,21 @@ def run() -> None:
             "ts": decision_log.now_iso(),
             "proposal": proposal.__dict__,
             "rail_decision": decision.__dict__,
+            "judged_against": judged_against,
         }
+
+        skip_reason = proposal_skip_reason(
+            proposal.underlying, universe=syms, seen_this_cycle=seen_this_cycle,
+            open_underlyings=open_underlyings,
+        )
+        seen_this_cycle.add(proposal.underlying.upper())
+        if skip_reason is not None:
+            record["outcome"] = skip_reason
+            decision_log.record(record)
+            notify.trade_vetoed(
+                underlying=proposal.underlying, strategy_type=proposal.strategy_type, reason=skip_reason
+            )
+            continue
 
         if not decision.approved:
             record["outcome"] = "vetoed"
@@ -314,6 +381,29 @@ def run() -> None:
 
         record["orders"] = result.orders
         if result.success:
+            # Book what FILLED, not what was asked for. One-order structures
+            # (every spread, CSP, long option) are confirmed here; the two-order
+            # covered strategies keep their own in-executor confirmation.
+            if len(result.orders) == 1 and isinstance(result.orders[0], dict) and result.orders[0].get("id"):
+                fill = confirm_fill(client, result.orders[0]["id"], requested=contracts)
+                record["fill"] = fill
+                if fill["filled_qty"] < 1:
+                    record["outcome"] = "unfilled_cancelled"
+                    decision_log.record(record)
+                    notify.trade_vetoed(
+                        underlying=proposal.underlying,
+                        strategy_type=proposal.strategy_type,
+                        reason=f"entry order {fill['status'] or 'unfilled'} after the confirmation "
+                        f"window; remainder cancelled, nothing opened",
+                    )
+                    continue
+                if fill["filled_qty"] < contracts:
+                    log.warning(
+                        "%s: partial fill %d/%d, remainder cancelled; booking %d",
+                        proposal.underlying, fill["filled_qty"], contracts, fill["filled_qty"],
+                    )
+                contracts = int(fill["filled_qty"])
+                record["contracts"] = contracts
             record["outcome"] = "executed"
             structures.record_opened(
                 structures.Structure(
@@ -331,6 +421,7 @@ def run() -> None:
                 account,
                 underlying=proposal.underlying,
                 collateral_usd=contracts * per_contract_usd,
+                positions_opened=len(legs),
             )
             notify.trade_opened(
                 underlying=proposal.underlying,

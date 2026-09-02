@@ -103,6 +103,88 @@ _CREDIT_SPREAD_OVERFIT_RULES = (
 )
 
 
+# Which gate judges a credit spread after the contract picker (delta / DTE /
+# width) has already accepted it:
+#   winner_profile  — the frozen in-sample table above (default, the research
+#                     posture since 2026-07-27: collect OOS evidence on 3 shapes).
+#   research_rules  — skip the table; any universe name whose spread passed the
+#                     picker's research rules (short delta 0.15-0.30, DTE 30-45,
+#                     width <= $2) may open. Operator decision 2026-09-01 for the
+#                     Alpaca hackathon window; MUST ship with OA_MAX_POSITION_USD
+#                     set, because sizing is a % of buying power and the account
+#                     is $100k (see MEMORY.md 2026-09-01).
+# Unknown values fall back to the STRICT mode, so a typo can never open the gate.
+CREDIT_SPREAD_GATE_ENV = "OA_CREDIT_SPREAD_GATE"
+CREDIT_SPREAD_GATE_MODES = ("winner_profile", "research_rules")
+
+
+def active_credit_spread_gate() -> str:
+    raw = (os.environ.get(CREDIT_SPREAD_GATE_ENV) or "winner_profile").strip().lower()
+    return raw if raw in CREDIT_SPREAD_GATE_MODES else "winner_profile"
+
+
+# research_rules liquidity filter. Entry credit is short.BID - long.ASK and the
+# exit sweep prices the unwind at short.ASK - long.BID, so the round-trip
+# bid/ask is paid twice and the 2x-credit stop (config spreads.stop_loss_pct)
+# fires at t=0 on any spread whose quoted width exceeds its credit. Replay of
+# the 2026-09-01 chain snapshots: 8 of 22 pickable shapes were already past
+# the stop on the quotes they were picked from. The winner table's credit
+# minimums used to hide this; research_rules needs its own floor.
+RESEARCH_RULES_MIN_CREDIT = 0.10          # $ per share
+RESEARCH_RULES_MAX_CLOSE_COST_X = 1.5     # unwind-now cost <= 1.5x credit (25% under the 2x stop)
+
+
+def credit_spread_gate_decision(
+    *,
+    underlying: str,
+    direction: str,
+    width: float,
+    net_credit: float,
+    close_cost_now: float | None = None,
+    mode: str | None = None,
+) -> tuple[bool, str]:
+    """Route a picker-approved credit spread through the active gate mode.
+
+    research_rules fails closed on a non-positive width or credit, on a credit
+    below RESEARCH_RULES_MIN_CREDIT, and on a spread whose cost to unwind at
+    the same quotes (short.ask - long.bid) already sits at or past 1.5x the
+    credit — that spread would be stopped out by the first confirmed sweep.
+    `close_cost_now` is REQUIRED in research_rules mode; None fails closed."""
+    mode = mode or active_credit_spread_gate()
+    if mode == "winner_profile":
+        return credit_spread_overfit_decision(
+            underlying=underlying, direction=direction, width=width, net_credit=net_credit
+        )
+    if not math.isfinite(width) or width <= 0:
+        return False, f"research_rules invalid width {width!r}"
+    if not math.isfinite(net_credit) or net_credit <= 0:
+        return False, f"research_rules invalid net credit {net_credit!r}"
+    if net_credit < RESEARCH_RULES_MIN_CREDIT:
+        return False, (
+            f"research_rules credit {net_credit:.2f} below minimum {RESEARCH_RULES_MIN_CREDIT:.2f}"
+        )
+    if close_cost_now is None or not math.isfinite(close_cost_now):
+        return False, "research_rules missing unwind quote (close_cost_now); fail closed"
+    if close_cost_now >= net_credit * RESEARCH_RULES_MAX_CLOSE_COST_X:
+        return False, (
+            f"research_rules illiquid: unwind now costs {close_cost_now:.2f} vs credit "
+            f"{net_credit:.2f} (>= {RESEARCH_RULES_MAX_CLOSE_COST_X}x; the 2x stop would fire on entry)"
+        )
+    return True, (
+        f"research_rules gate: winner profile bypassed for {str(underlying).upper()} "
+        f"{str(direction).lower()} (width {width:.2f}, credit {net_credit:.2f}, "
+        f"unwind-now {close_cost_now:.2f})"
+    )
+
+
+def research_rules_missing_cap(gate_mode: str, rails: Rails) -> bool:
+    """The open gate and the dollar cap are coupled: on a $100k account the
+    %-of-BP sizer alone yields ~178 contracts per idea. A cycle must refuse to
+    run in research_rules mode when OA_MAX_POSITION_USD is unset or unparsable
+    (active_rails() silently drops a bad value, e.g. '3,000')."""
+    return gate_mode == "research_rules" and rails.max_position_abs_usd is None
+
+
 def credit_spread_overfit_decision(
     *, underlying: str, direction: str, width: float, net_credit: float
 ) -> tuple[bool, str]:
@@ -207,7 +289,7 @@ def evaluate_proposal(
 
 
 def apply_opened_position(
-    account: AccountState, *, underlying: str, collateral_usd: float
+    account: AccountState, *, underlying: str, collateral_usd: float, positions_opened: int = 1
 ) -> AccountState:
     """Returns the account state AFTER a position opens, so multiple
     proposals within one cycle are each sized against the REMAINING buying
@@ -218,7 +300,10 @@ def apply_opened_position(
     exposure[underlying] = exposure.get(underlying, 0.0) + collateral_usd
     return replace(
         account,
-        open_positions_count=account.open_positions_count + 1,
+        # The broker counts LEGS (a spread = 2 positions), so count what the
+        # broker will count or the intra-cycle cap admits twice as many spreads
+        # as the next day's read would.
+        open_positions_count=account.open_positions_count + max(1, int(positions_opened)),
         underlying_exposure_usd=exposure,
         gross_exposure_usd=account.gross_exposure_usd + collateral_usd,
         available_options_buying_power_usd=max(

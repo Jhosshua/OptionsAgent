@@ -30,6 +30,55 @@ class ExecutionResult:
     orders: list[dict[str, Any]]
 
 
+TERMINAL_STATUSES = ("filled", "canceled", "cancelled", "expired", "rejected", "done_for_day")
+
+
+def confirm_fill(
+    client, order_id: str, *, requested: int, tries: int = 15, sleep_s: float = 2.0,
+    cancel_unfilled: bool = True,
+) -> dict[str, Any]:
+    """Poll one order until it is filled or the window ends; if it is still
+    working, cancel the remainder so nothing untracked can fill later, then
+    read the final filled quantity once more.
+
+    Returns {"order_id", "status", "filled_qty", "filled_avg_price", "requested",
+    "cancelled_remainder"}. filled_qty is the number of contracts (spreads for
+    an mleg order) that actually filled; 0 means nothing did. A structure must
+    be recorded with THIS count, never the requested one (2026-09-01 review:
+    partial fills were booked as full and exits then tried to close contracts
+    that were never opened)."""
+    info: dict[str, Any] = {}
+    for _ in range(max(1, tries)):
+        info = client.get_order(order_id)
+        status = str(info.get("status") or "").lower()
+        fq = int(float(info.get("filled_qty") or 0))
+        if status == "filled" or fq >= requested:
+            return {
+                "order_id": order_id, "status": status or "filled", "filled_qty": min(fq, requested),
+                "filled_avg_price": info.get("filled_avg_price"), "requested": requested,
+                "cancelled_remainder": False,
+            }
+        if status in TERMINAL_STATUSES:
+            return {
+                "order_id": order_id, "status": status, "filled_qty": fq,
+                "filled_avg_price": info.get("filled_avg_price"), "requested": requested,
+                "cancelled_remainder": False,
+            }
+        time.sleep(sleep_s)
+    cancelled = False
+    if cancel_unfilled:
+        client.cancel_order(order_id)
+        cancelled = True
+        time.sleep(min(sleep_s, 1.0))
+        info = client.get_order(order_id)
+    fq = int(float(info.get("filled_qty") or 0))
+    return {
+        "order_id": order_id, "status": str(info.get("status") or "").lower(), "filled_qty": fq,
+        "filled_avg_price": info.get("filled_avg_price"), "requested": requested,
+        "cancelled_remainder": cancelled,
+    }
+
+
 def execute_csp(client, *, quote: OptionQuote, contracts: int, decision_id: str) -> ExecutionResult:
     if contracts <= 0:
         return ExecutionResult(False, "contracts must be > 0", [])

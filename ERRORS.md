@@ -1,5 +1,26 @@
 # ERRORS.md — OptionsAgent
 
+## 2026-09-01 — Opening a gate without re-deriving what the exit will see
+
+**What did not work:** the first cut of `OA_CREDIT_SPREAD_GATE=research_rules`
+just skipped the winner-profile table and kept the picker's delta/DTE/width
+rules. It looked complete: 4 tests, mutation check green. An adversarial
+replay over the previous day's real chain snapshots showed 8 of 22 admitted
+shapes were ALREADY past the 2x-credit stop on the same quotes, because entry
+credit is priced at bid/ask-worst (short.bid − long.ask) and the unwind is
+priced at bid/ask-worst the other way (short.ask − long.bid). The old table's
+credit minimums had been hiding that double spread cost.
+
+**What worked instead:** give the new mode its own liquidity floor derived
+from the exit rule (credit ≥ $0.10, unwind-now < 1.5× credit), pass the real
+quotes into the gate, and replay the snapshot until zero admitted shapes are
+past the stop (5 of 26 admitted, 0 past).
+
+**Note for next time:** when a gate is removed, ask what the EXIT rule will
+compute on the same inputs the entry just accepted. A rule that only looks at
+strikes and deltas cannot see a bid/ask that eats the whole credit. Replay real
+snapshots; the picker's unit tests use tidy quotes.
+
 ## 2026-09-01 — A dashboard is only as honest as the journals it reads
 
 **What did not work:** The dashboard read one engine's registry

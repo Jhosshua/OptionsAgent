@@ -23,12 +23,60 @@ on.
 > (Until 2026-09-01 this ran locally, with the Mac `.env` and user crontab
 > authoritative. Those crontab lines are now commented out.)
 
+## Alpaca AI Trading Agents Hackathon (lablab.ai, Aug 28 – Sep 4, 2026)
+
+This repo is the submission of team **Convexity**. Competition paper account:
+**PA371G5THNUO** (created 2026-08-30, $100,000 start, options level 3; first
+order 2026-08-31 10:18 ET; nothing else has ever traded on it).
+
+**Pre-event disclosure (required by the hackathon FAQ).** OptionsAgent existed
+before kick-off: the deterministic harness (contract picker, risk rails, exit
+sweep, journal, dashboard) was built July 2026 and reactivated 2026-08-28. Work
+done inside the hackathon window: the equity intraday scalper and its 6-month
+study (08-28), the Railway deployment (09-01), the DeepSeek proposer (09-01),
+the dashboard rework (09-01), and the two changes below (09-01 night). The
+credit-spread seller had **zero fills** on the competition account before
+09-02 because its gate only admitted three historical winner shapes.
+
+**How the agent meets the requirements.**
+- *Autonomous:* Linux cron in the container runs the daily proposal cycle,
+  the 20-minute exit sweep and the per-minute scalper; no human in the loop.
+- *Options:* the seller opens defined-risk vertical credit spreads (short
+  strike 0.15–0.30 delta, 30–45 DTE, width ≤ $2), exits at 50% profit, 2x-credit
+  stop, or 21 DTE.
+- *AI logic:* DeepSeek (`deepseek-v4-pro`, JSON mode, temperature 0) proposes
+  `{underlying, strategy_type, direction, conviction, thesis}` once a day over a
+  13-name watchlist. It never picks a strike, size, or exit; it cannot place an
+  order. Every call is journaled (`proposer_result` rows).
+- *Risk gates (deterministic, in code):* 0.60 conviction floor, phase menu,
+  6 max concurrent positions, per-position dollar cap (`OA_MAX_POSITION_USD`,
+  **$3,000** for the competition ⇒ ≤ 15 contracts of a $2 spread), the contract
+  picker's delta/DTE/width rules, skip-below-one-contract, paper-only by
+  construction, fail-closed on any broker or model error.
+- *Alpaca infrastructure:* Trading API through the **official Alpaca CLI**
+  (`OA_BROKER_TRANSPORT=cli`, `harness/alpaca_cli.py`): account, positions,
+  clock, order submit (single-leg and `mleg` spreads), order status and cancel
+  all run as `alpaca …` subprocesses inside the container; every call is
+  journaled to `data/cli_calls.jsonl`. Option chains come from a read-only
+  Public.com sidecar, stock bars from a hosted Alpaca market-data relay.
+
+**Two deliberate changes for the competition window (2026-09-01 night):**
+1. `OA_CREDIT_SPREAD_GATE=research_rules`: the frozen in-sample winner table
+   (CCL bullish / SOFI bullish / F bearish only) is bypassed; any watchlist name
+   whose spread passes the picker's research rules may open. Every decision row
+   records the gate mode it was judged under (`judged_against`).
+2. `OA_MAX_POSITION_USD=3000`: sizing is a share of buying power (30%–100%),
+   which on a $100k account would have meant ~178 contracts per idea. The cap
+   makes the worst case ≈ $3,000 minus credit per position, ≈ $18k across all
+   six slots. The two changes ship together on purpose.
+
 ## Status (2026-09-01)
 
 **ACTIVE ON RAILWAY, PAPER ONLY, TWO ENGINES on a $100,000 Alpaca paper account.**
 - Engine 1, credit-spread seller: the DeepSeek API proposes, deterministic rails
   dispose, once daily 10:15-10:27 ET (cron/entry.sh), exits every 20 min
-  (cron/exits.sh). Winner-profile gated; most days it vetoes everything.
+  (cron/exits.sh). Gate: `OA_CREDIT_SPREAD_GATE` (winner profile by default;
+  `research_rules` for the hackathon window, see the section above).
 - Engine 2, EQUITY intraday scalper (run_scalp_equity.py, NEW tonight): two
   rules mined from 6 months of SPY/QQQ minute bars and frozen (morning fade at
   10:15; QQQ gap follow at 13:00). $20k notional, 0.7% intrabar stop, 120m time

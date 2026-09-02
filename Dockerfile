@@ -23,6 +23,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # and the whole trading day was lost. An API key has no login to lose.
 # Set OA_LLM_PROVIDER=claude_cli only on the Mac, where the CLI exists.
 
+# Alpaca's official Trading CLI (github.com/alpacahq/cli): a single static Go
+# binary. With OA_BROKER_TRANSPORT=cli the broker adapter routes every
+# account / position / order / clock call through it (hackathon requirement:
+# Trading API via MCP or CLI). Pinned + checksum-verified so a tampered or
+# moved release fails the build instead of shipping.
+ARG ALPACA_CLI_VERSION=0.0.14
+ARG ALPACA_CLI_SHA256=6c82ef31f94dd61aae1c90e40fc41fdfaf8111bd50e9a2780b9d8d304eb2ba66
+RUN set -eux; \
+    curl -fsSL -o /tmp/alpaca-cli.tgz \
+      "https://github.com/alpacahq/cli/releases/download/v${ALPACA_CLI_VERSION}/cli_${ALPACA_CLI_VERSION}_linux_amd64.tar.gz"; \
+    echo "${ALPACA_CLI_SHA256}  /tmp/alpaca-cli.tgz" | sha256sum -c -; \
+    tar -xzf /tmp/alpaca-cli.tgz -C /tmp alpaca; \
+    install -m 0755 /tmp/alpaca /usr/local/bin/alpaca; \
+    rm -f /tmp/alpaca-cli.tgz /tmp/alpaca; \
+    /usr/local/bin/alpaca version
+
 # Mirror the Mac path for consistency with the sibling bots' containers.
 WORKDIR /Users/mo/OptionsAgent
 

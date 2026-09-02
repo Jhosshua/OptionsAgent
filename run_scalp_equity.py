@@ -24,7 +24,7 @@ import os
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
-from harness import decision_log, notify
+from harness import alpaca_cli, decision_log, notify
 from harness.alpaca_glue import make_client
 from harness.env import config
 from harness.equity_scalp import (
@@ -86,7 +86,23 @@ def _post(msg: str) -> None:
     notify.post(f"◆ EQ-SCALP {msg}")
 
 
-def _submit_market(client, *, symbol: str, side: str, qty: int, decision_id: str):
+def _submit_market(client, *, symbol: str, side: str, qty: int, decision_id: str,
+                   allow_sdk_fallback: bool = False):
+    """Market DAY order through the shared broker adapter (the Alpaca CLI when
+    OA_BROKER_TRANSPORT=cli). ENTRIES fail closed: a broken CLI costs at most a
+    missed $20k share entry. EXITS (flatten) may fall back to the SDK, loudly
+    journaled, because an open position with a broken CLI at 15:50 ET is
+    worse than a fallback (2026-09-01 review)."""
+    try:
+        return client.submit_equity_order(
+            symbol=symbol, side=side, qty=qty, decision_id=decision_id, prefix=EQ_PREFIX,
+        )
+    except alpaca_cli.CliError as e:
+        if not allow_sdk_fallback:
+            raise
+        _post(f"⚠ CLI order path failed ({str(e)[:120]}); SDK FALLBACK for exit {side} {symbol} x{qty}")
+        _log({"kind": "eq_cli_fallback", "symbol": symbol, "side": side, "qty": qty,
+              "error": str(e)[:300], "ts": decision_log.now_iso()})
     from alpaca.trading.enums import OrderSide, TimeInForce
     from alpaca.trading.requests import MarketOrderRequest
     coid = f"{EQ_PREFIX}{decision_id}-{side[:1]}{os.urandom(3).hex()}"
@@ -112,7 +128,8 @@ def _flatten_position(client, symbol: str, pos, *, reason: str, dry: bool):
         _post(f"WOULD CLOSE {symbol} {pos['side']} x{pos['qty']} ({reason})")
         return ("closed", None)
     res = _submit_market(client, symbol=symbol, side=close_side,
-                         qty=int(pos["qty"]), decision_id=pos["trade_id"])
+                         qty=int(pos["qty"]), decision_id=pos["trade_id"],
+                         allow_sdk_fallback=True)
     confirmed = _confirm_fill(client, res["id"])
     if confirmed is None:
         _post(f"{symbol} close NOT confirmed ({reason}) — retrying next minute")

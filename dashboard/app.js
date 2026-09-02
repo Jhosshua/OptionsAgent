@@ -173,9 +173,14 @@
       row("Strategy phase", titleCase(data.phase)) +
       row("Minimum conviction", floorPct) +
       row("Max open option legs", rails.max_concurrent_positions ?? "—") +
+      row("Max per position", rails.max_position_abs_usd == null ? "No dollar cap (share of buying power only)" : plainMoney(rails.max_position_abs_usd), rails.max_position_abs_usd == null ? "loss" : "gain") +
       row("Mandatory close", `${rails.mandatory_close_dte ?? "—"} days before expiry`) +
+      row("Broker path", rails.broker_transport === "cli" ? "Alpaca CLI (official)" : "alpaca-py SDK", rails.broker_transport === "cli" ? "gain" : "muted") +
       row("Execution mode", "PAPER ONLY", "gain") +
-      `<p class="rail-note"><strong>Allowed profiles.</strong> A proposal must land on one of these three shapes or it is rejected before any order. Everything else the AI suggests is logged and dropped.</p><ul class="profile-list">${profiles}</ul>` +
+      (rails.credit_spread_gate === "research_rules"
+        ? `<p class="rail-note"><strong>Gate: research rules.</strong> Any watchlist name may open a credit spread if the contract picker finds one with a short strike at ${esc(String((rails.spread_rules || {}).short_delta || []).replace(",", "–"))} delta, ${esc(String((rails.spread_rules || {}).dte || []).replace(",", "–"))} days to expiry and width ≤ $${esc(String((rails.spread_rules || {}).max_width_usd ?? "—"))}. The three historical-winner shapes below are NOT enforced in this mode (operator decision 2026-09-01, hackathon window).</p>`
+        : `<p class="rail-note"><strong>Gate: winner profile.</strong> A proposal must land on one of these three shapes or it is rejected before any order. Everything else the AI suggests is logged and dropped.</p>`) +
+      `<ul class="profile-list">${profiles}</ul>` +
       `</article>` +
       `<article class="card detail-card"><h3>Equity scalper</h3>` +
       row("Engine", eq.enabled ? "Enabled" : "Disarmed", eq.enabled ? "gain" : "muted") +

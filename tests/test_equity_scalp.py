@@ -203,8 +203,8 @@ def test_flatten_live_submits_close_for_the_right_symbol(monkeypatch):
     import run_scalp_equity as rse
     sent = {}
 
-    def fake_submit(client, *, symbol, side, qty, decision_id):
-        sent.update(symbol=symbol, side=side, qty=qty, decision_id=decision_id)
+    def fake_submit(client, *, symbol, side, qty, decision_id, **kw):
+        sent.update(symbol=symbol, side=side, qty=qty, decision_id=decision_id, **kw)
         return {"id": "o-1", "client_order_id": "c-1"}
 
     monkeypatch.setattr(rse, "_submit_market", fake_submit)
@@ -226,7 +226,7 @@ def test_flatten_live_closes_a_short_by_buying(monkeypatch):
     import run_scalp_equity as rse
     sent = {}
 
-    def fake_submit(client, *, symbol, side, qty, decision_id):
+    def fake_submit(client, *, symbol, side, qty, decision_id, **kw):
         sent.update(symbol=symbol, side=side)
         return {"id": "o-1"}
 
