@@ -68,7 +68,7 @@ options trading" on the evidence judges will look at (the account's orders).
 - [x] **C4b** Repo PUBLIC + MIT (operator approved 09-01 23:10 ET).
 
 ### 2. Trading window (Wed Sep 2, Thu Sep 3)
-- [ ] **T1** Watch every cycle on the comp account; confirm option fills appear in `/v2/orders` on PA371G5THNUO.
+- [x] **T1** 09-02 10:41 ET: two credit spreads FILLED via the CLI (CCL 22/20 put, T 28/30 call, 15 contracts each). Watch the 14:00 cycle and Thursday's.
 - [ ] **T2** Thu Sep 3: no positions expiring Sep 3 unless intended (assignment counts in the EOD equity). Decide whether to flatten before Thu close or hold.
 - [ ] **T3** Snapshot the account (equity, orders, positions) Thu after close for the write-up.
 

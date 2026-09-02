@@ -144,6 +144,17 @@ markers, the first keeps the old name). NOT enabled without the operator. Two da
 fail during market hours on 09-02 with the picker change reverted too: time-of-day dependent fixture, pre-existing.
 Engine two took its 10:15 trade (1 scalp open) through the CLI.
 
+**09-02 10:39 ET, FIRST OPTION FILLS on the competition account.** After the picker fix deployed, the operator asked
+to re-run the cycle past the window ("we need to do it"); `python3 run_cycle.py` was run by hand inside the
+container (the shell wrapper is the only thing that enforces the window). DeepSeek proposed CCL bullish 0.65 and
+T bearish 0.60; both passed the floor with the new picker and filled through the CLI within seconds:
+CCL Oct 16 22/20 put spread, 15 contracts at $0.41 credit ($615 collected, max loss $2,385);
+T Oct 16 28/30 call spread, 15 contracts at $0.18 credit ($270 collected, max loss $2,730).
+Both are registered in structures.jsonl and the exit sweep now watches them (50% target, 2x stop after two sweeps,
+21 DTE). Broker view right after: 4 option legs + the SPY scalp short (26 sh), equity $99,810 (bid/ask marks on the
+fresh spreads show about -$180 unrealized, the usual entry-mark effect). `OA_ENTRY_WINDOWS=10:15-10:27,14:00-14:12`
+set on Railway at ~10:48 (operator approved the afternoon cycle); the variable set triggered a redeploy.
+
 **Watch on 09-02:** the 10:15 ET cycle's `judged_against` row, the first
 `cli_calls.jsonl` rows from the container, and whether any spread actually
 fills (the picker still binds; a quiet-IV day can legitimately yield zero).
