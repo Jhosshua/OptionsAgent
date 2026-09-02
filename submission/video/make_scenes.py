@@ -374,12 +374,20 @@ def scene07() -> str:
 
 
 def _ui_scene(n: int, kicker: str, title: str, img: str, focus: tuple[float, float, float, float], start: float) -> str:
-    css = """
-    .h { top:150px; } .h h1 { font-size:60px; }
-    .shot { position:absolute; left:120px; top:270px; width:1680px; height:757px; border-radius:18px; overflow:hidden; border:1px solid var(--line); box-shadow:0 20px 60px rgba(0,0,0,.12); }
-    .shot img { width:1680px; height:757px; display:block; }
-    .kb { position:relative; width:1680px; height:757px; }
-    .focus { position:absolute; border-radius:14px; box-shadow: 0 0 0 4px var(--accent), 0 0 0 9999px rgba(250,248,245,.72); opacity:0; animation: fade .6s ease-out both; }
+    """Screenshot scene. The box takes the image's own aspect ratio (max 1680x840) so a
+    full-page capture is never sliced; the highlight rectangle is in % of the image."""
+    from PIL import Image as _Image
+    iw, ih = _Image.open(SCENES / img).size
+    scale = min(1680 / iw, 840 / ih)
+    bw, bh = int(iw * scale), int(ih * scale)
+    left = 120 + (1680 - bw) // 2
+    top = 230 + (840 - bh) // 2
+    css = f"""
+    .h {{ top:120px; }} .h h1 {{ font-size:56px; }}
+    .shot {{ position:absolute; left:{left}px; top:{top}px; width:{bw}px; height:{bh}px; border-radius:18px; overflow:hidden; border:1px solid var(--line); box-shadow:0 20px 60px rgba(0,0,0,.12); }}
+    .shot img {{ width:{bw}px; height:{bh}px; display:block; }}
+    .kb {{ position:relative; width:{bw}px; height:{bh}px; }}
+    .focus {{ position:absolute; border-radius:14px; box-shadow: 0 0 0 4px var(--accent), 0 0 0 9999px rgba(250,248,245,.72); opacity:0; animation: fade .6s ease-out both; }}
     """
     l, t, w, h = focus
     body = chrome(kicker, n) + f"""
@@ -396,7 +404,7 @@ def _focus(key: str, default: tuple[float, float, float, float]) -> tuple[float,
     hand-set default. Small padding so the ring does not touch the card."""
     try:
         r = json.loads((SCENES / "focus.json").read_text())[key]
-        pad_x, pad_y = 0.4, 0.9
+        pad_x, pad_y = 0.4, 0.6
         return (r["l"] - pad_x, r["t"] - pad_y, r["w"] + 2 * pad_x, r["h"] + 2 * pad_y)
     except Exception:
         return default
@@ -498,7 +506,7 @@ def scene12(n: dict) -> str:
     .repo b { color:#fff; }
     """
     body = chrome("Go check it", 12) + f"""
-    <div class="h fade" style="--d:.2s"><h1>Every idea, and every no, is on the dashboard. Live.</h1></div>
+    <div class="h fade" style="--d:.2s"><h1>Every idea, and every no, is on the dashboard. In real time.</h1></div>
     <div class="url fade" style="--d:var(--c-dash, 3.0s)">optionsagent-production.up.railway.app</div>
     <div class="line fade" style="--d:var(--c-check, 5.0s)">Practice account, $100,000 start. Watch it decide, and watch it say no.</div>
     <div class="repo fade" style="--d:var(--c-thanks, 7.0s)"><b>github.com/Jhosshua/OptionsAgent</b> · MIT · team Convexity</div>

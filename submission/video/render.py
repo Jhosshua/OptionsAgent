@@ -58,7 +58,7 @@ NARRATION = {
     6: "Getting out is a separate program with no AI in it. Every twenty minutes it checks each bet against three rules. "
        "Take the win when the contract is worth half the fee. Cut the loss at double the fee, but only after ten a m and only when two checks in a row agree. "
        "And never hold into the last three weeks. Same rules every day, written before the trade, never bent after it.",
-    7: "Engine two has no AI at all. It trades shares of the two biggest index funds, SPY and QQQ, using two rules found in six months of data. "
+    7: "Engine two has no AI at all. It trades shares of the two biggest index funds, using two rules found in six months of data. "
        "If the price runs too far too fast in the first forty five minutes, it bets on a pullback. If the market opened with a big jump, at one o'clock it goes with the jump. "
        "Twenty thousand dollars a trade. Out at a small loss or after two hours. Two trades a day, and it stops after losing three hundred. Everything is closed by three fifty.",
     8: "This is the live app. Both engines, one account. That card lists every idea the AI had today, and which rule said no. A no is written down exactly like a trade.",
@@ -76,7 +76,7 @@ CUES = {
     4: {"c-idea": "think", "c-much": "much", "c-when": "clock", "c-nothing": "nothing", "c-never": "touches"},
     5: {"c-morning": "morning", "c-fee": "sells", "c-five": "five"},
     6: {"c-win": "win", "c-loss": "cut", "c-weeks": "weeks", "c-noai": "same"},
-    7: {"c-spy": "spy", "c-rules": "rules", "c-fast": "fast", "c-jump": "jump", "c-twenty": "twenty", "c-stop": "loss", "c-twoaday": "day", "c-closed": "closed"},
+    7: {"c-spy": "biggest", "c-rules": "rules", "c-fast": "fast", "c-jump": "jump", "c-twenty": "twenty", "c-stop": "loss", "c-twoaday": "day", "c-closed": "closed"},
     8: {"c-ring": "card"},
     9: {"c-ring": "three"},
     10: {"c-reply": "reply", "c-logged": "logged", "c-fails": "fails"},
@@ -89,7 +89,7 @@ CUES = {
 
 def results_narration(n: dict) -> str:
     """Closing line. No live numbers on purpose: the dashboard is the results page."""
-    return ("Everything it does is on the dashboard, live. Every idea, and every no, with the rule that said it. "
+    return ("Everything it does is on the dashboard, in real time. Every idea, and every no, with the rule that said it. "
             "Go check it. Thanks for watching.")
 
 
