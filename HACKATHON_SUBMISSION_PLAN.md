@@ -65,8 +65,6 @@ options trading" on the evidence judges will look at (the account's orders).
 - [x] **C3** README hackathon section: disclosure, account ID, requirements mapping, the two deliberate changes.
 - [x] **C5** 276 tests green, 7 mutation checks caught; deployed to Railway 2026-09-01 23:00 ET (416c1fea) and verified in-container (CLI binary, env, adapter smoke, dry-run mleg, cron). Adversarial review findings (immediate-stop spreads, no dedupe, scalper bypassing the CLI, fills booked unconfirmed) fixed BEFORE deploy; see MEMORY.md.
 - [ ] **C4** LICENSE (MIT) + public repo: still the operator's call (D3).
-- [ ] **C4** Add LICENSE (MIT) if going public. Scrub: `git log -p --all -S 'PK' | head`, `.env*` never committed, dashboard has no secrets.
-- [ ] **C5** Tests green after C1/C2 (233 currently). Deploy to Railway, verify the first cron cycle Wed 10:15 ET through the new path in the journal.
 
 ### 2. Trading window (Wed Sep 2, Thu Sep 3)
 - [ ] **T1** Watch every cycle on the comp account; confirm option fills appear in `/v2/orders` on PA371G5THNUO.
