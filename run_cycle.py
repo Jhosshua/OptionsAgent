@@ -39,6 +39,7 @@ from harness.proposer import propose_report
 from harness.risk_rails import (
     active_rails,
     apply_opened_position,
+    RESEARCH_RULES_MAX_CLOSE_COST_X,
     active_credit_spread_gate,
     credit_spread_gate_decision,
     research_rules_missing_cap,
@@ -115,8 +116,7 @@ def _select_and_price(proposal, chain, cfg, positions_raw, conviction_size_frac)
         if proposal.direction not in ("bullish", "bearish"):
             return None, None, None, 0, 0, None, f"direction {proposal.direction!r} unusable for a vertical spread"
         select = select_credit_spread if st == "credit_spread" else select_debit_spread
-        pair = select(
-            chain,
+        kwargs = dict(
             direction=proposal.direction,
             delta_min=spreads["short_delta_min"] if st == "credit_spread" else longs["delta_min"],
             delta_max=spreads["short_delta_max"] if st == "credit_spread" else longs["delta_max"],
@@ -124,6 +124,10 @@ def _select_and_price(proposal, chain, cfg, positions_raw, conviction_size_frac)
             dte_max=spreads["dte_max"],
             max_width=spreads["max_width_usd"],
         )
+        if st == "credit_spread" and active_credit_spread_gate() == "research_rules":
+            # let the picker prefer pairs the liquidity floor will accept
+            kwargs["max_unwind_ratio"] = RESEARCH_RULES_MAX_CLOSE_COST_X
+        pair = select(chain, **kwargs)
         if pair is None:
             return None, None, None, 0, 0, None, "no_spread_matched_criteria"
         legs = [

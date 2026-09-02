@@ -130,6 +130,7 @@ def select_credit_spread(
     dte_min: int,
     dte_max: int,
     max_width: float,
+    max_unwind_ratio: float | None = None,
 ) -> SpreadLegs | None:
     """Vertical credit spread: sell a 15-30-delta short leg, buy a further-OTM
     long leg in the SAME expiry, width <= max_width (defined risk). The long
@@ -145,7 +146,7 @@ def select_credit_spread(
         and q.bid > 0
     ]
     best: SpreadLegs | None = None
-    best_score = float("-inf")
+    best_score: tuple = (-1, float("-inf"))
     for short in shorts:
         # further OTM: below for puts, above for calls; same expiry (same dte)
         candidates = [
@@ -175,10 +176,18 @@ def select_credit_spread(
         if not pairs:
             continue
         pairs.sort(key=lambda t: (t[0], t[1]))
-        legs = pairs[0][2]
-        # rank shorts by credit captured per dollar of defined risk, tempered by the
-        # wheel scorer's preference for lower delta / shorter DTE
+        ratio, _, legs = pairs[0]
+        # Rank shorts by credit captured per dollar of defined risk, tempered by
+        # the wheel scorer's preference for lower delta / shorter DTE. When the
+        # caller passes the exit rule's unwind ceiling, pairs that would pass it
+        # outrank every pair that would not (2026-09-02: the top-scoring short
+        # on T was a 30-DTE 27.5 whose best pair sat at 1.92x while the 44-DTE
+        # 28/30 pair sat at 1.35x; the gate rejected the winner).
         score = (legs.net_credit / legs.width) * (1 - abs(short.delta)) * (250 / (short.dte + 5))
+        if max_unwind_ratio is not None:
+            score = (1 if ratio < max_unwind_ratio else 0, score)
+        else:
+            score = (0, score)
         if score > best_score:
             best, best_score = legs, score
     return best

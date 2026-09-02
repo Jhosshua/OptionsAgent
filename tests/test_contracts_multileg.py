@@ -197,3 +197,19 @@ def test_credit_spread_takes_nearest_when_it_is_also_the_best_ratio():
     pair = select_credit_spread(chain, direction="bearish", delta_min=0.15, delta_max=0.30,
                                 dte_min=30, dte_max=45, max_width=2.0)
     assert pair.long.strike == 30.0  # lower ratio wins even when the nearest is fine
+
+
+def test_credit_spread_ranks_passing_pairs_above_higher_scoring_failing_ones():
+    """Today's T chain (2026-09-02): the 30-DTE 27.5C scores higher on credit/width but its best
+    pair unwinds at 1.92x; the 44-DTE 28C's $2 pair unwinds at 1.35x. With the floor passed in,
+    the picker must return the 28/30 pair. Without it, the old ranking stands."""
+    chain = [
+        _tq(27.5, 0.26, 0.28, 0.40, dte=30), _tq(28.0, 0.18, 0.16, 0.17, dte=30), _tq(28.5, 0.13, 0.12, 0.17, dte=30),
+        _tq(28.0, 0.22, 0.33, 0.41, dte=44), _tq(29.0, 0.14, 0.23, 0.22, dte=44), _tq(30.0, 0.09, 0.18, 0.16, dte=44),
+    ]
+    common = dict(direction="bearish", delta_min=0.15, delta_max=0.30, dte_min=30, dte_max=45, max_width=2.0)
+    with_floor = select_credit_spread(chain, max_unwind_ratio=1.5, **common)
+    assert (with_floor.short.strike, with_floor.long.strike, with_floor.short.dte) == (28.0, 30.0, 44)
+    assert (with_floor.short.ask - with_floor.long.bid) / with_floor.net_credit < 1.5
+    without = select_credit_spread(chain, **common)
+    assert without.short.dte == 30   # the old score still wins when no floor is given
