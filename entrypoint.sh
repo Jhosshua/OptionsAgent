@@ -152,10 +152,8 @@ print('[entrypoint] alert transport:', transport_status())
 # Announce the deploy in Discord. Never fatal.
 if [ -n "${DISCORD_WEBHOOK_URL:-}" ] || { [ -n "${NOTIFY_DISCORD_TOKEN:-}" ] && [ -n "${NOTIFY_DISCORD_CHANNEL:-}" ]; }; then
   python3 -c "
-from harness.env import active_phase, allowed_strategies
 from harness.notify import post
-ts = __import__('subprocess').run(['date', '+%H:%M ET'], capture_output=True, text=True, env={'TZ': 'America/New_York'}).stdout.strip()
-post(f'🚂 OptionsAgent is live on Railway ({ts}). Mode: {active_phase()} ({\", \".join(allowed_strategies())}), Alpaca PAPER.')
+post('### Wingspan is running\nOptions spreads and the stock strategy are being monitored. Trade updates and important alerts will appear here.')
 " || true
 fi
 
