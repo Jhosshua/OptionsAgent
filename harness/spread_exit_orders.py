@@ -61,17 +61,20 @@ class SpreadExitOrders:
             if value is None or not math.isfinite(float(value)):
                 raise ValueError("exit filled but broker fill price unavailable; awaiting reconciliation")
             price = float(value)
+            reason = record["reason"]
+            if reason.startswith("profit target") and structure.entry_net > 0:
+                reason = f"profit target reached ({1 - price / structure.entry_net:.0%} of credit captured)"
             # A single ledger event updates both exposure and realized P&L.
             newly_recorded = structures.record_exit_fill(structure, order_id=record["order_id"],
-                contracts=qty, price=price, reason=record["reason"])
+                contracts=qty, price=price, reason=reason)
             if newly_recorded:
                 pnl = round((structure.entry_net - price) * 100 * qty, 2)
                 decision_log.record({"kind": "exit", "ts": decision_log.now_iso(),
                     "structure_id": sid, "underlying": structure.underlying,
-                    "strategy_type": structure.strategy_type, "reason": record["reason"],
+                    "strategy_type": structure.strategy_type, "reason": reason,
                     "order_id": record["order_id"], "fill": info, "realized_pnl_usd": pnl})
                 notify.trade_closed(underlying=structure.underlying, strategy_type=structure.strategy_type,
-                    reason=record["reason"], pnl_usd=pnl, contracts=qty,
+                    reason=reason, pnl_usd=pnl, contracts=qty,
                     remaining=structure.contracts - qty)
         elif status == "rejected":
             notify.error(f"{structure.underlying}: the broker rejected the closing order. "

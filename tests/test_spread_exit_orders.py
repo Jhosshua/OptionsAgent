@@ -76,6 +76,7 @@ def test_later_fill_books_actual_price_before_missing_leg_reconciliation(setup):
     restarted.recover(c)
     assert not structures.load_open() and not restarted.pending
     assert '+$165.00' in messages[-1]
+    assert '61% of credit captured' in messages[-1]  # Actual fill, not the earlier 56% quote.
     opened, closed = dashboard_server._structure_records()
     assert not opened and closed[-1]['pnl_usd'] == 165 and closed[-1]['contracts'] == 15
 
