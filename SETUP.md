@@ -72,5 +72,5 @@ Entrypoint writes an explicit allowlist into `.env` because cron lacks the servi
 
 New variables must be added to code, Railway and the entrypoint allowlist together.
 The dashboard is public and observational; `/healthz` proves liveness only. Verify
-`/api/summary`, `/api/positions`, `/api/history`, `/api/risk` and `/api/system` as well.
+`/api/summary`, `/api/positions`, `/api/trades`, `/api/risk` and `/api/system` as well.
 Compare broker positions and persistent records before and after a deployment.

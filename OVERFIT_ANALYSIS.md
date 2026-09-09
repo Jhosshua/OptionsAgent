@@ -96,21 +96,12 @@ other known non-zero record is rejected by the profile. That 100% result is
 selection-biased and has no statistical significance; it is the requested
 overfit, not a claim that these symbols or thresholds have a durable edge.
 
-## Implemented change
+## Current disposition (reviewed 2026-09-09)
 
-`ScalpRails.entry_cutoff_et` is now **11:30 ET** and
-`ScalpRails.max_trades_per_day` is now **2**. The credit-spread seller now
-also applies `credit_spread_overfit_decision()` as a hard post-selection gate
-in `run_cycle.py`; the config mirror documents the profile but cannot loosen
-it. The profile must remain unchanged for a prospective sample of at least 30
-credit-spread round-trips before it is relaxed or refit.
-
-The local `claude-ds` wrapper was found and attempted, but the requested
-DeepSeek session hung without output and a direct API fallback reset the
-connection. No DeepSeek recommendation was received or represented as fact;
-`DEEPSEEK_CREDIT_SPREAD_PROMPT.md` contains the exact independent-review prompt.
-
-The optional Public.com read-only market-data sidecar was added after the replay. It can supply
-option chain bid/ask and per-contract Greeks while Alpaca remains execution-only; it is disabled
-by default and has not been live-smoke-tested because no Public credentials were available in the
-repository environment.
+The isolated 0DTE scalper retains its 11:30 cutoff and two-trade cap in code
+but remains disabled. The seller's historical winner profile remains selectable
+through `OA_CREDIT_SPREAD_GATE=winner_profile`. Production currently uses
+`research_rules` paired with the $3,000 cap, as documented in README.md.
+Public.com is the configured read-only options provider. The expired reviewer
+prompt, failed one-off CLI review attempt and pre-deployment setup notes have
+been removed; the measured research results above remain unchanged.
