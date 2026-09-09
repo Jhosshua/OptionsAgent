@@ -295,3 +295,28 @@ def test_submit_reraises_original_error_when_lookup_finds_nothing(cli_env, monke
     monkeypatch.setenv("OA_ALPACA_CLI", str(script))
     with pytest.raises(alpaca_cli.CliError, match="insufficient buying power"):
         _client().submit_equity_order(symbol="QQQ", side="buy", qty=1, decision_id="x")
+
+
+def test_closing_spread_preserves_close_intents_and_durable_client_id(cli_env, monkeypatch):
+    script = _fake_cli(cli_env, stdout=json.dumps({'id': 'close-1', 'status': 'new'}))
+    monkeypatch.setenv('OA_ALPACA_CLI', str(script))
+    _client().submit_mleg_order(legs=[
+        {'symbol': 'T261016C00028000', 'side': 'buy', 'ratio_qty': 1, 'position_intent': 'buy_to_close'},
+        {'symbol': 'T261016C00030000', 'side': 'sell', 'ratio_qty': 1, 'position_intent': 'sell_to_close'},
+    ], qty=15, limit_price=.09, decision_id='d', client_order_id='oa-exit-durable')
+    argv = _recorded(cli_env)['argv']
+    legs = json.loads(argv[argv.index('--legs') + 1])
+    assert [leg['position_intent'] for leg in legs] == ['buy_to_close', 'sell_to_close']
+    assert argv[argv.index('--client-order-id') + 1] == 'oa-exit-durable'
+    assert '--limit-price=0.09' in argv
+
+
+def test_lost_exit_response_recovery_only_matches_its_client_id(cli_env, monkeypatch):
+    script = _fake_cli(cli_env, stdout=json.dumps([
+        {'id': 'other', 'client_order_id': 'oa-other'},
+        {'id': 'ours', 'client_order_id': 'oa-exit-durable'}]))
+    monkeypatch.setenv('OA_ALPACA_CLI', str(script))
+    assert _client().find_exit_order('oa-exit-durable', '2026-09-09T14:00:00Z')['id'] == 'ours'
+    argv = _recorded(cli_env)['argv']
+    assert argv[:2] == ['order', 'list']
+    assert argv[argv.index('--status') + 1] == 'all'

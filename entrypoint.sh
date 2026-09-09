@@ -8,10 +8,21 @@
 #   4. Install the cron schedule and hand off to cron in the foreground (PID 1).
 set -euo pipefail
 
-APP=/Users/mo/OptionsAgent
+APP=/Users/mo/wingspan
 ENV_FILE="$APP/.env"
 
-echo "[entrypoint] OptionsAgent starting at $(TZ=America/New_York date '+%Y-%m-%d %H:%M:%S %Z')"
+# During a folder migration the existing volume may still use its old mount.
+# Always use that same volume; never start a second, empty trading ledger.
+if [ -n "${RAILWAY_ENVIRONMENT_ID:-}" ]; then
+  VOLUME_PATH="${RAILWAY_VOLUME_MOUNT_PATH:?Persistent volume is required}"
+  [ -d "$VOLUME_PATH" ] || { echo "[entrypoint] missing persistent volume"; exit 1; }
+  if [ "$VOLUME_PATH" != "$APP/data" ]; then
+    if [ -d "$APP/data" ] && [ ! -L "$APP/data" ]; then rmdir "$APP/data"; fi
+    ln -sfn "$VOLUME_PATH" "$APP/data"
+  fi
+fi
+
+echo "[entrypoint] Wingspan starting at $(TZ=America/New_York date '+%Y-%m-%d %H:%M:%S %Z')"
 
 # --- 1. Inject secrets from Railway env -> .env (upsert) ---
 # ⚠️ This allowlist is a known 3-touch-point gotcha (see fleet memory): adding a
@@ -22,7 +33,7 @@ import os, sys
 env_file = sys.argv[1]
 secret_keys = [
     "ALPACA_API_KEY", "ALPACA_SECRET_KEY", "ALPACA_PAPER",
-    "OA_TRADING_ENABLED", "OA_DASHBOARD_HOST",
+    "OA_TRADING_ENABLED", "OA_DASHBOARD_HOST", "OA_DASHBOARD_URL",
     "ANTHROPIC_API_KEY", "OA_ANTHROPIC_MODEL", "OA_MAX_TOKENS",
     # The AI proposer (harness/proposer.py). Since 2026-09-01 the container
     # calls the DeepSeek API with DEEPSEEK_API_KEY. A missing key = the
@@ -100,7 +111,7 @@ rm -rf "$APP/logs"
 ln -sfn "$APP/data/logs" "$APP/logs"
 
 # --- 4. Install cron schedule + run cron in the foreground ---
-install -m 0644 -o root -g root "$APP/cron/crontab.railway" /etc/cron.d/optionsagent
+install -m 0644 -o root -g root "$APP/cron/crontab.railway" /etc/cron.d/wingspan
 
 # Dashboard is supervised independently from cron. It is intentionally not a
 # Railway healthcheck: a dashboard crash must not bounce cron mid-trade.

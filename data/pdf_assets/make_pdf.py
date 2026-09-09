@@ -5,8 +5,8 @@ import json
 import urllib.request
 import websockets
 
-OUT = "/Users/mo/OptionsAgent/OptionsAgent-Explainer.pdf"
-URL = "file:///Users/mo/OptionsAgent/data/pdf_assets/explainer.html"
+OUT = "/Users/mo/wingspan/OptionsAgent-Explainer.pdf"
+URL = "file:///Users/mo/wingspan/data/pdf_assets/explainer.html"
 
 
 def http_json(path, method="GET"):
@@ -46,7 +46,7 @@ async def main():
         await cmd("Emulation.setDeviceMetricsOverride",
                   {"width": 1056, "height": 816, "deviceScaleFactor": 1, "mobile": False})
         shot = await cmd("Page.captureScreenshot", {"format": "png"})
-        with open("/Users/mo/OptionsAgent/data/pdf_assets/page1_check.png", "wb") as f:
+        with open("/Users/mo/wingspan/data/pdf_assets/page1_check.png", "wb") as f:
             f.write(base64.b64decode(shot["data"]))
         print("page1 check saved")
         await cmd("Target.closeTarget", {"targetId": page["id"]}) if False else None

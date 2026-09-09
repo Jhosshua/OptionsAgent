@@ -435,7 +435,7 @@ def run() -> None:
                 # notify prints Credit for >= 0, Debit for < 0: long
                 # structures pay a debit, short premium collects a credit
                 credit_or_debit=(-entry_net if proposal.strategy_type in LONG_TYPES else entry_net),
-                thesis=proposal.thesis,
+                thesis=proposal.thesis, contracts=contracts, legs=legs,
             )
         else:
             record["outcome"] = f"execution_failed: {result.reason}"

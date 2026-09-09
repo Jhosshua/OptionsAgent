@@ -1,8 +1,8 @@
-# Options bot research — Phase 1 (in progress)
+> Research archive reviewed 2026-09-09. Historical experiments and sources below
+> explain research decisions; current operation is defined in README.md and SETUP.md.
+> In-sample results are not forecasts or current account performance.
 
-> **CURRENT RUNTIME NOTE — 2026-08-28:** Research is consumed by the local paper robot. Claude Code
-> CLI proposes only direction/strategy; deterministic Python still selects contracts, sizes, and
-> executes through Alpaca paper. No Anthropic API key or Railway deployment is part of the runtime.
+# Wingspan options research — dated research archive
 
 ## 2026-08-27 — archived trade replay
 

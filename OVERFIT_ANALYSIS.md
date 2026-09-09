@@ -1,11 +1,8 @@
-# OptionsAgent historical analysis — 2026-08-27
+> Research archive reviewed 2026-09-09. Historical experiments and sources below
+> explain research decisions; current operation is defined in README.md and SETUP.md.
+> In-sample results are not forecasts or current account performance.
 
-> **CURRENT RUNTIME NOTE — 2026-09-01:** This is an historical research report. The bot runs on
-> Railway (new project, 2026-09-01) with the DeepSeek API as proposer, Public.com as read-only
-> options data, and the official Alpaca CLI as the paper-order transport. The winner profile this
-> report produced is still the DEFAULT gate (`OA_CREDIT_SPREAD_GATE=winner_profile`); for the
-> Alpaca hackathon window it is bypassed by `research_rules` (see README / MEMORY.md 2026-09-01).
-> (The 2026-08-28 note that stood here described the local Claude-CLI runtime, since replaced.)
+# Wingspan historical analysis — 2026-08-27
 
 This report is based on the archived Railway volume in `data/` and is
 reproducible with:
@@ -117,8 +114,3 @@ The optional Public.com read-only market-data sidecar was added after the replay
 option chain bid/ask and per-contract Greeks while Alpaca remains execution-only; it is disabled
 by default and has not been live-smoke-tested because no Public credentials were available in the
 repository environment.
-
-At the time of this report (2026-08-27) the repository was **not deployed**: the
-original Railway project, volume, broker keys, LLM key, and Discord webhook had
-been deleted on 2026-08-02. It has since been redeployed to a new Railway project
-(2026-09-01) on a new paper account; see SETUP.md.

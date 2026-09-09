@@ -218,7 +218,7 @@ def _structure_records() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         if event_name == "opened" and event.get("structure_id"):
             opened_ts = str(event.get("opened_ts") or event.get("ts") or "")
             opened[(str(event["structure_id"]), opened_ts)] = dict(event, opened_ts=opened_ts)
-        elif event_name == "closed" and event.get("structure_id"):
+        elif event_name in ("closed", "exit_fill") and event.get("structure_id"):
             structure_id = str(event["structure_id"])
             close_ts = _parse_ts(event.get("ts")) or _now()
             candidates = [
@@ -229,7 +229,11 @@ def _structure_records() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
             if candidates:
                 key, opening = max(candidates, key=lambda pair: pair[1].get("opened_ts", ""))
                 closed.append({**opening, **event, "opened_ts": opening.get("opened_ts", "")})
-                opened.pop(key, None)
+                remaining = int(event.get("remaining_contracts") or 0)
+                if remaining:
+                    opened[key] = dict(opening, contracts=remaining)
+                else:
+                    opened.pop(key, None)
             else:
                 closed.append(dict(event))
     return list(opened.values()), closed

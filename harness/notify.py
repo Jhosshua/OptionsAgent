@@ -1,17 +1,16 @@
-"""Discord notifications. Fail-open: a broken webhook must never crash a
-trading cycle — log the error locally and move on. Mirrors the sibling bots'
-notify.py posture (plain-language, no unexplained jargon, per operator
-preference logged in cross-bot memory)."""
-
+"""Wingspan Discord Components V2 cards. Notification failures never stop trading."""
 from __future__ import annotations
 
 import logging
+import re
+from urllib.parse import urlparse
 
 import requests
 
 from harness.env import env
 
-log = logging.getLogger("optionsagent.notify")
+log = logging.getLogger("wingspan.notify")
+DEFAULT_DASHBOARD_URL = "https://optionsagent-production.up.railway.app"
 
 
 def _webhook_url() -> str | None:
@@ -19,62 +18,58 @@ def _webhook_url() -> str | None:
 
 
 def _bot_credentials() -> tuple[str, str] | None:
-    """Bot-token transport, used when no webhook is configured.
+    token, channel = env("NOTIFY_DISCORD_TOKEN"), env("NOTIFY_DISCORD_CHANNEL")
+    return (token, channel) if token and channel else None
 
-    The fleet's other bots page through a Discord BOT (NOTIFY_DISCORD_TOKEN +
-    NOTIFY_DISCORD_CHANNEL) rather than a webhook. Supporting both means this
-    bot can alert using credentials that already exist, instead of being mute
-    until someone creates a webhook — and mute is the failure that matters here,
-    because the proposer FAILS CLOSED: no CLI, no trades, all day, quietly.
-    """
-    token = env("NOTIFY_DISCORD_TOKEN")
-    channel = env("NOTIFY_DISCORD_CHANNEL")
-    if token and channel:
-        return token, channel
-    return None
+
+def dashboard_url() -> str:
+    url = (env("OA_DASHBOARD_URL") or DEFAULT_DASHBOARD_URL).strip()
+    parsed = urlparse(url)
+    return url if parsed.scheme == "https" and parsed.hostname and not parsed.username else DEFAULT_DASHBOARD_URL
+
+
+def card_payload(message: str) -> dict:
+    """Exactly one container, with its dashboard button inside the card."""
+    message = str(message).replace("OptionsAgent", "Wingspan")
+    color = 0xD95846 if "⚠" in message or "error" in message.lower() else 0xD34836
+    return {
+        "flags": 1 << 15,
+        "allowed_mentions": {"parse": []},
+        "components": [{"type": 17, "accent_color": color, "components": [
+            {"type": 10, "content": "## Wingspan\n-# Paper trading"},
+            {"type": 14, "divider": True, "spacing": 1},
+            {"type": 10, "content": message[:3500]},
+            {"type": 1, "components": [{"type": 2, "style": 5,
+                "label": "Open dashboard", "url": dashboard_url()}]},
+        ]}],
+    }
 
 
 def post(message: str) -> bool:
-    """Send to Discord via webhook if configured, else via the bot token.
-
-    Fail-open in both directions: a broken transport logs and returns False, and
-    never raises into a trading cycle.
-    """
+    payload = card_payload(message)
     url = _webhook_url()
+    kwargs = {"json": payload, "timeout": 10}
     if url:
-        try:
-            resp = requests.post(url, json={"content": message}, timeout=10)
-            resp.raise_for_status()
-            return True
-        except Exception as e:  # fail-open — never let Discord break a cycle
-            log.error("Discord webhook post failed: %s", e)
+        kwargs["params"] = {"with_components": "true", "wait": "true"}
+    else:
+        creds = _bot_credentials()
+        if not creds:
+            log.warning("no Discord transport — notification skipped")
             return False
-
-    creds = _bot_credentials()
-    if creds:
         token, channel = creds
-        try:
-            resp = requests.post(
-                f"https://discord.com/api/v10/channels/{channel}/messages",
-                headers={"Authorization": f"Bot {token}"},
-                json={"content": message},
-                timeout=10,
-            )
-            resp.raise_for_status()
-            return True
-        except Exception as e:  # fail-open
-            log.error("Discord bot post failed: %s", e)
-            return False
-
-    log.warning(
-        "no Discord transport (set DISCORD_WEBHOOK_URL, or NOTIFY_DISCORD_TOKEN "
-        "+ NOTIFY_DISCORD_CHANNEL) — skipping notification: %s", message
-    )
-    return False
+        url = f"https://discord.com/api/v10/channels/{channel}/messages"
+        kwargs["headers"] = {"Authorization": f"Bot {token}"}
+    try:
+        resp = requests.post(url, **kwargs)
+        resp.raise_for_status()
+        return True
+    except Exception as exc:
+        # Exception text may contain a webhook URL (including its secret token).
+        log.error("Discord card delivery failed (%s)", type(exc).__name__)
+        return False
 
 
 def transport_status() -> str:
-    """Which transport is live. Used at boot so a mute bot is visible on day one."""
     if _webhook_url():
         return "Discord (webhook)"
     if _bot_credentials():
@@ -82,27 +77,51 @@ def transport_status() -> str:
     return "NO DISCORD TRANSPORT — alerts are log-only"
 
 
-def trade_opened(*, underlying: str, strategy_type: str, strike: float, dte: int, credit_or_debit: float, thesis: str) -> None:
-    post(
-        f"**Opened {strategy_type.replace('_', ' ')}** on {underlying}\n"
-        f"Strike {strike}, {dte} days to expiration\n"
-        f"{'Credit' if credit_or_debit >= 0 else 'Debit'}: ${abs(credit_or_debit):.2f}\n"
-        f"Why: {thesis}"
-    )
+def trade_opened(*, underlying: str, strategy_type: str, strike: float, dte: int,
+                 credit_or_debit: float, thesis: str, contracts: int | None = None,
+                 legs: list | None = None) -> None:
+    detail = f"Strike **${strike:g}** · **{dte} days** to expiration"
+    if legs:
+        detail = " / ".join(f"${leg.strike:g}" for leg in legs) + f" {legs[0].right} spread · **{dte} days** to expiration"
+    size = f"**{contracts} spreads** · " if contracts is not None and strategy_type == "credit_spread" else ""
+    total = f" · **${abs(credit_or_debit) * 100 * contracts:,.2f} total**" if contracts else ""
+    post(f"### {underlying} · Trade opened\n{size}{strategy_type.replace('_', ' ').title()}\n"
+         f"{detail}\n{'Credit received' if credit_or_debit >= 0 else 'Debit paid'}: "
+         f"**${abs(credit_or_debit):.2f} per share**{total}\n\n**Why this trade**\n{thesis}")
 
 
 def trade_vetoed(*, underlying: str, strategy_type: str, reason: str) -> None:
-    post(f"**Passed** on {underlying} ({strategy_type.replace('_', ' ')}): {reason}")
+    match = re.search(r"already at max_concurrent_positions \((\d+)\)", reason)
+    if match:
+        cap = int(match.group(1))
+        reason = (f"All {cap} option-leg slots are in use. Each credit spread uses two slots "
+                  f"({cap // 2} spreads at this limit). Waiting for an existing position to close.")
+    post(f"### {underlying} · No new trade\n{reason}")
 
 
-def trade_closed(*, underlying: str, strategy_type: str, reason: str, pnl_usd: float) -> None:
-    sign = "+" if pnl_usd >= 0 else "-"
-    post(
-        f"**Closed {strategy_type.replace('_', ' ')}** on {underlying}\n"
-        f"Reason: {reason}\n"
-        f"P&L: {sign}${abs(pnl_usd):.2f}"
-    )
+def trade_closed(*, underlying: str, strategy_type: str, reason: str,
+                 pnl_usd: float | None, contracts: int | None = None,
+                 remaining: int = 0, estimated: bool = False) -> None:
+    status = "Partially closed" if remaining else "Trade closed"
+    pnl = "Awaiting broker fill price" if pnl_usd is None else f"**{'+' if pnl_usd >= 0 else '-'}${abs(pnl_usd):,.2f}**"
+    count = f"{contracts} spreads filled. " if contracts is not None else ""
+    rest = f"{remaining} spreads remain open. " if remaining else ""
+    post(f"### {underlying} · {status}\n{count}{rest}{strategy_type.replace('_', ' ').title()}\n"
+         f"{'Estimated ' if estimated else ''}P&L before fees: {pnl}\n**Reason:** {reason}")
+
+
+def exit_pending(*, underlying: str, contracts: int, limit_price: float, reason: str) -> None:
+    post(f"### {underlying} · Profit-taking order working\n"
+         f"Closing **{contracts} spreads** with a limit of **${limit_price:.2f} per share**.\n"
+         "The broker has not filled the entire order yet. It stays active for the trading day; "
+         "Wingspan tracks it and continues checking risk limits. P&L is reported after confirmed fills.")
+
+
+def equity_update(message: str) -> None:
+    message = message.replace("morning_fade", "morning reversal").replace("time_exit", "holding-time limit")
+    message = message.replace("gap_follow", "gap continuation").replace("rule=", "Strategy: ")
+    post("### Stock strategy\n" + message)
 
 
 def error(message: str) -> None:
-    post(f":warning: **OptionsAgent error:** {message}")
+    post(f"### ⚠️ Attention needed\n{message}")

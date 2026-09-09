@@ -448,6 +448,7 @@ class PaperClient:
         qty: int,
         limit_price: float,
         decision_id: str,
+        client_order_id: str | None = None,
     ) -> dict[str, Any]:
         """Multi-leg combo order (spreads, long straddles). Always LIMIT —
         research: sequential single legs lose midpoint pricing and eat
@@ -459,10 +460,11 @@ class PaperClient:
         if not legs or len(legs) < 2:
             raise ValueError("mleg order needs at least 2 legs")
         if self._use_cli():
-            client_order_id = f"{ORDER_PREFIX}{decision_id}-{uuid.uuid4().hex[:8]}"
+            client_order_id = client_order_id or f"{ORDER_PREFIX}{decision_id}-{uuid.uuid4().hex[:8]}"
             legs_json = json.dumps(
                 [
-                    {"symbol": leg["symbol"], "side": leg["side"], "ratio_qty": str(int(leg["ratio_qty"]))}
+                    {"symbol": leg["symbol"], "side": leg["side"], "ratio_qty": str(int(leg["ratio_qty"])),
+                     **({"position_intent": leg["position_intent"]} if leg.get("position_intent") else {})}
                     for leg in legs
                 ],
                 separators=(",", ":"),
@@ -484,10 +486,11 @@ class PaperClient:
                 symbol=leg["symbol"],
                 side=OrderSide.BUY if leg["side"] == "buy" else OrderSide.SELL,
                 ratio_qty=leg["ratio_qty"],
+                **({"position_intent": leg["position_intent"]} if leg.get("position_intent") else {}),
             )
             for leg in legs
         ]
-        client_order_id = f"{ORDER_PREFIX}{decision_id}-{uuid.uuid4().hex[:8]}"
+        client_order_id = client_order_id or f"{ORDER_PREFIX}{decision_id}-{uuid.uuid4().hex[:8]}"
         req = LimitOrderRequest(
             qty=qty,
             order_class=OrderClass.MLEG,
@@ -533,6 +536,15 @@ class PaperClient:
             "filled_qty": float(order.filled_qty or 0),
             "filled_avg_price": _f(getattr(order, "filled_avg_price", None)),
         }
+
+    def find_exit_order(self, client_order_id: str, after: str) -> dict[str, Any] | None:
+        """Recover a submission whose response was lost. Reads only; never resubmits."""
+        if self._use_cli():
+            orders = self._cli(["order", "list", "--status", "all", "--after", after,
+                                "--limit", "500", "--nested"])
+            return next((o for o in orders if o.get("client_order_id") == client_order_id), None)
+        order = self._trading_client().get_order_by_client_id(client_order_id)
+        return {"id": str(order.id)}
 
     # -- underlying stock data (proposer market context) -------------------
 

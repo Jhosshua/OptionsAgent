@@ -7,10 +7,10 @@
 	<key>ProgramArguments</key>
 	<array>
 		<string>/bin/zsh</string>
-		<string>/Users/mo/OptionsAgent/deploy/run_local_dashboard.sh</string>
+		<string>/Users/mo/wingspan/deploy/run_local_dashboard.sh</string>
 	</array>
 	<key>WorkingDirectory</key>
-	<string>/Users/mo/OptionsAgent</string>
+	<string>/Users/mo/wingspan</string>
 	<key>RunAtLoad</key>
 	<true/>
 	<key>KeepAlive</key>
@@ -22,8 +22,8 @@
 	<key>LimitLoadToSessionType</key>
 	<string>Aqua</string>
 	<key>StandardOutPath</key>
-	<string>/Users/mo/OptionsAgent/data/logs/dashboard-local.out.log</string>
+	<string>/Users/mo/wingspan/data/logs/dashboard-local.out.log</string>
 	<key>StandardErrorPath</key>
-	<string>/Users/mo/OptionsAgent/data/logs/dashboard-local.err.log</string>
+	<string>/Users/mo/wingspan/data/logs/dashboard-local.err.log</string>
 </dict>
 </plist>

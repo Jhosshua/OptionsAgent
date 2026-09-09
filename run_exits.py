@@ -21,6 +21,7 @@ from harness.alpaca_glue import make_client
 from harness.dividends import upcoming_dividend
 from harness.env import config
 from harness.execution import confirm_fill
+from harness.spread_exit_orders import SpreadExitOrders
 from harness.exits import (
     HAS_SHORT_CALL,
     LONG_TYPES,
@@ -133,6 +134,8 @@ def _close_structure(client, structure: structures.Structure, quotes: dict, deci
 def run() -> None:
     cfg = config()
     client = make_client()
+    spread_orders = SpreadExitOrders()
+    spread_orders.recover(client)
     stop_state = exit_state.load()
     stop_state_dirty = False
     now_et = datetime.now(ET)
@@ -157,6 +160,8 @@ def run() -> None:
     intact, vanished = structures.reconcile(open_structures, live_option_symbols)
 
     for s in vanished:
+        if s.structure_id in spread_orders.pending:
+            continue  # An in-flight exit must reconcile before missing-leg classification.
         # Legs missing from the account is NOT automatically an assignment:
         # structures are recorded on order SUBMISSION, so an unfilled limit
         # order looks identical to a vanished position (2026-07-07 incident).
@@ -283,6 +288,16 @@ def run() -> None:
                 )
                 stop_state_dirty = True
         if not decision.should_close:
+            continue
+
+        if s.strategy_type == "credit_spread":
+            try:
+                spread_orders.close(client, s, net=net, reason=decision.reason,
+                                    profit_target_pct=rules.profit_target_pct)
+            except Exception as exc:
+                log.exception("spread close failed for %s", s.underlying)
+                notify.error(f"{s.underlying}: closing order needs reconciliation ({type(exc).__name__}). "
+                             "The position remains tracked.")
             continue
 
         decision_id = decision_log.new_decision_id()

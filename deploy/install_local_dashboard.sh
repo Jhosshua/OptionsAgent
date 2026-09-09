@@ -1,7 +1,7 @@
 #!/bin/zsh
 set -euo pipefail
 
-APP="/Users/mo/OptionsAgent"
+APP="/Users/mo/wingspan"
 LABEL="com.optionsagent.dashboard"
 PLIST_DIR="$HOME/Library/LaunchAgents"
 PLIST_TARGET="$PLIST_DIR/$LABEL.plist"

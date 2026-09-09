@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from typing import Any
 
@@ -46,6 +46,26 @@ def _append(event: dict[str, Any], path: str | None = None) -> None:
     os.makedirs(os.path.dirname(p), exist_ok=True)
     with open(p, "a", encoding="utf-8") as fh:
         fh.write(json.dumps(event, default=str) + "\n")
+        fh.flush()
+        os.fsync(fh.fileno())
+
+
+def record_exit_fill(structure: Structure, *, order_id: str, contracts: int,
+                     price: float, reason: str, path: str | None = None) -> bool:
+    """One durable event books P&L and reduces exposure, idempotent by order ID."""
+    p = path or STRUCTURES_PATH
+    if os.path.exists(p):
+        with open(p, encoding="utf-8") as fh:
+            if any(json.loads(line).get("exit_order_id") == order_id for line in fh if line.strip()):
+                return False
+    if not 0 < contracts <= structure.contracts:
+        raise ValueError("exit fill quantity outside tracked position")
+    _append({"event": "exit_fill", "ts": _now(), "structure_id": structure.structure_id,
+             "exit_order_id": order_id, "contracts": contracts,
+             "remaining_contracts": structure.contracts - contracts,
+             "fill_price": price, "reason": reason,
+             "pnl_usd": round((structure.entry_net - price) * 100 * contracts, 2)}, path)
+    return True
 
 
 def record_opened(structure: Structure, path: str | None = None) -> None:
@@ -83,6 +103,13 @@ def load_open(path: str | None = None) -> list[Structure]:
                 )
             elif event["event"] == "closed":
                 opened.pop(event["structure_id"], None)
+            elif event["event"] == "exit_fill":
+                sid = event["structure_id"]
+                remaining = int(event["remaining_contracts"])
+                if remaining and sid in opened:
+                    opened[sid] = replace(opened[sid], contracts=remaining)
+                else:
+                    opened.pop(sid, None)
     return list(opened.values())
 
 

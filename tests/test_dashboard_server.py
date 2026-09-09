@@ -136,6 +136,7 @@ def _write_scalp_journal(tmp_path, monkeypatch, events):
 
 def test_equity_scalp_journal_pairs_opens_with_closes(tmp_path, monkeypatch):
     _write_scalp_journal(tmp_path, monkeypatch, SCALP_EVENTS)
+    monkeypatch.setattr(dashboard, "_et_today", lambda: "2026-09-01")
     open_rows, closed = dashboard._equity_scalp_records()
 
     assert [row["underlying"] for row in open_rows] == ["QQQ"]
@@ -200,6 +201,7 @@ def test_short_position_unrealized_pnl_is_positive_when_price_falls(tmp_path, mo
     """Alpaca's facade returns no unrealized P/L. Market value minus cost basis
     must read correctly for a SHORT, whose cost basis is negative proceeds."""
     _write_scalp_journal(tmp_path, monkeypatch, SCALP_EVENTS)
+    monkeypatch.setattr(dashboard, "_et_today", lambda: "2026-09-01")
     open_rows, _ = dashboard._equity_scalp_records()
     snapshot = {"positions": [
         {"symbol": "QQQ", "qty": -28.0, "cost_basis": -19848.92, "market_value": -19787.88},

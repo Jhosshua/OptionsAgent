@@ -40,7 +40,7 @@ RUN set -eux; \
     /usr/local/bin/alpaca version
 
 # Mirror the Mac path for consistency with the sibling bots' containers.
-WORKDIR /Users/mo/OptionsAgent
+WORKDIR /Users/mo/wingspan
 
 # Python deps first (layer cache: only re-runs when requirements.txt changes).
 COPY requirements.txt ./
@@ -51,4 +51,4 @@ COPY . .
 RUN chmod +x entrypoint.sh cron/*.sh \
     && sed -i 's/\r$//' entrypoint.sh cron/*.sh 2>/dev/null || true
 
-ENTRYPOINT ["/Users/mo/OptionsAgent/entrypoint.sh"]
+ENTRYPOINT ["/Users/mo/wingspan/entrypoint.sh"]

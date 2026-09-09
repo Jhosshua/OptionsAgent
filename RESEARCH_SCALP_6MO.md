@@ -1,3 +1,7 @@
+> Research archive reviewed 2026-09-09. Historical experiments and sources below
+> explain research decisions; current operation is defined in README.md and SETUP.md.
+> In-sample results are not forecasts or current account performance.
+
 # 0DTE ORB scalper, 6-month overfit search (2026-08-28): NULL RESULT
 
 Operator ask: pull 3-6 months of data, overfit the scalper leg for the highest
@@ -37,18 +41,6 @@ expectancy, deploy at ~$20k / ~50 contracts with tight risk controls.
   July's 36 real fills (net losers) and with the repo's per-ticker day-trade
   studies (all null).
 
-## Decision (pending operator)
-
-Deploying ~50 contracts x ~$150 premium on a robustly negative-expectancy rule
-scales a proven loser to roughly -$700 to -$1,000 expected per day. The "highest
-expectancy overfit" the operator asked for does not exist in this data; per the
-house rule, a failed falsification is a KILL, not a caveat. Options presented:
-keep the scalper at the $250 learning size (current state), or disable it.
-
-Artifacts: `research_scalp_6mo_pull.py`, `research_scalp_6mo.py`,
-`data/research_scalp_6mo/results.json` (gitignored data dir).
-Codex adversarial plan review: running at time of writing; verdict to be
-appended.
 
 ## Corrections and final outcome (same night, post codex review)
 
@@ -62,17 +54,11 @@ Codex diff review found two research bugs, both fixed and rerun:
    t-stats under 1.1 and inconsistent IS/OOS — statistically zero. Shares remain
    the only expression that harvests the edge.
 
-## Deployed (operator instruction): the EQUITY scalper replaces the option scalper
+## Current disposition (reviewed 2026-09-09)
 
-- 0DTE option scalper RETIRED (OA_SCALP_ENABLED=false, cron line removed):
-  no positive-expectancy configuration exists in 16,384 combos.
-- NEW run_scalp_equity.py + harness/equity_scalp.py, rules frozen from the study:
-  morning fade (SPY+QQQ 10:15 window, fade beyond vwap+15m range, +$23.6/trade
-  in-sample, 60% win) and QQQ gap follow (13:00 window, |gap|>0.8%, +$34.3/trade,
-  64% win, OOS t=+3.1). One slot per rule per day.
-- Rails (harness/risk_rails.py EquityScalpRails, env tighten-only): $20k notional,
-  max 2 trades/day, max 2 open, 0.7% stop on INTRABAR extremes, 120m time exit,
-  mandatory 15:50 flatten, -$300 daily halt, orphan adoption, fail-closed broker
-  reconciliation. Cron: * 9-15 * * 1-5 cron/equity_scalp.sh. 177 tests green.
-- Honest framing: both rules are deliberate in-sample overfits, frozen. LIVE
-  TRADING IS THE OUT-OF-SAMPLE TEST. Expectancy numbers are replay estimates.
+The 0DTE options scalper remains disabled by `OA_SCALP_ENABLED=false`; its
+conditional cron entry remains in the schedule. The separate stock scalper
+uses the frozen morning-reversal and QQQ gap-continuation rules. See README.md
+for current limits and SETUP.md for deployment. The study estimates above
+are historical research results; only broker/journal records demonstrate
+subsequent paper performance.

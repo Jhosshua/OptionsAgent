@@ -39,7 +39,8 @@ def test_webhook_is_used_when_configured(monkeypatch):
     monkeypatch.setattr(notify.requests, "post", fake_post)
     assert notify.post("hello") is True
     assert calls["url"] == "https://hook.example/abc"
-    assert calls["kwargs"]["json"] == {"content": "hello"}
+    assert calls["kwargs"]["json"] == notify.card_payload("hello")
+    assert calls["kwargs"]["params"]["with_components"] == "true"
     assert notify.transport_status() == "Discord (webhook)"
 
 
@@ -116,3 +117,28 @@ def test_the_page_cannot_break_the_cycle_if_notify_itself_explodes(monkeypatch):
     )
     # Must still degrade to no-trade rather than propagate.
     assert proposer.propose({"phase": "x", "allowed_strategies": [], "watchlist": []}) == []
+
+
+def test_v2_card_has_one_container_and_a_dashboard_button(monkeypatch):
+    monkeypatch.setenv("OA_DASHBOARD_URL", "https://example.com/dashboard")
+    payload = notify.card_payload("T closed @everyone")
+    assert payload["flags"] == 32768
+    assert "content" not in payload and "embeds" not in payload
+    assert payload["allowed_mentions"] == {"parse": []}
+    assert len(payload["components"]) == 1
+    card = payload["components"][0]
+    assert card["type"] == 17
+    button = card["components"][-1]["components"][0]
+    assert button == {"type": 2, "style": 5, "label": "Open dashboard", "url": "https://example.com/dashboard"}
+
+
+def test_invalid_dashboard_link_falls_back(monkeypatch):
+    monkeypatch.setenv("OA_DASHBOARD_URL", "javascript:alert(1)")
+    assert notify.dashboard_url() == notify.DEFAULT_DASHBOARD_URL
+
+
+def test_capacity_message_explains_legs_and_spreads(monkeypatch):
+    sent=[]
+    monkeypatch.setattr(notify, "post", lambda msg: sent.append(msg))
+    notify.trade_vetoed(underlying="MARA", strategy_type="credit_spread", reason="already at max_concurrent_positions (6)")
+    assert "6 option-leg slots" in sent[0] and "3 spreads" in sent[0]

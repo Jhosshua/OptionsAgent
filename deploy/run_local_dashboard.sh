@@ -1,7 +1,7 @@
 #!/bin/zsh
 set -euo pipefail
 
-APP="/Users/mo/OptionsAgent"
+APP="/Users/mo/wingspan"
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 export OA_DASHBOARD_HOST="127.0.0.1"
 export PORT="8765"

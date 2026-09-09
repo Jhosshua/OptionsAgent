@@ -83,7 +83,7 @@ def _log(record: dict) -> None:
 
 
 def _post(msg: str) -> None:
-    notify.post(f"◆ EQ-SCALP {msg}")
+    notify.equity_update(msg)
 
 
 def _submit_market(client, *, symbol: str, side: str, qty: int, decision_id: str,
