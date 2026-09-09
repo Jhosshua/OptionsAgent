@@ -1,3 +1,4 @@
+import pytest
 import sys
 from pathlib import Path
 
@@ -13,6 +14,12 @@ from harness.risk_rails import (
     credit_spread_overfit_decision,
     evaluate_proposal,
 )
+
+
+@pytest.fixture(autouse=True)
+def isolate_default_rail_tests(monkeypatch):
+    # Production sets this cap; tests of the code default must not inherit it.
+    monkeypatch.delenv("OA_MAX_POSITION_USD", raising=False)
 
 
 def make_account(**overrides):

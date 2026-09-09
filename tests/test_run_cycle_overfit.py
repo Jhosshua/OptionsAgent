@@ -1,7 +1,13 @@
+import pytest
 from run_cycle import _select_and_price
 from harness.contracts import OptionQuote
 from harness.env import config
 from harness.risk_rails import Proposal
+
+
+@pytest.fixture(autouse=True)
+def use_historical_winner_gate(monkeypatch):
+    monkeypatch.setenv("OA_CREDIT_SPREAD_GATE", "winner_profile")
 
 
 def _q(right, strike, delta, bid, ask):
