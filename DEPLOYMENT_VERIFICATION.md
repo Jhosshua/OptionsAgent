@@ -62,3 +62,19 @@ The original public dashboard hostname and GitHub repository URL stay valid.
 
 API contracts used: [Discord Components V2](https://docs.discord.com/developers/components/using-message-components)
 and [Alpaca multi-leg options](https://docs.alpaca.markets/us/docs/options-level-3-trading).
+
+## 2026-09-13 agy proposer deployment
+
+- Source revision `e972929`, deployment `b9c3665d-095f-4a4c-93b7-16865498e9ab`, SUCCESS.
+- Volume `f2d1a835-debe-472b-b154-7c441fb98bc8` unchanged; structures ledger hash
+  `7e52a286...641fdf` identical before and after. Paper gate still `ALPACA_PAPER=true`.
+- In the container: `/usr/local/bin/agy` 1.2.2, `/root/.gemini` login restored from
+  `GEMINI_HOME_TGZ_B64`, `OA_AGY_MODEL=gemini-3.8-flash-low` in the cron `.env`.
+- Real read-only bundle built in the container, then 4 agy calls (2 low, 2 medium):
+  4/4 OK, low 9-10s, medium 17-22s. `propose_report` under a cron-like empty
+  environment: `agy gemini-3.8-flash-low ok=True attempts=1 6.0s`, 3 ideas.
+  No entry cycle was run and no orders were placed.
+- Railway `DEEPSEEK_API_KEY`, `OA_DEEPSEEK_MODEL`, `OA_LLM_PROVIDER` deleted after
+  verification. `/api/system` reports `agy / gemini-3.8-flash-low`; its "last" row
+  stays the Sep 11 DeepSeek cycle until the first agy cycle (Monday 10:15 ET).
+- Local suite: 301 passed.
