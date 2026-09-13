@@ -509,6 +509,14 @@ def _rejection_label(record: dict[str, Any]) -> str:
     return outcome.replace("_", " ") or "unknown"
 
 
+def _current_model() -> dict[str, Any]:
+    try:
+        return {"provider": proposer.provider(), "model": proposer.model_name()}
+    except Exception:
+        log.exception("could not read the configured AI model")
+        return {"provider": None, "model": None}
+
+
 def _seller_cycle_report() -> dict[str, Any]:
     """What the seller did on its most recent cycle: whether the AI call
     itself worked (the `proposer_result` row), how many proposals came back,
@@ -516,7 +524,10 @@ def _seller_cycle_report() -> dict[str, Any]:
     reports the AI as unknown, never as a clean zero."""
     rows = _read_jsonl(DECISIONS_PATH)
     starts = [row for row in rows if row.get("kind") == "cycle_start" and _parse_ts(row.get("ts"))]
-    empty = {"cycle_id": None, "started": None, "ai": None, "proposals": None, "opened": None, "rejections": []}
+    empty = {
+        "cycle_id": None, "started": None, "current_model": _current_model(), "ai": None,
+        "proposals": None, "opened": None, "rejections": [],
+    }
     if not starts:
         return empty
     last = max(starts, key=lambda row: _parse_ts(row["ts"]))
@@ -561,6 +572,11 @@ def _seller_cycle_report() -> dict[str, Any]:
     return {
         "cycle_id": cycle_id,
         "started": _parse_ts(last["ts"]).isoformat(),
+        # The model the bot runs NOW, read live from the same functions the
+        # entry cycle uses. The card's "Model" row shows this, never the model
+        # journaled on an old run (09-13: the card kept saying DeepSeek after
+        # the switch to agy because it only showed the last run's row).
+        "current_model": _current_model(),
         "ai": ai,
         "proposals": proposals,
         "opened": opened if proposals is not None else None,

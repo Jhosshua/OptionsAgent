@@ -501,3 +501,26 @@ def test_a_cycle_start_without_an_id_does_not_absorb_other_rows(tmp_path, monkey
 
     assert report["cycle_id"] is None
     assert report["ai"] is None and report["proposals"] is None
+
+
+def test_card_model_is_the_live_configured_model_not_the_old_runs(tmp_path, monkeypatch):
+    """09-13 regression: after switching to agy the card still said
+    'deepseek · deepseek-v4-pro' because it only showed the last run's row."""
+    _write_decisions(tmp_path, monkeypatch, [
+        {"kind": "cycle_start", "cycle_id": "c_old", "ts": "2026-09-11T18:00:02+00:00", "phase": "credit_spreads_only"},
+        {"kind": "proposer_result", "cycle_id": "c_old", "ts": "2026-09-11T18:01:09+00:00", "provider": "deepseek",
+         "model": "deepseek-v4-pro", "ok": True, "proposals": 2, "attempts": 1, "latency_s": 61.6, "error": None},
+    ])
+    monkeypatch.setenv("OA_AGY_MODEL", "gemini-3.8-flash-medium")
+
+    report = dashboard._seller_cycle_report()
+
+    assert report["current_model"] == {"provider": "agy", "model": "gemini-3.8-flash-medium"}
+    assert report["ai"]["model"] == "deepseek-v4-pro"  # the history stays true
+
+
+def test_current_model_is_present_before_any_cycle(tmp_path, monkeypatch):
+    _write_decisions(tmp_path, monkeypatch, [])
+    monkeypatch.delenv("OA_AGY_MODEL", raising=False)
+
+    assert dashboard._seller_cycle_report()["current_model"] == {"provider": "agy", "model": "gemini-3.8-flash-low"}

@@ -91,9 +91,13 @@
     $("ai-badge").textContent = status.cls === "gain" ? "● OK" : status.cls === "loss" ? "● Failed" : "● Unknown";
     $("ai-badge").className = `status-text ${status.cls}`;
     const ai = cycle.ai || {};
+    const current = cycle.current_model || {};
+    const modelLabel = (m) => (m && m.provider ? `${esc(m.provider)} · ${esc(m.model)}` : "—");
+    const lastDiffers = ai.provider && (ai.provider !== current.provider || ai.model !== current.model);
     $("ai-rows").innerHTML =
       row("When", cycle.started ? whenET(cycle.started) : "No run yet") +
-      row("Model", ai.provider ? `${esc(ai.provider)} · ${esc(ai.model)}` : "—") +
+      row("Model", modelLabel(current)) +
+      (lastDiffers ? row("This run used", `${modelLabel(ai)} (before the model change)`, "muted") : "") +
       row("AI call", status.text, status.cls) +
       row("Ideas proposed", cycle.proposals ?? "—") +
       row("Traded", cycle.opened ?? "—", cycle.opened > 0 ? "gain" : "");
@@ -223,6 +227,8 @@
       row("Model", esc(ai.model) || "—") +
       row("Last seller cycle", stamp(data.last_cycle, { year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" })) +
       row("Last call", status.text, status.cls) +
+      (last.provider && (last.provider !== ai.provider || last.model !== ai.model)
+        ? row("Last call used", `${esc(last.provider)} · ${esc(last.model)} (before the model change)`, "muted") : "") +
       (last.error ? row("Error", esc(last.error), "loss") : "") +
       row("Proposals → opened", cycle.proposals == null ? "—" : `${cycle.proposals} → ${cycle.opened ?? 0}`) +
       `</article>` +
