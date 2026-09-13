@@ -24,3 +24,8 @@ Updated 2026-09-09. Resolved one-off build narratives and obsolete setup advice 
   removed. `tests/conftest.py` now clears notification credentials after dotenv
   loads and rejects external HTTP unless a test installs a fake. Production
   tests must keep broker adapters and state isolated as well as notifications.
+
+- 2026-09-13: after swapping DeepSeek for agy the dashboard card still named DeepSeek,
+  because "Model" read the last journaled run. Labels for current configuration must
+  read live config; history rows must be labeled as past. Check the deployed page
+  for the old value before calling a swap done.

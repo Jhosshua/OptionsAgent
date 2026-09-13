@@ -78,3 +78,13 @@ and [Alpaca multi-leg options](https://docs.alpaca.markets/us/docs/options-level
   verification. `/api/system` reports `agy / gemini-3.8-flash-low`; its "last" row
   stays the Sep 11 DeepSeek cycle until the first agy cycle (Monday 10:15 ET).
 - Local suite: 301 passed.
+
+## 2026-09-13 dashboard model row fix
+
+- The "AI trade ideas · latest run" card still said `deepseek · deepseek-v4-pro` after the
+  agy switch: its Model row read the Sep 11 journal row, not live config. Fixed in
+  `593c47e`, deployment `370725cc-de76-4931-8588-95a806bb40a8` SUCCESS.
+- Live `/api/summary` `seller_cycle.current_model` = `agy / gemini-3.8-flash-low`.
+  The deployed `app.js` rendered against live data shows `Model: agy · gemini-3.8-flash-low`
+  plus `This run used: deepseek · deepseek-v4-pro (before the model change)`.
+- Suite: 303 passed (2 new regression tests).
