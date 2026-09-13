@@ -35,8 +35,8 @@ def _stub_everything(monkeypatch, report):
 def test_a_failed_ai_call_is_journaled_as_a_proposer_result_row(monkeypatch):
     rows = _stub_everything(
         monkeypatch,
-        ProposeReport(provider="deepseek", model="deepseek-v4-pro", ok=False, attempts=3,
-                      latency_s=9.0, error="RuntimeError: DeepSeek HTTP 500: down"),
+        ProposeReport(provider="agy", model="gemini-3.8-flash-low", ok=False, attempts=3,
+                      latency_s=9.0, error="RuntimeError: agy exited with status 1: HTTP 500 down"),
     )
 
     run_cycle.run()
@@ -53,7 +53,7 @@ def test_a_failed_ai_call_is_journaled_as_a_proposer_result_row(monkeypatch):
 def test_a_quiet_market_is_journaled_as_ok_with_zero_proposals(monkeypatch):
     rows = _stub_everything(
         monkeypatch,
-        ProposeReport(provider="deepseek", model="deepseek-v4-pro", ok=True, attempts=1, latency_s=40.0),
+        ProposeReport(provider="agy", model="gemini-3.8-flash-low", ok=True, attempts=1, latency_s=40.0),
     )
 
     run_cycle.run()

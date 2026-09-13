@@ -1,0 +1,338 @@
+{
+  "summary": {
+    "gemini-3.8-flash-low": {
+      "calls": 6,
+      "ok": 6,
+      "median_latency_s": 7.3,
+      "max_latency_s": 21.2,
+      "ideas_per_call": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "tradeable_per_call": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "outside_allowed_strategies": 0,
+      "credit_spread_neutral": 0,
+      "same_as_modal_answer": 4,
+      "modal_answer": [
+        [
+          "KVUE",
+          "bullish"
+        ],
+        [
+          "MARA",
+          "bearish"
+        ]
+      ]
+    },
+    "gemini-3.8-flash-medium": {
+      "calls": 6,
+      "ok": 6,
+      "median_latency_s": 16.4,
+      "max_latency_s": 41.9,
+      "ideas_per_call": [
+        2,
+        2,
+        1,
+        1,
+        2,
+        2
+      ],
+      "tradeable_per_call": [
+        2,
+        2,
+        1,
+        1,
+        2,
+        2
+      ],
+      "outside_allowed_strategies": 0,
+      "credit_spread_neutral": 0,
+      "same_as_modal_answer": 4,
+      "modal_answer": [
+        [
+          "CCL",
+          "bullish"
+        ],
+        [
+          "MARA",
+          "bearish"
+        ]
+      ]
+    }
+  },
+  "runs": [
+    {
+      "model": "gemini-3.8-flash-low",
+      "ok": true,
+      "latency_s": 7.3,
+      "error": null,
+      "proposals": [
+        {
+          "underlying": "MARA",
+          "strategy_type": "credit_spread",
+          "direction": "bearish",
+          "conviction": 0.72,
+          "thesis": "MARA has rallied 30% over 20 days to close at the top of its range on elevated volume, leaving upside call premium richly priced. A call credit spread harvests this euphoria against continuation without taking on undefined risk."
+        },
+        {
+          "underlying": "KVUE",
+          "strategy_type": "credit_spread",
+          "direction": "bullish",
+          "conviction": 0.68,
+          "thesis": "KVUE has flushed to fresh 20-day lows on nearly triple average volume, spiking downside put premium. A put credit spread takes advantage of elevated fear pricing to bet on stabilization near support."
+        }
+      ],
+      "round": 1
+    },
+    {
+      "model": "gemini-3.8-flash-medium",
+      "ok": true,
+      "latency_s": 13.3,
+      "error": null,
+      "proposals": [
+        {
+          "underlying": "MARA",
+          "strategy_type": "credit_spread",
+          "direction": "bearish",
+          "conviction": 0.75,
+          "thesis": "MARA has extended 30% higher over the last 20 days to the top of its range, inflating call premiums on speculative euphoria. A call credit spread harvests this rich implied volatility while profiting if the rally consolidates or mean-reverts."
+        },
+        {
+          "underlying": "CCL",
+          "strategy_type": "credit_spread",
+          "direction": "bullish",
+          "conviction": 0.7,
+          "thesis": "CCL is down 20% over 20 days and is beginning to find support near its 20-day lows, pricing in extreme downside fear. A put credit spread sells inflated put premium to profit from stabilization or a relief bounce with defined risk."
+        }
+      ],
+      "round": 1
+    },
+    {
+      "model": "gemini-3.8-flash-medium",
+      "ok": true,
+      "latency_s": 10.9,
+      "error": null,
+      "proposals": [
+        {
+          "underlying": "MARA",
+          "strategy_type": "credit_spread",
+          "direction": "bearish",
+          "conviction": 0.72,
+          "thesis": "MARA has rallied nearly 30% over the last 20 days and sits at the top of its range, sharply inflating call premiums. Selling a call credit spread collects rich euphoria premium against an overextended move where upside momentum is likely to stall."
+        },
+        {
+          "underlying": "CCL",
+          "strategy_type": "credit_spread",
+          "direction": "bullish",
+          "conviction": 0.68,
+          "thesis": "CCL has sold off 20% over the past 20 days and is beginning to stabilize near the bottom of its range, leaving put options richly priced from fear. Selling a put credit spread captures this elevated volatility premium while benefiting from consolidation or a modest rebound."
+        }
+      ],
+      "round": 2
+    },
+    {
+      "model": "gemini-3.8-flash-low",
+      "ok": true,
+      "latency_s": 7.0,
+      "error": null,
+      "proposals": [
+        {
+          "underlying": "MARA",
+          "strategy_type": "credit_spread",
+          "direction": "bearish",
+          "conviction": 0.7,
+          "thesis": "MARA has rallied nearly 30% over the last 20 days and sits at the top of its range, inflating call premiums. Selling an out-of-the-money call credit spread exploits elevated euphoria and overextended momentum against resistance."
+        },
+        {
+          "underlying": "KVUE",
+          "strategy_type": "credit_spread",
+          "direction": "bullish",
+          "conviction": 0.65,
+          "thesis": "KVUE dropped to its 20-day lows on nearly three times normal volume, spiking fear premium. Selling a put credit spread capitalizes on inflated implied volatility while positioning for price stabilization."
+        }
+      ],
+      "round": 2
+    },
+    {
+      "model": "gemini-3.8-flash-low",
+      "ok": true,
+      "latency_s": 21.2,
+      "error": null,
+      "proposals": [
+        {
+          "underlying": "MARA",
+          "strategy_type": "credit_spread",
+          "direction": "bearish",
+          "conviction": 0.75,
+          "thesis": "MARA has surged nearly 30% over the past 20 days to the top of its range, inflating upside call premium on retail euphoria. A bearish credit spread sells this richly priced premium against an overextended move to profit from consolidation or mean reversion."
+        },
+        {
+          "underlying": "CCL",
+          "strategy_type": "credit_spread",
+          "direction": "bullish",
+          "conviction": 0.68,
+          "thesis": "CCL is heavily sold off after dropping 20% over 20 days and is now attempting to stabilize near its range lows. A bullish credit spread harvests the elevated downside fear premium expecting price stabilization or a technical bounce."
+        }
+      ],
+      "round": 3
+    },
+    {
+      "model": "gemini-3.8-flash-medium",
+      "ok": true,
+      "latency_s": 28.4,
+      "error": null,
+      "proposals": [
+        {
+          "underlying": "MARA",
+          "strategy_type": "credit_spread",
+          "direction": "bearish",
+          "conviction": 0.75,
+          "thesis": "MARA has spiked 30% over the past 20 days and sits at the top of its range, inflating call premiums on euphoric momentum. Selling a call credit spread collects richly priced premium while positioning for price stabilization or mean reversion rather than chasing an extended move."
+        }
+      ],
+      "round": 3
+    },
+    {
+      "model": "gemini-3.8-flash-medium",
+      "ok": true,
+      "latency_s": 41.9,
+      "error": null,
+      "proposals": [
+        {
+          "underlying": "MARA",
+          "strategy_type": "credit_spread",
+          "direction": "bearish",
+          "conviction": 0.72,
+          "thesis": "MARA has surged nearly 30% over the last 20 days to the top of its range, sharply inflating call premiums. A call credit spread sells this elevated euphoria premium to profit from price stabilization or mean reversion."
+        }
+      ],
+      "round": 4
+    },
+    {
+      "model": "gemini-3.8-flash-low",
+      "ok": true,
+      "latency_s": 8.0,
+      "error": null,
+      "proposals": [
+        {
+          "underlying": "MARA",
+          "strategy_type": "credit_spread",
+          "direction": "bearish",
+          "conviction": 0.7,
+          "thesis": "MARA has rallied nearly 30% over 20 days to its 20-day high, creating rich call premium where an overextended momentum move favors selling upside risk against continuation."
+        },
+        {
+          "underlying": "KVUE",
+          "strategy_type": "credit_spread",
+          "direction": "bullish",
+          "conviction": 0.68,
+          "thesis": "KVUE sits at the bottom of its 20-day range after an extended selloff on nearly triple average volume, presenting inflated put premium to sell into capitulation targeting stabilization."
+        }
+      ],
+      "round": 4
+    },
+    {
+      "model": "gemini-3.8-flash-low",
+      "ok": true,
+      "latency_s": 6.0,
+      "error": null,
+      "proposals": [
+        {
+          "underlying": "MARA",
+          "strategy_type": "credit_spread",
+          "direction": "bearish",
+          "conviction": 0.68,
+          "thesis": "MARA has surged 30% over the past 20 days into new highs with heavy volume, creating richly priced upside premium. Selling a call credit spread capitalizes on inflated implied volatility and expects consolidation or mean reversion rather than chasing continuation."
+        },
+        {
+          "underlying": "KVUE",
+          "strategy_type": "credit_spread",
+          "direction": "bullish",
+          "conviction": 0.62,
+          "thesis": "KVUE has sold off hard to its 20-day low on nearly 3x average volume, elevating downside fear premium. Selling a put credit spread captures this rich premium under an oversold stabilization thesis."
+        }
+      ],
+      "round": 5
+    },
+    {
+      "model": "gemini-3.8-flash-medium",
+      "ok": true,
+      "latency_s": 16.4,
+      "error": null,
+      "proposals": [
+        {
+          "underlying": "MARA",
+          "strategy_type": "credit_spread",
+          "direction": "bearish",
+          "conviction": 0.75,
+          "thesis": "MARA has surged nearly 30% over the last 20 days to the top of its range, inflating call premium on euphoria. Selling a call credit spread capitalizes on elevated implied volatility against an overextended move."
+        },
+        {
+          "underlying": "CCL",
+          "strategy_type": "credit_spread",
+          "direction": "bullish",
+          "conviction": 0.7,
+          "thesis": "CCL has suffered an extended 20% drawdown over 20 days and is beginning to stabilize near its range lows. Selling a put credit spread harvests richly priced fear premium supported by a floor-forming thesis."
+        }
+      ],
+      "round": 5
+    },
+    {
+      "model": "gemini-3.8-flash-medium",
+      "ok": true,
+      "latency_s": 15.5,
+      "error": null,
+      "proposals": [
+        {
+          "underlying": "MARA",
+          "strategy_type": "credit_spread",
+          "direction": "bearish",
+          "conviction": 0.75,
+          "thesis": "MARA has surged nearly 30% over the past 20 days and sits at the top of its range, heavily inflating call premium. A bearish call credit spread capitalizes on this elevated euphoria premium as momentum exhausts against overbought levels."
+        },
+        {
+          "underlying": "CCL",
+          "strategy_type": "credit_spread",
+          "direction": "bullish",
+          "conviction": 0.65,
+          "thesis": "CCL has declined 20% over the last 20 days and is beginning to stabilize just off its lows, leaving put premium richly priced. A bullish put credit spread collects this fear premium against a stabilization thesis with downside cushion."
+        }
+      ],
+      "round": 6
+    },
+    {
+      "model": "gemini-3.8-flash-low",
+      "ok": true,
+      "latency_s": 5.9,
+      "error": null,
+      "proposals": [
+        {
+          "underlying": "MARA",
+          "strategy_type": "credit_spread",
+          "direction": "bearish",
+          "conviction": 0.7,
+          "thesis": "MARA has rallied nearly 30% over 20 days and sits at 100% of its 20-day range with elevated volume. Selling an inflated call credit spread fades the extended euphoria momentum into overhead resistance."
+        },
+        {
+          "underlying": "CCL",
+          "strategy_type": "credit_spread",
+          "direction": "bullish",
+          "conviction": 0.65,
+          "thesis": "CCL is heavily oversold after dropping 20% in 20 days, now stabilizing near its range low. Selling a put credit spread captures elevated fear premium with defined risk against a stabilization or bounce thesis."
+        }
+      ],
+      "round": 6
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # Wingspan engineering guide
 
-Updated 2026-09-09. Read this and SETUP.md before editing or operating the bot.
+Updated 2026-09-13. Read this and SETUP.md before editing or operating the bot.
 
 - Canonical local folder: `/Users/mo/wingspan`. Railway project/service: `wingspan`.
 - This is the options credit-spread and stock-scalper bot. WheelBot is a separate
@@ -8,7 +8,11 @@ Updated 2026-09-09. Read this and SETUP.md before editing or operating the bot.
 - Railway runs the trader. Keep local launchd and cron trading disabled.
 - Paper only. Preserve the existing trading gate, account separation and risk caps.
   A deployment or health check never authorizes a change to live-money trading.
-- DeepSeek proposes only underlying, direction, strategy, conviction and thesis.
+- Gemini 3.8 Flash via the agy CLI proposes only underlying, direction, strategy,
+  conviction and thesis. DeepSeek and the Claude Code CLI were removed 2026-09-13.
+  agy runs in a temp dir with `--sandbox`, `--new-project` and a JSON schema; never
+  add `--dangerously-skip-permissions`. Its Google login can be revoked, so a failed
+  call must keep paging Discord.
   Deterministic code owns strike selection, size, orders and exits.
 - Keep `research_rules` paired with the $3,000 absolute cap. Six option-leg slots
   represent at most three two-leg spreads. Do not loosen rails to increase fills.

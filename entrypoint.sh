@@ -34,17 +34,11 @@ env_file = sys.argv[1]
 secret_keys = [
     "ALPACA_API_KEY", "ALPACA_SECRET_KEY", "ALPACA_PAPER",
     "OA_TRADING_ENABLED", "OA_DASHBOARD_HOST", "OA_DASHBOARD_URL",
-    "ANTHROPIC_API_KEY", "OA_ANTHROPIC_MODEL", "OA_MAX_TOKENS",
-    # The AI proposer (harness/proposer.py). Since 2026-09-01 the container
-    # calls the DeepSeek API with DEEPSEEK_API_KEY. A missing key = the
-    # proposer fails closed = "no trade" every day, paged to Discord but
-    # otherwise silent. OA_LLM_PROVIDER selects deepseek (default) or the
-    # Mac-only claude_cli path (the container does not carry the CLI).
-    "DEEPSEEK_API_KEY", "OA_LLM_PROVIDER", "OA_DEEPSEEK_MODEL",
-    "OA_LLM_TIMEOUT_SECONDS", "OA_LLM_ATTEMPTS",
-    # Legacy Claude CLI knobs, honoured only when OA_LLM_PROVIDER=claude_cli.
-    "CLAUDE_CODE_OAUTH_TOKEN", "OA_CLAUDE_CLI", "OA_CLAUDE_MODEL",
-    "OA_CLAUDE_TIMEOUT_SECONDS", "OA_CLAUDE_ATTEMPTS",
+    # The AI proposer (harness/proposer.py) runs the agy CLI (Gemini) since
+    # 2026-09-13. Its Google login is restored from GEMINI_HOME_TGZ_B64 below,
+    # not through .env. A broken login = the proposer fails closed = "no
+    # trade" that day, paged to Discord.
+    "OA_AGY_MODEL", "OA_AGY_CLI", "OA_LLM_TIMEOUT_SECONDS", "OA_LLM_ATTEMPTS",
     # Equity scalper rails. The master switch alone is not enough: without these
     # every rail silently falls back to its code default, so a TIGHTER limit set
     # in Railway would never bind. cron does not pass the container env.
@@ -98,6 +92,19 @@ with open(env_file, "w") as fh:
 os.chmod(env_file, 0o600)
 print("[entrypoint] injected secrets:", ", ".join(injected) if injected else "(none set)")
 PY
+
+# --- 1b. Restore the agy (Antigravity CLI) Google login ---
+# GEMINI_HOME_TGZ_B64 is base64 of a tar.gz of a working ~/.gemini folder,
+# the same variable ManualTrading2 uses. cron jobs run as root with HOME=/root.
+if [ -n "${GEMINI_HOME_TGZ_B64:-}" ]; then
+  if echo "$GEMINI_HOME_TGZ_B64" | base64 -d | tar -xzf - -C /root; then
+    echo "[entrypoint] agy login restored to /root/.gemini"
+  else
+    echo "[entrypoint] GEMINI_HOME_TGZ_B64 could not be unpacked: AI proposals will fail closed"
+  fi
+else
+  echo "[entrypoint] GEMINI_HOME_TGZ_B64 not set: AI proposals will fail closed"
+fi
 
 # --- 2. Volume runtime dirs (never clobber existing volume state) ---
 mkdir -p "$APP/data/logs" "$APP/data/.locks" "$APP/data/scalp_state" "$APP/data/marketdata"

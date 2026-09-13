@@ -1,5 +1,6 @@
-"""Offline tests for the proposer boundary: DeepSeek API by default, the
-Claude Code CLI only when OA_LLM_PROVIDER=claude_cli (Mac)."""
+"""Offline tests for the proposer boundary: the Antigravity CLI (agy) running
+Gemini 3.8 Flash is the only provider since 2026-09-13. subprocess.run is
+always faked; no test starts a real agy."""
 
 import json
 
@@ -21,162 +22,211 @@ GOOD = {
 BUNDLE = {"phase": "credit_spreads_only", "allowed_strategies": ["credit_spread"], "watchlist": []}
 
 
-class FakeResponse:
-    def __init__(self, status=200, payload=None, text=""):
-        self.status_code = status
-        self._payload = payload
-        self.text = text
-
-    def json(self):
-        if self._payload is None:
-            raise ValueError("no json")
-        return self._payload
+class Completed:
+    def __init__(self, returncode=0, stdout="", stderr=""):
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
 
 
-def _completion(content, finish="stop"):
-    return {"choices": [{"message": {"content": content}, "finish_reason": finish}]}
+def _agy_json(structured, status="SUCCESS"):
+    return json.dumps({"status": status, "response": "done", "structured_output": structured})
 
 
 @pytest.fixture(autouse=True)
 def alerts(monkeypatch):
-    """No sleeping between retries, no Discord, deterministic env."""
+    """No sleeping between retries, no Discord, a fake agy on PATH."""
     sent = []
     monkeypatch.setattr(proposer.time, "sleep", lambda seconds: None)
     monkeypatch.setattr(proposer.notify, "error", lambda message: sent.append(message))
-    monkeypatch.setenv("OA_LLM_PROVIDER", "deepseek")
-    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test")
     monkeypatch.setenv("OA_LLM_ATTEMPTS", "3")
-    monkeypatch.delenv("OA_DEEPSEEK_MODEL", raising=False)
+    monkeypatch.delenv("OA_LLM_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.delenv("OA_AGY_MODEL", raising=False)
+    monkeypatch.delenv("OA_AGY_CLI", raising=False)
+    monkeypatch.setattr(proposer.shutil, "which", lambda name: "/usr/local/bin/agy" if name == "agy" else None)
+    monkeypatch.setattr(proposer.subprocess, "run", lambda *a, **k: pytest.fail("a test ran a real agy"))
     return sent
 
 
-def _post_returning(monkeypatch, responses):
-    """Queue of responses; the last one repeats. Records every call."""
+def _run_returning(monkeypatch, results):
+    """Queue of Completed results; the last one repeats. Records every call."""
     calls = []
 
-    def fake_post(url, **kwargs):
-        calls.append((url, kwargs))
-        index = min(len(calls) - 1, len(responses) - 1)
-        return responses[index]
+    def fake_run(command, **kwargs):
+        calls.append((command, kwargs))
+        return results[min(len(calls) - 1, len(results) - 1)]
 
-    monkeypatch.setattr(proposer.requests, "post", fake_post)
+    monkeypatch.setattr(proposer.subprocess, "run", fake_run)
     return calls
 
 
-# --- DeepSeek --------------------------------------------------------------
+def _flag(command, name):
+    return command[command.index(name) + 1]
 
 
-def test_deepseek_posts_the_bundle_and_parses_proposals(monkeypatch, alerts):
-    calls = _post_returning(monkeypatch, [FakeResponse(200, _completion(json.dumps(GOOD)))])
+# --- agy --------------------------------------------------------------------
+
+
+def test_agy_gets_the_bundle_and_structured_output_is_parsed(monkeypatch, alerts):
+    calls = _run_returning(monkeypatch, [Completed(stdout=_agy_json(GOOD))])
 
     report = proposer.propose_report(BUNDLE)
 
-    assert report.ok is True
-    assert report.attempts == 1
-    assert report.error is None
+    assert report.ok is True and report.provider == "agy"
+    assert report.attempts == 1 and report.error is None
     assert [p.underlying for p in report.proposals] == ["CCL"]
-    assert report.proposals[0].direction == "bullish"
     assert alerts == []
-
-    url, kwargs = calls[0]
-    assert url == proposer.DEEPSEEK_URL
-    assert kwargs["headers"]["Authorization"] == "Bearer sk-test"
-    body = kwargs["json"]
-    assert body["model"] == "deepseek-v4-pro"  # config/config.json llm.model
-    assert body["response_format"] == {"type": "json_object"}
-    assert body["temperature"] == 0.0
-    assert body["max_tokens"] == proposer.DEEPSEEK_MAX_TOKENS
-    system, user = body["messages"]
-    assert system["role"] == "system"
-    assert "json" in system["content"]  # DeepSeek's json_object precondition, lowercase, case-sensitive on purpose
-    assert "never mention a specific strike" in system["content"]
-    assert user["role"] == "user"
-    assert json.loads(user["content"])["phase"] == "credit_spreads_only"
-
-
-def test_env_model_overrides_config(monkeypatch):
-    monkeypatch.setenv("OA_DEEPSEEK_MODEL", "deepseek-v4-flash")
-    calls = _post_returning(monkeypatch, [FakeResponse(200, _completion('{"proposals": []}'))])
-
-    report = proposer.propose_report(BUNDLE)
-
-    assert report.ok is True and report.proposals == []
-    assert calls[0][1]["json"]["model"] == "deepseek-v4-flash"
-    assert report.model == "deepseek-v4-flash"
+    command, kwargs = calls[0]
+    assert command[0] == "/usr/local/bin/agy"
+    assert _flag(command, "--model") == "gemini-3.8-flash-low"  # config/config.json llm.model
+    assert _flag(command, "--effort") == "low"
+    assert _flag(command, "--output-format") == "json"
+    assert json.loads(_flag(command, "--json-schema")) == proposer._OUTPUT_SCHEMA
+    assert "--new-project" in command and "--sandbox" in command
+    assert "--dangerously-skip-permissions" not in command
+    prompt = _flag(command, "-p")
+    assert prompt.startswith(proposer.NO_TOOLS_PREAMBLE)
+    assert proposer.SYSTEM_PROMPT in prompt
+    assert json.loads(prompt.rsplit("\n", 1)[-1])["phase"] == "credit_spreads_only"
+    # never started inside the repo: agy has reverted files where it ran
+    assert kwargs["cwd"] and "wingspan-agy-" in kwargs["cwd"]
 
 
-def test_missing_key_fails_closed_without_calling_the_api(monkeypatch, alerts):
-    monkeypatch.delenv("DEEPSEEK_API_KEY")
-    monkeypatch.setattr(proposer.requests, "post", lambda *a, **k: pytest.fail("must not call the API"))
+@pytest.mark.parametrize("model,effort", [("gemini-3.8-flash-low", "low"), ("gemini-3.8-flash-medium", "medium")])
+def test_env_model_sets_model_and_matching_effort(monkeypatch, model, effort):
+    monkeypatch.setenv("OA_AGY_MODEL", model)
+    calls = _run_returning(monkeypatch, [Completed(stdout=_agy_json({"proposals": []}))])
 
     report = proposer.propose_report(BUNDLE)
 
-    assert report.ok is False
-    assert report.proposals == []
-    assert report.attempts == 1  # config errors are not retried
-    assert "DEEPSEEK_API_KEY" in report.error
-    assert len(alerts) == 1 and "NO TRADES" in alerts[0] and "DEEPSEEK_API_KEY" in alerts[0]
+    assert report.ok is True and report.proposals == [] and report.model == model
+    assert _flag(calls[0][0], "--model") == model
+    assert _flag(calls[0][0], "--effort") == effort
 
 
-def test_bad_key_is_not_retried(monkeypatch, alerts):
-    calls = _post_returning(monkeypatch, [FakeResponse(401, None, '{"error":"invalid key"}')])
+def test_config_model_is_used_when_env_is_unset(monkeypatch):
+    monkeypatch.setattr(proposer, "config", lambda: {"llm": {"model": "gemini-3.8-flash-medium"}})
+    calls = _run_returning(monkeypatch, [Completed(stdout=_agy_json({"proposals": []}))])
+
+    assert proposer.propose_report(BUNDLE).model == "gemini-3.8-flash-medium"
+    assert _flag(calls[0][0], "--effort") == "medium"
+
+
+def test_unsupported_model_fails_closed_without_running_agy(monkeypatch, alerts):
+    monkeypatch.setenv("OA_AGY_MODEL", "deepseek-v4-pro")
 
     report = proposer.propose_report(BUNDLE)
 
-    assert report.ok is False and report.proposals == []
-    assert len(calls) == 1 and report.attempts == 1
-    assert "HTTP 401" in report.error
+    assert report.ok is False and report.proposals == [] and report.attempts == 1
+    assert "unsupported agy model" in report.error
+    assert len(alerts) == 1 and "NO TRADES" in alerts[0]
+
+
+def test_missing_cli_fails_closed_and_pages(monkeypatch, alerts):
+    monkeypatch.setattr(proposer.shutil, "which", lambda name: None)
+
+    report = proposer.propose_report(BUNDLE)
+
+    assert report.ok is False and report.attempts == 1  # config errors are not retried
+    assert "agy CLI not found" in report.error
+    assert len(alerts) == 1 and "GEMINI_HOME_TGZ_B64" in alerts[0]
+
+
+def test_absolute_cli_path_must_exist(monkeypatch, alerts, tmp_path):
+    monkeypatch.setenv("OA_AGY_CLI", str(tmp_path / "nope"))
+
+    assert proposer.propose(BUNDLE) == []
     assert len(alerts) == 1
 
 
-def test_server_error_is_retried_then_fails_closed(monkeypatch, alerts):
-    calls = _post_returning(monkeypatch, [FakeResponse(500, None, "upstream down")])
+def test_nonzero_exit_is_retried_then_fails_closed_with_one_page(monkeypatch, alerts):
+    calls = _run_returning(monkeypatch, [Completed(returncode=1, stderr="not logged in")])
 
     report = proposer.propose_report(BUNDLE)
 
     assert report.ok is False and report.proposals == []
     assert len(calls) == 3 and report.attempts == 3
-    assert "HTTP 500" in report.error
+    assert "not logged in" in report.error
     assert len(alerts) == 1  # one page, not one per attempt
 
 
-def test_transient_error_then_success_does_not_alert(monkeypatch, alerts):
-    calls = _post_returning(
-        monkeypatch,
-        [FakeResponse(503, None, "busy"), FakeResponse(200, _completion(json.dumps(GOOD)))],
-    )
+def test_exit_zero_with_no_output_is_a_failure_not_a_quiet_day(monkeypatch, alerts):
+    _run_returning(monkeypatch, [Completed(stdout="", stderr="jetski: no output produced")])
+
+    report = proposer.propose_report(BUNDLE)
+
+    assert report.ok is False and "no output" in report.error
+    assert len(alerts) == 1
+
+
+def test_transient_failure_then_success_does_not_alert(monkeypatch, alerts):
+    calls = _run_returning(monkeypatch, [Completed(returncode=1, stderr="busy"), Completed(stdout=_agy_json(GOOD))])
 
     report = proposer.propose_report(BUNDLE)
 
     assert report.ok is True and report.attempts == 2 and len(calls) == 2
-    assert [p.underlying for p in report.proposals] == ["CCL"]
     assert alerts == []
 
 
-def test_truncated_reply_is_rejected_not_half_used(monkeypatch, alerts):
-    _post_returning(monkeypatch, [FakeResponse(200, _completion(json.dumps(GOOD), finish="length"))])
+def test_non_json_stdout_is_rejected(monkeypatch, alerts):
+    _run_returning(monkeypatch, [Completed(stdout="I think CCL looks good")])
 
     report = proposer.propose_report(BUNDLE)
 
-    assert report.ok is False and report.proposals == []
-    assert "truncated" in report.error
+    assert report.ok is False and "did not return JSON" in report.error
 
 
-def test_invalid_json_is_rejected(monkeypatch, alerts):
-    _post_returning(monkeypatch, [FakeResponse(200, _completion("I think CCL looks good"))])
-
-    report = proposer.propose_report(BUNDLE)
-
-    assert report.ok is False and report.proposals == []
-    assert "invalid" in report.error.lower()
-
-
-def test_json_without_a_proposals_list_is_rejected(monkeypatch, alerts):
-    _post_returning(monkeypatch, [FakeResponse(200, _completion('{"ideas": []}'))])
+def test_non_success_status_is_rejected(monkeypatch, alerts):
+    _run_returning(monkeypatch, [Completed(stdout=_agy_json(GOOD, status="ERROR"))])
 
     report = proposer.propose_report(BUNDLE)
 
-    assert report.ok is False and report.proposals == []
+    assert report.ok is False and report.proposals == [] and "status" in report.error
+
+
+def test_missing_structured_output_is_rejected(monkeypatch, alerts):
+    _run_returning(monkeypatch, [Completed(stdout=json.dumps({"status": "SUCCESS", "response": "{}"}))])
+
+    assert proposer.propose_report(BUNDLE).ok is False
+
+
+def test_structured_output_without_a_proposals_list_is_rejected(monkeypatch, alerts):
+    _run_returning(monkeypatch, [Completed(stdout=_agy_json({"ideas": []}))])
+
+    assert proposer.propose_report(BUNDLE).ok is False
+
+
+def test_cli_timeout_is_retried_then_fails_closed(monkeypatch, alerts):
+    def boom(command, **kwargs):
+        raise proposer.subprocess.TimeoutExpired(command, kwargs["timeout"])
+
+    monkeypatch.setattr(proposer.subprocess, "run", boom)
+
+    report = proposer.propose_report(BUNDLE)
+
+    assert report.ok is False and report.attempts == 3
+    assert len(alerts) == 1
+
+
+def test_timeout_setting_reaches_agy_and_subprocess(monkeypatch):
+    monkeypatch.setenv("OA_LLM_TIMEOUT_SECONDS", "90")
+    calls = _run_returning(monkeypatch, [Completed(stdout=_agy_json({"proposals": []}))])
+
+    proposer.propose_report(BUNDLE)
+
+    assert _flag(calls[0][0], "--print-timeout") == "90s"
+    assert calls[0][1]["timeout"] == 120.0
+
+
+def test_retry_backoff_sleeps_5_then_10(monkeypatch, alerts):
+    slept = []
+    monkeypatch.setattr(proposer.time, "sleep", lambda seconds: slept.append(seconds))
+    _run_returning(monkeypatch, [Completed(returncode=1, stderr="down")])
+
+    report = proposer.propose_report(BUNDLE)
+
+    assert report.attempts == 3
+    assert slept == [5, 10]  # no sleep after the last attempt
 
 
 def test_malformed_items_are_dropped_not_guessed(monkeypatch):
@@ -188,7 +238,7 @@ def test_malformed_items_are_dropped_not_guessed(monkeypatch):
             {"underlying": "F"},
         ]
     }
-    _post_returning(monkeypatch, [FakeResponse(200, _completion(json.dumps(payload)))])
+    _run_returning(monkeypatch, [Completed(stdout=_agy_json(payload))])
 
     report = proposer.propose_report(BUNDLE)
 
@@ -197,15 +247,15 @@ def test_malformed_items_are_dropped_not_guessed(monkeypatch):
 
 
 def test_propose_wrapper_returns_only_the_proposals(monkeypatch):
-    _post_returning(monkeypatch, [FakeResponse(200, _completion(json.dumps(GOOD)))])
+    _run_returning(monkeypatch, [Completed(stdout=_agy_json(GOOD))])
 
     assert [p.underlying for p in proposer.propose(BUNDLE)] == ["CCL"]
 
 
 def test_journal_row_carries_the_call_outcome_not_the_proposals():
     report = proposer.ProposeReport(
-        provider="deepseek", model="deepseek-v4-pro", ok=False, attempts=3, latency_s=12.5,
-        error="RuntimeError: DeepSeek HTTP 500: upstream down",
+        provider="agy", model="gemini-3.8-flash-low", ok=False, attempts=3, latency_s=12.5,
+        error="RuntimeError: agy exited with status 1: not logged in",
     )
 
     row = report.as_journal_row("cycle-1", "2026-09-02T14:15:40+00:00")
@@ -214,142 +264,11 @@ def test_journal_row_carries_the_call_outcome_not_the_proposals():
         "kind": "proposer_result",
         "cycle_id": "cycle-1",
         "ts": "2026-09-02T14:15:40+00:00",
-        "provider": "deepseek",
-        "model": "deepseek-v4-pro",
+        "provider": "agy",
+        "model": "gemini-3.8-flash-low",
         "ok": False,
         "proposals": 0,
         "attempts": 3,
         "latency_s": 12.5,
-        "error": "RuntimeError: DeepSeek HTTP 500: upstream down",
+        "error": "RuntimeError: agy exited with status 1: not logged in",
     }
-
-
-def test_unknown_provider_fails_closed(monkeypatch, alerts):
-    monkeypatch.setenv("OA_LLM_PROVIDER", "gpt")
-    monkeypatch.setattr(proposer.requests, "post", lambda *a, **k: pytest.fail("must not call the API"))
-
-    report = proposer.propose_report(BUNDLE)
-
-    assert report.ok is False and report.proposals == []
-    assert report.attempts == 1
-    assert "unknown OA_LLM_PROVIDER" in report.error
-    assert len(alerts) == 1
-
-
-# --- Claude Code CLI (Mac only) ---------------------------------------------
-
-
-def test_claude_cli_path_uses_structured_output_and_not_api_key(monkeypatch):
-    calls = {}
-
-    class Completed:
-        returncode = 0
-        stdout = json.dumps({"structured_output": GOOD})
-
-    def fake_run(command, **kwargs):
-        calls["command"] = command
-        calls["kwargs"] = kwargs
-        return Completed()
-
-    monkeypatch.setenv("OA_LLM_PROVIDER", "claude_cli")
-    monkeypatch.setenv("OA_CLAUDE_CLI", "claude-test")
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "must-not-be-used")
-    monkeypatch.setattr(
-        proposer.shutil,
-        "which",
-        lambda name: "/usr/local/bin/claude" if name == "claude-test" else None,
-    )
-    monkeypatch.setattr(proposer.subprocess, "run", fake_run)
-    monkeypatch.setattr(proposer.requests, "post", lambda *a, **k: pytest.fail("CLI path must not hit HTTP"))
-
-    report = proposer.propose_report(BUNDLE)
-
-    assert report.ok is True and report.provider == "claude_cli"
-    assert report.proposals[0].underlying == "CCL"
-    assert calls["command"][0] == "/usr/local/bin/claude"
-    assert "--json-schema" in calls["command"]
-    assert "--no-session-persistence" in calls["command"]
-    assert "ANTHROPIC_API_KEY" not in calls["kwargs"]["env"]
-
-
-def test_claude_cli_missing_fails_closed(monkeypatch, alerts, tmp_path):
-    monkeypatch.setenv("OA_LLM_PROVIDER", "claude_cli")
-    monkeypatch.setenv("OA_CLAUDE_CLI", "missing-claude")
-    monkeypatch.setattr(proposer.shutil, "which", lambda name: None)
-    # The last fallback is ~/.npm-global/bin/claude, which EXISTS on the Mac:
-    # without this the test silently runs the real CLI.
-    monkeypatch.setattr(proposer.Path, "home", classmethod(lambda cls: tmp_path))
-    monkeypatch.setattr(proposer.subprocess, "run", lambda *a, **k: pytest.fail("must not run a real CLI"))
-
-    assert proposer.propose(BUNDLE) == []
-    assert len(alerts) == 1 and "Claude CLI" in alerts[0]
-
-
-# --- review follow-ups (2026-09-01 QA pass) ---------------------------------
-
-
-def test_retry_backoff_sleeps_5_then_10(monkeypatch, alerts):
-    slept = []
-    monkeypatch.setattr(proposer.time, "sleep", lambda seconds: slept.append(seconds))
-    _post_returning(monkeypatch, [FakeResponse(500, None, "upstream down")])
-
-    report = proposer.propose_report(BUNDLE)
-
-    assert report.attempts == 3
-    assert slept == [5, 10]  # no sleep after the last attempt
-
-
-def test_config_model_and_temperature_are_used_when_env_is_unset(monkeypatch):
-    monkeypatch.setattr(
-        proposer,
-        "config",
-        lambda: {"llm": {"provider": "deepseek", "model": "deepseek-test-model", "temperature": 0.3}},
-    )
-    calls = _post_returning(monkeypatch, [FakeResponse(200, _completion('{"proposals": []}'))])
-
-    report = proposer.propose_report(BUNDLE)
-
-    assert report.model == "deepseek-test-model"
-    assert calls[0][1]["json"]["model"] == "deepseek-test-model"
-    assert calls[0][1]["json"]["temperature"] == 0.3
-
-
-def test_bad_request_400_is_not_retried(monkeypatch, alerts):
-    calls = _post_returning(monkeypatch, [FakeResponse(400, None, '{"error":"model not found"}')])
-
-    report = proposer.propose_report(BUNDLE)
-
-    assert report.ok is False and len(calls) == 1 and report.attempts == 1
-
-
-def test_rate_limit_429_is_retried(monkeypatch, alerts):
-    calls = _post_returning(
-        monkeypatch, [FakeResponse(429, None, "slow down"), FakeResponse(200, _completion(json.dumps(GOOD)))]
-    )
-
-    report = proposer.propose_report(BUNDLE)
-
-    assert report.ok is True and len(calls) == 2
-
-
-def test_legacy_claude_knobs_do_not_steer_the_deepseek_path(monkeypatch, alerts):
-    monkeypatch.delenv("OA_LLM_ATTEMPTS", raising=False)
-    monkeypatch.delenv("OA_LLM_TIMEOUT_SECONDS", raising=False)
-    monkeypatch.setenv("OA_CLAUDE_ATTEMPTS", "1")
-    monkeypatch.setenv("OA_CLAUDE_TIMEOUT_SECONDS", "600")
-    calls = _post_returning(monkeypatch, [FakeResponse(500, None, "upstream down")])
-
-    report = proposer.propose_report(BUNDLE)
-
-    assert report.attempts == 3  # code default, not the leftover CLI var
-    assert calls[0][1]["timeout"] == 180.0
-
-
-def test_legacy_claude_knobs_still_steer_the_cli_path(monkeypatch):
-    monkeypatch.setenv("OA_LLM_PROVIDER", "claude_cli")
-    monkeypatch.delenv("OA_LLM_ATTEMPTS", raising=False)
-    monkeypatch.setenv("OA_CLAUDE_ATTEMPTS", "2")
-    monkeypatch.setenv("OA_CLAUDE_TIMEOUT_SECONDS", "45")
-
-    assert proposer._attempts() == 2
-    assert proposer._timeout_seconds() == 45.0

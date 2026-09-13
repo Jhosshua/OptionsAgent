@@ -60,7 +60,7 @@ Entrypoint writes an explicit allowlist into `.env` because cron lacks the servi
 |---|---|
 | Paper execution | `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`, `ALPACA_PAPER=true`, `OA_TRADING_ENABLED` |
 | Broker transport | `OA_BROKER_TRANSPORT=cli`, optional `OA_ALPACA_CLI` |
-| AI proposals | `DEEPSEEK_API_KEY`, `OA_LLM_PROVIDER=deepseek`, `OA_DEEPSEEK_MODEL` |
+| AI proposals (agy CLI) | `GEMINI_HOME_TGZ_B64` (base64 tar.gz of a logged-in `~/.gemini`, same value as ManualTrading2), optional `OA_AGY_MODEL` (`gemini-3.8-flash-low` or `-medium`), optional `OA_AGY_CLI` |
 | AI retries/timeouts | `OA_LLM_ATTEMPTS`, `OA_LLM_TIMEOUT_SECONDS` |
 | Options guard | `OA_CREDIT_SPREAD_GATE=research_rules`, `OA_MAX_POSITION_USD=3000` |
 | Entry windows | `OA_ENTRY_WINDOWS` |

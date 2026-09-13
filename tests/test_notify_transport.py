@@ -1,6 +1,6 @@
 """The alert transport, and the one failure it exists to make loud.
 
-The proposer FAILS CLOSED: no Claude CLI means no proposals, which means no
+The proposer FAILS CLOSED: a dead agy CLI means no proposals, which means no
 trades for the whole day, and that is indistinguishable from a genuinely quiet
 market unless something says so out loud. These tests pin that it does.
 """
@@ -82,15 +82,12 @@ def test_a_broken_transport_never_raises_into_a_trading_cycle(monkeypatch):
 def test_a_dead_cli_pages_instead_of_failing_silently(monkeypatch):
     """The regression this file exists for: three failed attempts used to return
     an empty proposal list and say nothing, so a dead CLI read as a quiet day."""
-    # The CLI is no longer the default provider (DeepSeek API since 09-01);
-    # pin it so this stays a test of the CLI-dead page.
-    monkeypatch.setenv("OA_LLM_PROVIDER", "claude_cli")
-    monkeypatch.setenv("OA_CLAUDE_ATTEMPTS", "1")
+    monkeypatch.setenv("OA_LLM_ATTEMPTS", "1")
     monkeypatch.setattr(proposer.time, "sleep", lambda *_: None)
     monkeypatch.setattr(
         proposer,
-        "_propose_with_claude_cli",
-        lambda bundle, **kwargs: (_ for _ in ()).throw(FileNotFoundError("no claude")),
+        "_propose_with_agy",
+        lambda bundle, **kwargs: (_ for _ in ()).throw(FileNotFoundError("no agy")),
     )
     sent: list[str] = []
     monkeypatch.setattr(notify, "post", lambda msg: sent.append(msg) or True)
@@ -102,15 +99,12 @@ def test_a_dead_cli_pages_instead_of_failing_silently(monkeypatch):
 
 
 def test_the_page_cannot_break_the_cycle_if_notify_itself_explodes(monkeypatch):
-    # The CLI is no longer the default provider (DeepSeek API since 09-01);
-    # pin it so this stays a test of the CLI-dead page.
-    monkeypatch.setenv("OA_LLM_PROVIDER", "claude_cli")
-    monkeypatch.setenv("OA_CLAUDE_ATTEMPTS", "1")
+    monkeypatch.setenv("OA_LLM_ATTEMPTS", "1")
     monkeypatch.setattr(proposer.time, "sleep", lambda *_: None)
     monkeypatch.setattr(
         proposer,
-        "_propose_with_claude_cli",
-        lambda bundle, **kwargs: (_ for _ in ()).throw(FileNotFoundError("no claude")),
+        "_propose_with_agy",
+        lambda bundle, **kwargs: (_ for _ in ()).throw(FileNotFoundError("no agy")),
     )
     monkeypatch.setattr(
         notify, "post", lambda msg: (_ for _ in ()).throw(RuntimeError("discord down"))

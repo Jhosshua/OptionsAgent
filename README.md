@@ -1,9 +1,9 @@
 # Wingspan
 
-Current operating guide, updated 2026-09-09.
+Current operating guide, updated 2026-09-13.
 
 Wingspan is a paper-trading bot with two engines: defined-risk options credit spreads
-and a deterministic SPY/QQQ stock scalper. DeepSeek proposes options ideas; Python
+and a deterministic SPY/QQQ stock scalper. Gemini (through the agy CLI) proposes options ideas; Python
 selects contracts, enforces risk limits and handles all orders and exits.
 
 | Location | Name or link |
@@ -30,7 +30,8 @@ schedules remain disabled; do not run another trader against this paper account.
 - Stock scalper: morning reversal on SPY/QQQ and QQQ gap continuation. Default
   $20,000 per trade, two trades/day, 0.7% stop, 120-minute holding limit,
   $300 daily loss halt and 15:50 ET flatten.
-- Proposals use the DeepSeek API. Execution uses the official Alpaca CLI on
+- Proposals use the Antigravity CLI (`agy`) with `gemini-3.8-flash-low`, chosen over
+  medium effort on 2026-09-13 (RESEARCH_AGY_EFFORT.md). Execution uses the official Alpaca CLI on
   Railway. Public.com supplies read-only options data; AlpacaRelay supplies stocks.
 - `ALPACA_PAPER=true` is enforced. The retired 0DTE option scalper stays disabled.
 

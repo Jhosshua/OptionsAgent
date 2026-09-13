@@ -1,11 +1,11 @@
 # Wingspan architecture
 
-Updated 2026-09-09. This describes the implemented production system.
+Updated 2026-09-13. This describes the implemented production system.
 
 ## Options engine
 
-`run_cycle.py` builds market context, asks `harness/proposer.py` for DeepSeek
-proposals, then applies `risk_rails.py`, `contracts.py` and `execution.py`.
+`run_cycle.py` builds market context, asks `harness/proposer.py` for Gemini
+proposals through the Antigravity CLI (`agy`, Gemini 3.8 Flash low effort), then applies `risk_rails.py`, `contracts.py` and `execution.py`.
 The model never specifies option strikes or sizes. `research_rules` enables the
 liquidity/width/DTE/delta gate with a required $3,000 cap. The strict historical
 winner-profile mode remains an optional, deliberately narrow research configuration.
@@ -44,4 +44,5 @@ P&L. A missing journal or failed provider is not rendered as a successful scan.
 
 Railway runs cron and the independently supervised dashboard from one container.
 Persistent files live on the existing volume. `entrypoint.sh` writes the cron `.env`,
-validates the volume and installs `cron/crontab.railway`. See SETUP.md for operations.
+validates the volume, restores the agy Google login from `GEMINI_HOME_TGZ_B64`
+and installs `cron/crontab.railway`. See SETUP.md for operations.

@@ -8,7 +8,8 @@ FROM python:3.11-slim-bookworm
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    TZ=America/New_York
+    TZ=America/New_York \
+    HOME=/root
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         cron bash tzdata procps coreutils ca-certificates curl gnupg \
@@ -16,12 +17,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && echo "$TZ" > /etc/timezone \
     && rm -rf /var/lib/apt/lists/*
 
-# The AI proposer (harness/proposer.py) calls the DeepSeek HTTP API with
-# DEEPSEEK_API_KEY since 2026-09-01. The container deliberately does NOT carry
-# the Claude Code CLI any more: the CLI login expired twice ("Not logged in ·
-# Please run /login") and each time the once-a-day entry cycle failed closed
-# and the whole trading day was lost. An API key has no login to lose.
-# Set OA_LLM_PROVIDER=claude_cli only on the Mac, where the CLI exists.
+# The AI proposer (harness/proposer.py) runs the Antigravity CLI (agy) with
+# Gemini 3.8 Flash since 2026-09-13. Google's installer ships linux amd64/arm64
+# builds and needs bash (it uses pipefail); this is the same install
+# ManualTrading2 runs on Railway. The Google login is NOT baked into the image:
+# entrypoint.sh restores ~/.gemini from GEMINI_HOME_TGZ_B64 at boot.
+RUN curl -fsSL https://antigravity.google/cli/install.sh -o /tmp/agy-install.sh \
+    && bash /tmp/agy-install.sh --dir /usr/local/bin \
+    && rm -f /tmp/agy-install.sh \
+    && /usr/local/bin/agy --help >/dev/null
 
 # Alpaca's official Trading CLI (github.com/alpacahq/cli): a single static Go
 # binary. With OA_BROKER_TRANSPORT=cli the broker adapter routes every

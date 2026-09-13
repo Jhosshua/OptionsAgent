@@ -335,8 +335,8 @@ CYCLE_ROWS = [
     {"kind": "decision", "cycle_id": "c_old", "ts": "2026-08-31T14:22:00+00:00",
      "proposal": {"underlying": "CCL"}, "outcome": "no_spread_matched_criteria"},
     {"kind": "cycle_start", "cycle_id": "c_new", "ts": "2026-09-02T14:15:02+00:00", "phase": "credit_spreads_only"},
-    {"kind": "proposer_result", "cycle_id": "c_new", "ts": "2026-09-02T14:15:40+00:00", "provider": "deepseek",
-     "model": "deepseek-v4-pro", "ok": True, "proposals": 3, "attempts": 1, "latency_s": 31.2, "error": None},
+    {"kind": "proposer_result", "cycle_id": "c_new", "ts": "2026-09-02T14:15:40+00:00", "provider": "agy",
+     "model": "gemini-3.8-flash-low", "ok": True, "proposals": 3, "attempts": 1, "latency_s": 31.2, "error": None},
     {"kind": "decision", "cycle_id": "c_new", "ts": "2026-09-02T14:15:41+00:00",
      "proposal": {"underlying": "CCL"}, "outcome": "no_spread_matched_criteria"},
     {"kind": "decision", "cycle_id": "c_new", "ts": "2026-09-02T14:15:42+00:00",
@@ -361,7 +361,7 @@ def test_seller_cycle_report_reads_the_latest_cycle_only(tmp_path, monkeypatch):
     assert report["cycle_id"] == "c_new"
     assert report["started"] == "2026-09-02T14:15:02+00:00"
     assert report["ai"]["ok"] is True
-    assert report["ai"]["model"] == "deepseek-v4-pro"
+    assert report["ai"]["model"] == "gemini-3.8-flash-low"
     assert report["ai"]["latency_s"] == 31.2
     assert report["proposals"] == 3
     assert report["opened"] == 0
@@ -374,15 +374,15 @@ def test_seller_cycle_report_reads_the_latest_cycle_only(tmp_path, monkeypatch):
 def test_seller_cycle_report_surfaces_a_failed_ai_call(tmp_path, monkeypatch):
     _write_decisions(tmp_path, monkeypatch, [
         {"kind": "cycle_start", "cycle_id": "c_fail", "ts": "2026-09-02T14:15:02+00:00", "phase": "credit_spreads_only"},
-        {"kind": "proposer_result", "cycle_id": "c_fail", "ts": "2026-09-02T14:15:10+00:00", "provider": "deepseek",
-         "model": "deepseek-v4-pro", "ok": False, "proposals": 0, "attempts": 1, "latency_s": 0.4,
-         "error": "ProposerConfigError: DEEPSEEK_API_KEY is not set"},
+        {"kind": "proposer_result", "cycle_id": "c_fail", "ts": "2026-09-02T14:15:10+00:00", "provider": "agy",
+         "model": "gemini-3.8-flash-low", "ok": False, "proposals": 0, "attempts": 1, "latency_s": 0.4,
+         "error": "ProposerConfigError: agy CLI not found ('agy'); set OA_AGY_CLI to its path"},
     ])
 
     report = dashboard._seller_cycle_report()
 
     assert report["ai"]["ok"] is False
-    assert "DEEPSEEK_API_KEY" in report["ai"]["error"]
+    assert "agy CLI not found" in report["ai"]["error"]
     assert report["proposals"] == 0
     assert report["opened"] == 0
     assert report["rejections"] == []
@@ -404,8 +404,8 @@ def test_seller_cycle_without_a_journaled_call_is_unknown_not_zero(tmp_path, mon
 def test_executed_decisions_count_as_opened(tmp_path, monkeypatch):
     _write_decisions(tmp_path, monkeypatch, [
         {"kind": "cycle_start", "cycle_id": "c1", "ts": "2026-09-02T14:15:02+00:00", "phase": "credit_spreads_only"},
-        {"kind": "proposer_result", "cycle_id": "c1", "ts": "2026-09-02T14:15:40+00:00", "provider": "deepseek",
-         "model": "deepseek-v4-pro", "ok": True, "proposals": 2, "attempts": 1, "latency_s": 20.0, "error": None},
+        {"kind": "proposer_result", "cycle_id": "c1", "ts": "2026-09-02T14:15:40+00:00", "provider": "agy",
+         "model": "gemini-3.8-flash-low", "ok": True, "proposals": 2, "attempts": 1, "latency_s": 20.0, "error": None},
         {"kind": "decision", "cycle_id": "c1", "ts": "2026-09-02T14:15:41+00:00",
          "proposal": {"underlying": "CCL"}, "outcome": "executed"},
         {"kind": "decision", "cycle_id": "c1", "ts": "2026-09-02T14:15:42+00:00",
@@ -433,8 +433,7 @@ def test_research_route_is_gone(http_server):
 
 def test_summary_risk_and_system_carry_the_seller_cycle(http_server, tmp_path, monkeypatch):
     _write_decisions(tmp_path, monkeypatch, CYCLE_ROWS)
-    monkeypatch.setenv("OA_LLM_PROVIDER", "deepseek")
-    monkeypatch.delenv("OA_DEEPSEEK_MODEL", raising=False)
+    monkeypatch.delenv("OA_AGY_MODEL", raising=False)
 
     _, summary = _request(http_server, "GET", "/api/summary")
     _, risk = _request(http_server, "GET", "/api/risk")
@@ -444,8 +443,8 @@ def test_summary_risk_and_system_carry_the_seller_cycle(http_server, tmp_path, m
     assert summary["seller_cycle"]["cycle_id"] == "c_new"
     assert "winner_rules" not in summary
     assert risk["rails"]["allowed_profiles"][0].startswith("CCL bullish")
-    assert risk["proposer"] == {"provider": "deepseek", "model": "deepseek-v4-pro"}
-    assert system["proposer"]["provider"] == "deepseek"
+    assert risk["proposer"] == {"provider": "agy", "model": "gemini-3.8-flash-low"}
+    assert system["proposer"]["provider"] == "agy"
     assert system["proposer"]["last"]["ok"] is True
     assert system["proposer"]["cycle"]["proposals"] == 3
     assert isinstance(system["alert_transport"], str)
@@ -457,8 +456,8 @@ def test_summary_risk_and_system_carry_the_seller_cycle(http_server, tmp_path, m
 def test_a_malformed_proposals_count_degrades_instead_of_crashing(tmp_path, monkeypatch):
     _write_decisions(tmp_path, monkeypatch, [
         {"kind": "cycle_start", "cycle_id": "c1", "ts": "2026-09-02T14:15:02+00:00", "phase": "credit_spreads_only"},
-        {"kind": "proposer_result", "cycle_id": "c1", "ts": "2026-09-02T14:15:40+00:00", "provider": "deepseek",
-         "model": "deepseek-v4-pro", "ok": True, "proposals": "many", "attempts": [1, 2], "latency_s": "slow"},
+        {"kind": "proposer_result", "cycle_id": "c1", "ts": "2026-09-02T14:15:40+00:00", "provider": "agy",
+         "model": "gemini-3.8-flash-low", "ok": True, "proposals": "many", "attempts": [1, 2], "latency_s": "slow"},
     ])
 
     report = dashboard._seller_cycle_report()
@@ -494,8 +493,8 @@ def test_read_jsonl_returns_the_tail_not_the_head(tmp_path):
 def test_a_cycle_start_without_an_id_does_not_absorb_other_rows(tmp_path, monkeypatch):
     _write_decisions(tmp_path, monkeypatch, [
         {"kind": "cycle_start", "ts": "2026-09-02T14:15:02+00:00", "phase": "credit_spreads_only"},
-        {"kind": "proposer_result", "ts": "2026-09-02T14:15:40+00:00", "provider": "deepseek",
-         "model": "deepseek-v4-pro", "ok": True, "proposals": 1, "attempts": 1, "latency_s": 1.0},
+        {"kind": "proposer_result", "ts": "2026-09-02T14:15:40+00:00", "provider": "agy",
+         "model": "gemini-3.8-flash-low", "ok": True, "proposals": 1, "attempts": 1, "latency_s": 1.0},
     ])
 
     report = dashboard._seller_cycle_report()
