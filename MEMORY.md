@@ -56,3 +56,9 @@ prices, cancellation races, dashboard accounting and duplicate prevention.
   keeping DeepSeek as a fallback (operator asked for removal).
 - Risk: the Google login can be revoked or expire. That shows up only as failed
   calls, which journal `proposer_result ok=false` and page Discord.
+
+## 2026-09-15 evening: Public vs Alpaca data study
+- What: probed every read-only Public endpoint live and compared with Alpaca. Full record in RESEARCH_PUBLIC_VS_ALPACA.md, market-hours freshness probe in research_public_freshness_probe.py (not yet run in-session).
+- Decided: keep both feeds. Public = option chain with open interest + Greeks + index options (SPX/XSP/NDX/VIX), free, 10 req/s, no websocket, intraday history capped at 1 day of 1-min or 1 week of 5-min. Alpaca (via relay) = streaming, SIP 1-min bars to 2016, news, screener, paper trading.
+- Found: the wingspan paper key is on Alpaca Basic (SIP 403, OPRA not signed). Algo Trader Plus lives on the ManualTrading data key; wingspan only sees SIP through the relay. The Public BROKERAGE account has optionsLevel NONE.
+- Open: Public bid/ask freshness during the regular session is unverified (after-hours stamps lagged 15 min and did not match SIP). Run the probe at 10:00 ET before using Public bid/ask for anything time-sensitive.
